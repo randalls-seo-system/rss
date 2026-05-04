@@ -1,9 +1,24 @@
 # Technical SEO Infrastructure Module
 
-Status: Skeleton (Day 1)
+Status: Templates complete (Day 2)
 
-Migrates and productizes the 5 VALN mu-plugins for deployment to any WordPress site.
+6 mu-plugins templated from VALN production, ready for config-driven rendering to any WordPress site.
 
-Build target: Day 2-3 of v1.0
+## Quick Start
 
-See docs/module-specs/technical-seo.md for full spec.
+```bash
+# Render for a site
+./render.sh ../../sites/<slug>.conf
+
+# Output in rendered/<slug>/
+```
+
+## Contents
+
+- `source-from-valn/` — Original production mu-plugins (reference only)
+- `templates/` — 6 template files with `{{VAR}}` placeholders
+- `render.sh` — Renders templates into deployable mu-plugins
+- `rendered/` — Output directory (per-site subdirectories)
+- `REPLACEMENTS.md` — Discovery doc of all template substitutions
+
+See `docs/module-specs/technical-seo.md` for full spec.

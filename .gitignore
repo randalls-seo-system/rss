@@ -2,6 +2,10 @@
 sites/*.conf
 sites/*.json
 sites/*.env
+sites/*.php
+
+# Rendered output (site-specific, regenerated from templates)
+modules/*/rendered/
 
 # OS noise
 .DS_Store
