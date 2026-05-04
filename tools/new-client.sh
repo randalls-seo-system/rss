@@ -189,6 +189,59 @@ else
 fi
 
 # =========================================================================
+# STEP 4b: Render v1.1 modules (Schema, Linking, Redirects, Analytics)
+# =========================================================================
+step "4b" "Render v1.1 module templates"
+
+for mod_name in schema linking redirects analytics; do
+    toggle_var="${mod_name^^}_ENABLED"
+    toggle_val="${!toggle_var:-false}"
+    render_script="${REPO_ROOT}/modules/${mod_name}/render.sh"
+
+    if [ "$toggle_val" = "true" ] && [ -x "$render_script" ]; then
+        log "Rendering ${mod_name}..."
+        if ! "$render_script" "$CONFIG_PATH"; then
+            err "${mod_name} render failed (non-fatal, continuing)"
+        fi
+    else
+        log "${mod_name}: disabled or render.sh not found — skipping"
+    fi
+done
+
+# =========================================================================
+# STEP 4c: Copy content spec templates to client directory
+# =========================================================================
+step "4c" "Copy content spec templates"
+
+CONTENT_SPECS_SRC="${REPO_ROOT}/modules/content-specs/templates"
+CONTENT_SPECS_DST="${CLIENT_DIR}/content-specs"
+
+if [ -d "$CONTENT_SPECS_SRC" ]; then
+    mkdir -p "${CONTENT_SPECS_DST}/article-structures"
+    for tmpl in "${CONTENT_SPECS_SRC}"/*.md; do
+        [ -f "$tmpl" ] || continue
+        dest_file="${CONTENT_SPECS_DST}/$(basename "$tmpl")"
+        if [ ! -f "$dest_file" ]; then
+            sed "s/{{CLIENT_NAME}}/${SITE_NAME}/g" "$tmpl" > "$dest_file"
+            log "  Copied: $(basename "$tmpl")"
+        else
+            log "  Exists: $(basename "$tmpl") (skipping)"
+        fi
+    done
+    for tmpl in "${CONTENT_SPECS_SRC}/article-structures"/*.md; do
+        [ -f "$tmpl" ] || continue
+        dest_file="${CONTENT_SPECS_DST}/article-structures/$(basename "$tmpl")"
+        if [ ! -f "$dest_file" ]; then
+            cp "$tmpl" "$dest_file"
+            log "  Copied: article-structures/$(basename "$tmpl")"
+        fi
+    done
+    log "Content specs copied to ${CONTENT_SPECS_DST}/"
+else
+    log "Content specs source not found — skipping"
+fi
+
+# =========================================================================
 # STEP 5: Deploy (unless --skip-deploy or --dry-run)
 # =========================================================================
 step 5 "Deploy Technical SEO module"
@@ -259,12 +312,23 @@ $([ "$DRY_RUN" = true ] && echo "- **Note:** This was a DRY RUN — no changes m
 
 ## Mu-Plugins Deployed
 
+### v1.0 — Technical SEO / LLM Infrastructure
 1. \`${SITE_PREFIX}-llms-config.php\` — URL configuration for AI crawlers
 2. \`${SITE_PREFIX}-llms-txt.php\` — /llms.txt endpoint
 3. \`${SITE_PREFIX}-ai-crawler-log.php\` — Crawler tracking + DB table
 4. \`${SITE_PREFIX}-markdown-variants.php\` — ?format=md handler
 5. \`${SITE_PREFIX}-llms-full-txt.php\` — /llms-full.txt export
 6. \`${SITE_PREFIX}-dashboard-ai-crawlers.php\` — Admin dashboard
+
+### v1.1 — Schema, Redirects, Analytics
+7. \`${SITE_PREFIX}-faq-schema.php\` — FAQ schema from vlnFaq markup
+8. \`${SITE_PREFIX}-schema-cleaner.php\` — Removes duplicate inline schema
+9. \`${SITE_PREFIX}-org-id.php\` — Yoast Organization @id canonicalizer
+10. \`${SITE_PREFIX}-redirect-engine.php\` — Data-driven 301 handler
+11. \`${SITE_PREFIX}-purge-410.php\` — Data-driven 410 handler
+12. \`${SITE_PREFIX}-force-enable-indexing.php\` — Prevents accidental noindex
+13. \`${SITE_PREFIX}-analytics-head.php\` — GTM + Meta Pixel injection
+14. \`${SITE_PREFIX}-form-submit-guard.php\` — Form dedup + error handling
 
 ## Audit Reports
 
