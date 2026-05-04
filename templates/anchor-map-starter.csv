@@ -1,0 +1,17 @@
+source_id,source_slug,target_url,anchor_text
+# Anchor Map — [CLIENT NAME]
+# Format: source post ID, source slug, target URL path, anchor text to match
+# The link injector will find the anchor text in the source post and wrap it in a link.
+#
+# Rules:
+# - One row per link injection
+# - target_url is a relative path (e.g., /about-us/)
+# - anchor_text must exist verbatim in the source post's <p> tags
+# - Word-boundary matching prevents sub-word splits
+# - Self-links are automatically skipped
+# - Already-linked URLs are automatically skipped
+#
+# Example rows:
+# 42,about-us,/services/,our services
+# 42,about-us,/contact/,get in touch
+# 55,services,/about-us/,our team
