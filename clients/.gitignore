@@ -1,0 +1,4 @@
+# All client data is private — nothing in this directory enters git
+*
+!.gitignore
+!README.md
