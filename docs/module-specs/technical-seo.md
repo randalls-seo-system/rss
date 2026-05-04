@@ -1,5 +1,7 @@
 # Technical SEO Module
 
+## Status: Complete (v1.0)
+
 ## What This Module Does
 
 Deploys 6 mu-plugins to a target WordPress site that together provide AI/LLM-optimized infrastructure:
@@ -13,11 +15,36 @@ Deploys 6 mu-plugins to a target WordPress site that together provide AI/LLM-opt
 
 ## How To Deploy
 
-1. Ensure site config exists at `sites/<slug>.conf`
-2. Ensure URL config exists at path specified in `CONFIG_URLS_FILE`
-3. Run: `./modules/technical-seo/render.sh sites/<slug>.conf`
-4. Verify rendered files in `modules/technical-seo/rendered/<slug>/`
-5. Deploy via: `./tools/deploy-to-site.sh sites/<slug>.conf` (Day 5 task)
+### New site (full pipeline)
+
+```bash
+# 1. Render templates
+./modules/technical-seo/render.sh sites/<slug>.conf
+
+# 2. Dry-run to verify pre-flight (SSH, paths, WP-CLI)
+./modules/technical-seo/deploy.sh sites/<slug>.conf --dry-run
+
+# 3. Review rendered files manually
+ls modules/technical-seo/rendered/<slug>/
+
+# 4. Deploy for real (backs up existing files first)
+./modules/technical-seo/deploy.sh sites/<slug>.conf
+```
+
+### Via orchestration layer
+
+```bash
+# Renders + deploys all enabled modules
+./tools/deploy-to-site.sh sites/<slug>.conf
+```
+
+### Dry-run mode
+
+```bash
+./modules/technical-seo/deploy.sh sites/<slug>.conf --dry-run
+```
+
+Runs all pre-flight checks (SSH, paths, WP-CLI, file presence) without uploading or modifying anything. Reports what would be deployed.
 
 ## Template Variables
 
@@ -58,12 +85,35 @@ return [
 ];
 ```
 
+## Deploy Script Behavior
+
+1. **Pre-flight** — Validates rendered files exist, SSH works, mu-plugins path writable, WP-CLI available
+2. **Backup** — Copies existing mu-plugins to `.rss-backups/<timestamp>/` on target
+3. **Upload** — SCP each file, verify size matches
+4. **Verify** — Check functions exist via `wp eval`
+5. **Static files** — Trigger llms.txt and llms-full.txt generation, flush rewrite rules + cache
+
+## Rollback
+
+Deploy creates timestamped backups. To rollback:
+
+```bash
+ssh <target> 'cp <backup-dir>/* <mu-plugins-path>/ && rm <mu-plugins-path>/<prefix>-*.php'
+```
+
+The exact command is printed at the end of each successful deploy.
+
 ## Known Limitations
 
 - WP Engine serves /llms.txt and /llms-full.txt as static files, bypassing PHP. Static file hits don't get logged in crawler table.
 - llms-full.txt generation is heavy on large sites; cached to /wp-content/uploads/llms-full-cache.txt and refreshed nightly via cron.
 - Static files must be written to doc root, not just uploads, for nginx to serve them.
 - Markdown conversion uses regex-based HTML stripping — works well for standard WP content and Divi, but may need tuning for other page builders.
+
+## Validation Notes
+
+- **VALN**: Rendered output matches production (functional code byte-identical, Day 2)
+- **TLN**: Dry-run deploy passes all pre-flight checks. TLN has a simpler existing `tln-llms-txt.php` (static heredoc) that RSS would replace with config-driven version. No staging environment — production deploy deferred.
 
 ## What's NOT in This Module
 
