@@ -1,0 +1,27 @@
+# Client configurations (sensitive)
+sites/*.conf
+sites/*.json
+sites/*.env
+
+# OS noise
+.DS_Store
+Thumbs.db
+
+# Editor noise
+.vscode/
+.idea/
+*.swp
+*~
+
+# Build artifacts
+node_modules/
+*.log
+
+# Backups
+*.bak
+backups/
+
+# Sensitive
+*.key
+*.pem
+secrets.json
