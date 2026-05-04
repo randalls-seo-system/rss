@@ -1,15 +1,26 @@
 #!/bin/bash
-# Run QA audit suite on a target site
-# Usage: ./audit-runner.sh <site-config-path>
+# =============================================================================
+# RSS — Run QA Audit Suite on a Target Site
+# =============================================================================
+# Top-level orchestrator that calls the QA Gates module.
 #
-# [PLACEHOLDER — Day 4]
-#
-# Will eventually:
-# 1. Read site config
-# 2. SSH to site
-# 3. Run all 4 audit checks
-# 4. Generate unified report
-# 5. Save report to outputs/
+# Usage:
+#   ./tools/audit-runner.sh <path-to-site.conf>
+#   ./tools/audit-runner.sh <path-to-site.conf> --audit anchor-splits
+#   ./tools/audit-runner.sh <path-to-site.conf> --output ~/reports/
+# =============================================================================
 
-echo "Audit runner not yet implemented (Day 1 skeleton)"
-exit 0
+set -euo pipefail
+
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+REPO_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
+
+if [ $# -lt 1 ]; then
+    echo "Usage: $0 <path-to-site.conf> [--audit <name>] [--output <dir>]"
+    echo ""
+    echo "Available audits: anchor-splits, generic-anchors, repeated-urls, link-balance"
+    exit 1
+fi
+
+# Pass all arguments through to the QA Gates module
+exec "${REPO_ROOT}/modules/qa-gates/run-audit.sh" "$@"

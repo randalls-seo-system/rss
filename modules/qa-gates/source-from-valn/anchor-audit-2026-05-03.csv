@@ -1,0 +1,172 @@
+post_id,slug,issue_type,anchor_text,trailing_chars,target_url,severity
+250,va-energy-efficient-mortgage-eem,plural_split,"buying a",n,,medium
+629,va-loan-benefits,plural_split,"conventional loan",s,,medium
+672,first-time-homebuyers,double_suffix,"VA pre-approval",al,,high
+713,irrrl,cta_corruption,"Check Your VA Loan Eligibility",n,,medium
+767,va-construction-loan,plural_split,"temporary buydown",s,,medium
+833,va-funding-fee,plural_split,"Temporary buydown",s,,medium
+904,down-payment,plural_split,"VA buyer",s,,medium
+904,down-payment,plural_split,"closing cost",s,,medium
+922,va-loans-for-manufactured-and-mobile-home,cta_corruption,"Check Your VA Loan Eligibility",n,,medium
+1301,what-is-credit,plural_split,"Credit score",s,,medium
+2076,va-eligibility-reservists-and-national-guard,cta_corruption,"Check Your VA Loan Eligibility",n,,medium
+2076,va-eligibility-reservists-and-national-guard,plural_split,"VA home loan",s,,medium
+2355,va-loan-to-buy-multi-family-home,suffix_split,"VA refinance options",ing,,high
+3929,va-loan-occupancy-requirements,cta_corruption,"Check Your VA Loan Eligibility",n,,medium
+4058,how-rising-mortgage-rates-are-impacting-veteran-homebuyers,plural_split,"down payment",s,,medium
+4064,how-rising-home-prices-are-impacting-va-borrowers,plural_split,"loan limit",s,,medium
+4064,how-rising-home-prices-are-impacting-va-borrowers,acronym_in_word,"aus",e,/va-automated-underwriting-system/,critical
+4192,comparing-va-rates-to-conventional-mortgage-rates,suffix_split,"CFPB — Loan Estimate Guide",with,,high
+4314,when-is-best-time-of-year-to-buy-home,double_suffix,"VA closing costs",s,,high
+4314,when-is-best-time-of-year-to-buy-home,plural_split,"closing cost",s,,medium
+4314,when-is-best-time-of-year-to-buy-home,suffix_split,"VA refinance options",e,,high
+4314,when-is-best-time-of-year-to-buy-home,plural_split,"Loan Estimate",s,,medium
+4445,buying-a-foreclosed-home-with-a-va-loan,plural_split,"Foreclosure",s,,medium
+6282,how-credit-card-balances-impact-credit-scores,plural_split,"credit score",s,,medium
+6319,texas,plural_split,"tiny home",s,,medium
+7308,pre-approval-vs-pre-qualification,suffix_split,"VA preapprova",l,,high
+7575,10-mistakes-first-time-homebuyers-make,plural_split,"credit card",s,,medium
+7575,10-mistakes-first-time-homebuyers-make,plural_split,"Credit Score",s,,medium
+7607,top-cities-for-veterans-in-2024,plural_split,"Home Loan",s,,medium
+7651,how-trump-presidency-would-affect-housing-market,acronym_in_word,"mpr",ove,/va-minimum-property-requirements/,critical
+7651,how-trump-presidency-would-affect-housing-market,plural_split,"VA loan",s,,medium
+7651,how-trump-presidency-would-affect-housing-market,plural_split,"construction loan",s,,medium
+7736,types-of-properties-you-can-buy-with-va-loan,plural_split,"Construction loan",s,,medium
+7743,role-of-earnest-money-in-home-buying-process,plural_split,"VA buyer",s,,medium
+7743,role-of-earnest-money-in-home-buying-process,plural_split,"closing cost",s,,medium
+7862,homebuilder-confidence-declining,plural_split,"pre-approval",s,,medium
+8004,kansas,plural_split,"pre-approval",s,,medium
+8043,can-you-buy-land-with-a-va-loan,acronym_in_word,"aus",e,/va-automated-underwriting-system/,critical
+8043,can-you-buy-land-with-a-va-loan,plural_split,"inspection",s,,medium
+8056,va-home-loan-to-build-a-house,plural_split,"rate lock",s,,medium
+8863,rental-assistance-programs-for-veterans,plural_split,"assistance program",s,,medium
+8953,veteran-homebuyer-assistance-programs,cta_corruption,"Check Your VA Loan Eligibility",n,,medium
+8987,va-home-loan-self-employed-eligibility,plural_split,"appraisal timeline",s,,medium
+9424,property-tax-exemption-for-veterans-with-disability-rating,plural_split,"property tax exemption",s,,medium
+9641,va-loan-myths,plural_split,"loan assumption",s,,medium
+10736,ohio,plural_split,"property tax",es,,medium
+10745,oklahoma,plural_split,"property tax",es,,medium
+10816,texas-veterans-land-board-vlb,cta_corruption,"Check Your VA Loan Eligibility",n,,medium
+10833,habitat-for-humanity-veterans-build-program,plural_split,"first-time homebuyer",s,,medium
+10913,pennsylvania,plural_split,"property tax",es,,medium
+10963,new-jersey,plural_split,"property tax",es,,medium
+10971,new-hampshire,plural_split,"property tax",es,,medium
+10999,north-dakota,plural_split,"property tax",es,,medium
+11040,basic-allowance-for-housing-rates,acronym_in_word,"mpr",ehensive,/va-minimum-property-requirements/,critical
+11040,basic-allowance-for-housing-rates,plural_split,"duplex",es,,medium
+11040,basic-allowance-for-housing-rates,acronym_in_word,"aus",e,/va-automated-underwriting-system/,critical
+11162,what-fed-rate-cuts-mean-for-your-mortgage,plural_split,"mortgage rate",s,,medium
+11754,second-tier-entitlement,cta_corruption,"Check Your VA Loan Eligibility",n,,medium
+11890,financial-resolutions-for-veterans-in-2025,double_suffix,"student loan DTI rules",s,,high
+11890,financial-resolutions-for-veterans-in-2025,plural_split,"conventional loan",s,,medium
+11898,cost-of-living-allowance,suffix_split,"mortgage plan",ning,,high
+11963,what-will-happen-with-mortgage-rates-in-2025,plural_split,"mortgage rate",s,,medium
+12021,aging-veteran-population-addressing-the-needs-of-older-veterans,double_suffix,"property tax exemptions",s,,high
+12109,how-to-qualify-for-va-loan,plural_split,"inspection",s,,medium
+12109,how-to-qualify-for-va-loan,acronym_in_word,"aus",e,/va-automated-underwriting-system/,critical
+12109,how-to-qualify-for-va-loan,plural_split,"seller concession",s,,medium
+12432,va-termite-pest-inspections,plural_split,"seller pay",s,,medium
+12449,personal-loans-for-veterans,plural_split,"credit score",s,,medium
+12485,budgeting-tips-for-veterans-to-avoid-debt,plural_split,"disability payment",s,,medium
+12538,4-percent-rule-on-va-loan,plural_split,"closing cost",s,,medium
+12579,how-often-do-va-loans-fall-through,suffix_split,"Department of Veterans Affairs (VA) ",and,,low
+12579,how-often-do-va-loans-fall-through,suffix_split,"zero down payment ",and,,low
+12579,how-often-do-va-loans-fall-through,suffix_split,"VA appraisals ",require,,low
+12579,how-often-do-va-loans-fall-through,suffix_split,"FHA loans ",often,,low
+12579,how-often-do-va-loans-fall-through,suffix_split,"get pre-approved for a VA loan ",through,,low
+12726,can-surviving-spouses-use-va-loans,acronym_in_word,"aus",e,/va-automated-underwriting-system/,critical
+12793,documents-needed-for-va-loan,double_suffix,"VA pre-approval",al,,high
+12804,disabled-veterans-exempt-from-va-funding-fee,plural_split,"cash-out refinance",s,,medium
+12804,disabled-veterans-exempt-from-va-funding-fee,cta_corruption,"Check Your VA Loan Eligibility",n,,medium
+12927,what-happens-to-my-entitlement-if-i-foreclose,plural_split,"short sale",s,,medium
+12927,what-happens-to-my-entitlement-if-i-foreclose,plural_split,"credit score",s,,medium
+12938,how-trumps-tariffs-could-impact-veteran-homebuyers-in-2025,acronym_in_word,"aus",e,/va-automated-underwriting-system/,critical
+13038,military-clause-for-veterans,plural_split,"for Veteran",s,,medium
+13402,proposed-va-partial-claim-program,plural_split,"monthly payment",s,,medium
+13732,va-tidewater-initiative,suffix_split,"appeal the VA appraisal ",effectively,,low
+14167,2025-real-estate-commission-rules-va-loans,suffix_split,"permanent rule",making,,high
+14172,rent-vs-buy-active-duty-service-members,suffix_split,"Basic Allowance for Housing (BAH) ",rates,,low
+14188,va-irrrl-cash-out-refinance-credit-requirements,plural_split,"VA cash-out refinance",s,,medium
+14260,why-would-a-seller-not-accept-a-va-loan,plural_split,"seller concession",s,,medium
+14260,why-would-a-seller-not-accept-a-va-loan,plural_split,"debt-to-income ratio",s,,medium
+14283,va-appraisal-cost,double_suffix,"appraisal failures",s,,high
+15428,inspection-requirements,cta_corruption,"Check Your VA Loan Eligibility",n,,medium
+15445,calvet-loans-in-california-guide,plural_split,"mobile home",s,,medium
+15445,calvet-loans-in-california-guide,acronym_in_word,"aus",e,/va-automated-underwriting-system/,critical
+15445,calvet-loans-in-california-guide,plural_split,"loan limit",s,,medium
+15487,va-loan-co-borrowers-and-co-signer-guidelines,double_suffix,"student loan DTI rules",s,,high
+15487,va-loan-co-borrowers-and-co-signer-guidelines,double_suffix,"VA closing costs",s,,high
+15487,va-loan-co-borrowers-and-co-signer-guidelines,cta_corruption,"Check Your VA Loan Eligibility",n,,medium
+16544,qualifying-income-va-loan,suffix_split,"self-employed VA loan",ed,,high
+16544,qualifying-income-va-loan,double_suffix,"income qualification",ication,,critical
+16589,va-mortgage-cash-reserves-veterans,plural_split,"closing cost",s,,medium
+16611,fha-alternative-to-va-loan-veterans,plural_split,"conventional loan",s,,medium
+18777,updated-mission-act-healthcare-legislation,plural_split,"and Veteran",s,,medium
+18845,va-disability-rating-va-loan,double_suffix,"funding fee exemption",ion,,critical
+19643,new-bills-that-could-reshape-va-loans-in-2025,plural_split,"reform",s,,medium
+22152,va-home-loans-29-million-milestone-2025-surge,suffix_split,"partial entitlemen",t,,high
+28674,government-shutdown-impact-veterans-2025,plural_split,"lock extension",s,,medium
+29718,va-closing-costs-calculator,double_suffix,"discount points",s,,high
+29718,va-closing-costs-calculator,double_suffix,"seller concessions",s,,high
+30084,va-mortgage-rates-this-week-10-24,plural_split,"down payment",s,,medium
+30566,va-loan-no-down-payment-myth,suffix_split,"cash out",lay,,high
+30647,va-assumptions-secondary-financing,plural_split,"VA loan assumption",s,,medium
+30647,va-assumptions-secondary-financing,suffix_split,"non-Veteran assumption",e,,high
+31002,shutdown-back-pay-eligibility-timing-les,plural_split,"VA entitlement",s,,medium
+31025,gi-bill-mha-payments-certifications-after-government-shutdown-ends,plural_split,"VA entitlement",s,,medium
+31545,2026-cola-increase-loan-limits-va-loan-power,double_suffix,"VA closing costs",s,,high
+31609,va-loan-hub,plural_split,"closing cost",s,,medium
+31917,black-friday-veterans-day-deals-2025,plural_split,"and Veteran",s,,medium
+31917,black-friday-veterans-day-deals-2025,plural_split,"Military discount",s,,medium
+32096,best-places-veterans-live-2026,plural_split,"disabled Veteran",s,,medium
+32096,best-places-veterans-live-2026,acronym_in_word,"aus",e,/va-automated-underwriting-system/,critical
+32406,condo-lookup,suffix_split,"VA Pamphlet 26-7 Chapter 10...",ding,,high
+32430,entitlement,cta_corruption,"Check Your VA Loan Eligibility",n,,medium
+32750,key-va-loan-requirement-changes-for-2026,plural_split,"VA loan limit",s,,medium
+32750,key-va-loan-requirement-changes-for-2026,plural_split,"occupancy requirement",s,,medium
+33024,can-veterans-use-the-1776-bonus-for-a-va-loan,acronym_in_word,"mpr",ove,/va-minimum-property-requirements/,critical
+33024,can-veterans-use-the-1776-bonus-for-a-va-loan,plural_split,"seller concession",s,,medium
+33024,can-veterans-use-the-1776-bonus-for-a-va-loan,acronym_in_word,"aus",e,/va-automated-underwriting-system/,critical
+33089,2026-military-pay-raise-and-allowance-updates,double_suffix,"VA closing costs",s,,high
+33106,buying-a-home-with-a-va-loan-at-the-end-of-2025,suffix_split,"closing time",lines,,high
+33135,off-season-home-negotiation-power-veterans,plural_split,"closing cost",s,,medium
+33173,january-best-month-buy-home-va-veterans,plural_split,"closing cost",s,,medium
+33530,va-loan-interest-rate-vs-apr,double_suffix,"VA closing costs",s,,high
+33559,va-rate-lock-extension-fees,suffix_split,"VA refinance options",e,,high
+34560,trump-200b-bond-buyback-rates-vs-treasuries,plural_split,"mortgage rate",s,,medium
+35107,alaska,suffix_split,"VA loan requirements ",are,,low
+35215,south-dakota,plural_split,"property tax",es,,medium
+35220,vermont,plural_split,"property tax",es,,medium
+35228,west-virginia,plural_split,"property tax",es,,medium
+35233,wyoming,plural_split,"property tax",es,,medium
+36337,va-loan-airbnb-house-hacking,suffix_split,"rent",al,,high
+36667,va-loan-barndominiums-tiny-homes,plural_split,"barndominium",s,,medium
+36723,community-property-states-va-loan,double_suffix,"student loan DTI rules",s,,high
+36744,just-denied-va-loan,plural_split,"VA loan denial",s,,medium
+36822,va-loan-conditional-approval,double_suffix,"rate lock extensions",s,,high
+36824,non-traditional-credit-va-loan-alternative-tradelines,double_suffix,"student loan DTI rules",s,,high
+36825,va-loan-types-overview,double_suffix,"occupancy requirements",ments,,critical
+36825,va-loan-types-overview,double_suffix,"minimum property requirements",s,,high
+36830,va-loan-occupancy-audit,suffix_split,"renting out your VA home",s,,high
+36836,veterans-mortgage-life-insurance-vmli-2,suffix_split,"VA refinance options",e,,high
+36840,va-irrrl-scam-warning,double_suffix,"VA closing costs",s,,high
+36847,ohio,plural_split,"property tax",es,,medium
+36848,pennsylvania,plural_split,"and Veteran",s,,medium
+36855,tennessee,plural_split,"property tax",es,,medium
+36855,tennessee,plural_split,"home price",s,,medium
+36856,maryland,suffix_split,"qualify for a",ny,,high
+36859,alabama,plural_split,"Disabled Veteran",s,,medium
+36865,oklahoma,plural_split,"home price",s,,medium
+36868,arkansas,plural_split,"disabled Veteran",s,,medium
+36868,arkansas,plural_split,"home price",s,,medium
+36870,mississippi,plural_split,"home price",s,,medium
+36874,nebraska,plural_split,"disabled Veteran",s,,medium
+36875,west-virginia,suffix_split,"buying a",t,,high
+36877,hawaii,plural_split,"disabled Veteran",s,,medium
+36878,montana,plural_split,"100% disabled Veteran",s,,medium
+36882,delaware,plural_split,"Disabled Veteran",s,,medium
+36882,delaware,plural_split,"home price",s,,medium
+36883,vermont,plural_split,"disabled Veteran",s,,medium
+36884,north-dakota,plural_split,"Home price",s,,medium
+36886,wyoming,plural_split,"disabled Veteran",s,,medium
+36887,alaska,plural_split,"100% disabled Veteran",s,,medium

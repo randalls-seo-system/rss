@@ -7,6 +7,9 @@ sites/*.php
 # Rendered output (site-specific, regenerated from templates)
 modules/*/rendered/
 
+# Audit reports (site-specific, regenerated on each run)
+modules/*/reports/
+
 # OS noise
 .DS_Store
 Thumbs.db
