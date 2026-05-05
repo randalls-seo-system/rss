@@ -23,7 +23,7 @@ Return ONLY a JSON object with this exact structure:
   ]
 }
 
-Generate between 15 and 25 anchor variations. Quality over quantity — do not pad with weak variations to reach 25.
+Generate 20-25 anchor variations. Aim for 22 as a target. Quality over quantity, but produce a robust pool — these anchors will be rotated across the site so depth matters. Only drop below 20 if the destination is genuinely narrow (e.g., a very specific long-tail topic where 22 distinct meaningful variations aren't achievable without forcing repetition or low-quality phrasing).
 ```
 
 ## User Prompt Template
@@ -31,7 +31,7 @@ Generate between 15 and 25 anchor variations. Quality over quantity — do not p
 Variables: `{{url}}`, `{{title}}`, `{{h1}}`, `{{primary_keyword}}`, `{{cluster}}`, `{{intent}}`, `{{content_excerpt}}`
 
 ```
-Generate 15-25 anchor text variations for internal links pointing to this page.
+Generate 20-25 anchor text variations for internal links pointing to this page. Aim for 22.
 
 DESTINATION URL: {{url}}
 PAGE TITLE: {{title}}

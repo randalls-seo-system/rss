@@ -146,9 +146,9 @@ _ai_validate_anchors() {
     count=$(echo "$anchors_json" | jq 'length' 2>/dev/null)
     if [ "$count" -lt "$ANCHOR_POOL_SIZE_MIN" ] || [ "$count" -gt "$ANCHOR_POOL_SIZE_MAX" ]; then
         echo "WARNING: Anchor count $count outside range [$ANCHOR_POOL_SIZE_MIN-$ANCHOR_POOL_SIZE_MAX]" >&2
-        # Allow it if at least 10 — still usable
-        if [ "$count" -lt 10 ]; then
-            echo "ERROR: Too few anchors ($count < 10)" >&2
+        # Allow it if at least 14 — still usable
+        if [ "$count" -lt 14 ]; then
+            echo "ERROR: Too few anchors ($count < 14)" >&2
             return 1
         fi
     fi

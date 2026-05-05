@@ -87,7 +87,7 @@ Return ONLY a JSON object with this exact structure:
   ]
 }
 
-Generate between 15 and 25 anchor variations. Quality over quantity — do not pad with weak variations to reach 25.
+Generate 20-25 anchor variations. Aim for 22 as a target. Quality over quantity, but produce a robust pool — these anchors will be rotated across the site so depth matters. Only drop below 20 if the destination is genuinely narrow (e.g., a very specific long-tail topic where 22 distinct meaningful variations aren't achievable without forcing repetition or low-quality phrasing).
 SYSPROMPT
 
 # Determine which destinations to process
@@ -107,8 +107,8 @@ echo "Processing: $PROCESS_COUNT destinations"
 [ "$LIMIT" -gt 0 ] && echo "  (--limit $LIMIT, --start $START)"
 echo ""
 
-# Initialize output
-RESULTS_FILE="${TMPDIR_LOCAL}/results.json"
+# Initialize output (persist in data dir for crash recovery)
+RESULTS_FILE="${DATA_DIR}/${SITE}-results-wip.json"
 echo '[]' > "$RESULTS_FILE"
 
 # Tracking
@@ -138,7 +138,7 @@ for i in $(seq 0 $((PROCESS_COUNT - 1))); do
     # Build user prompt
     USER_PROMPT_FILE="${TMPDIR_LOCAL}/user-prompt.txt"
     cat > "$USER_PROMPT_FILE" <<USERPROMPT
-Generate 15-25 anchor text variations for internal links pointing to this page.
+Generate 20-25 anchor text variations for internal links pointing to this page. Aim for 22.
 
 DESTINATION URL: ${DEST_URL}
 PAGE TITLE: ${DEST_TITLE}
@@ -252,14 +252,14 @@ echo "Avg anchors/dest: ${AVG_ANCHORS}"
 echo "Tokens: ${TOTAL_PROMPT_TOKENS} prompt + ${TOTAL_COMPLETION_TOKENS} completion"
 echo "Estimated cost: \$${COST}"
 
-# Build final output
+# Build final output (use --slurpfile to avoid argument length limit)
 GEN_TS=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
 jq -n \
     --arg site "$SITE" \
     --arg generated_at "$GEN_TS" \
     --arg ai_provider "$AI_PROVIDER" \
     --arg ai_model "$AI_MODEL" \
-    --argjson destinations "$(cat "$RESULTS_FILE")" \
+    --slurpfile destinations "$RESULTS_FILE" \
     --argjson total "$PROCESS_COUNT" \
     --argjson successful "$SUCCESS" \
     --argjson failed "$FAILED" \
@@ -274,7 +274,7 @@ jq -n \
         generated_at: $generated_at,
         ai_provider: $ai_provider,
         ai_model: $ai_model,
-        destinations: $destinations,
+        destinations: $destinations[0],
         stats: {
             total_destinations: $total,
             successful: $successful,
