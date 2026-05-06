@@ -24,6 +24,7 @@ def main():
                         help="Minimum impressions to qualify (default: 200)")
     parser.add_argument("--max-ctr", type=float, default=0.025,
                         help="Maximum CTR to qualify as 'low' (default: 0.025 = 2.5%%)")
+    parser.add_argument("--blog-path-filter", help="Only include URLs matching this path prefix (e.g., /lrg-blog/)")
     parser.add_argument("--output-csv", required=True, help="Output CSV")
     args = parser.parse_args()
 
@@ -34,6 +35,11 @@ def main():
             reader = csv.DictReader(f)
             for row in reader:
                 slug = row.get("slug", row.get("post_name", ""))
+                if not slug:
+                    # Try extracting from URL column
+                    url = row.get("url", "").rstrip("/")
+                    if url:
+                        slug = url.split("/")[-1].split("#")[0]
                 if slug:
                     priority_slugs.add(slug)
 
@@ -63,7 +69,16 @@ def main():
             else:
                 ctr = float(ctr_raw or 0)
 
+            # Extract slug, stripping hash fragments
             slug = url.split("/")[-1] if "/" in url else url
+            slug = slug.split("#")[0]  # remove hash fragment
+
+            # Filter to blog path if specified
+            if args.blog_path_filter:
+                from urllib.parse import urlparse
+                path = urlparse(url).path
+                if not path.startswith(args.blog_path_filter):
+                    continue
 
             if impressions < args.min_impressions:
                 continue

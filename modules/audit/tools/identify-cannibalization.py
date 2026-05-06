@@ -16,38 +16,36 @@ import csv
 import os
 import re
 import sys
+from difflib import SequenceMatcher
 from itertools import combinations
 
 
-def tokenize(text: str) -> set[str]:
-    """Lowercase word tokenization, filtering stopwords."""
-    stopwords = {
-        "a", "an", "the", "and", "or", "but", "in", "on", "at", "to",
-        "for", "of", "is", "are", "was", "were", "be", "been", "being",
-        "it", "its", "this", "that", "these", "those", "you", "your",
-        "how", "what", "when", "where", "why", "here", "there",
-        "do", "does", "did", "will", "would", "can", "could", "should",
-        "with", "from", "by", "as", "if", "not", "no", "so",
-    }
-    words = set(re.findall(r"[a-záéíóúñü]+", text.lower()))
-    return words - stopwords
+def normalize_title(text: str) -> str:
+    """Normalize title for comparison: lowercase, strip numbers/punctuation."""
+    text = text.lower().strip()
+    # Remove leading numbers like "5 ", "10 ", etc.
+    text = re.sub(r"^\d+\s+", "", text)
+    # Remove common prefixes/suffixes
+    text = re.sub(r"\s*\(.*?\)\s*$", "", text)  # trailing parentheticals
+    text = re.sub(r"\s*[|–—-]\s*\d{4}.*$", "", text)  # year suffixes
+    return text
 
 
-def jaccard_similarity(set_a: set, set_b: set) -> float:
-    """Jaccard similarity between two sets."""
-    if not set_a and not set_b:
+def title_similarity(title_a: str, title_b: str) -> float:
+    """Character-level fuzzy similarity between two titles."""
+    a = normalize_title(title_a)
+    b = normalize_title(title_b)
+    if not a or not b:
         return 0.0
-    intersection = len(set_a & set_b)
-    union = len(set_a | set_b)
-    return intersection / union if union > 0 else 0.0
+    return SequenceMatcher(None, a, b).ratio()
 
 
 def main():
     parser = argparse.ArgumentParser(description="Identify near-duplicate content pairs.")
     parser.add_argument("--inventory-csv", required=True, help="WP content inventory CSV")
     parser.add_argument("--gsc-queries-csv", help="GSC queries CSV (for keyword overlap)")
-    parser.add_argument("--similarity-threshold", type=float, default=0.85,
-                        help="Title similarity threshold (default: 0.85)")
+    parser.add_argument("--similarity-threshold", type=float, default=0.65,
+                        help="Title similarity threshold (default: 0.65)")
     parser.add_argument("--output-csv", required=True, help="Output CSV")
     parser.add_argument("--review-mode", action="store_true",
                         help="Flag pairs for review, don't auto-decide")
@@ -65,15 +63,14 @@ def main():
                 "id": post_id,
                 "title": title,
                 "slug": slug,
-                "tokens": tokenize(title),
             })
 
     # Find similar pairs
     pairs = []
     for a, b in combinations(posts, 2):
-        if not a["tokens"] or not b["tokens"]:
+        if not a["title"] or not b["title"]:
             continue
-        sim = jaccard_similarity(a["tokens"], b["tokens"])
+        sim = title_similarity(a["title"], b["title"])
         if sim >= args.similarity_threshold:
             pairs.append({
                 "id_a": a["id"],

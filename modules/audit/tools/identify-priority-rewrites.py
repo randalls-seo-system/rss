@@ -22,6 +22,7 @@ def main():
                         help="Position range (default: 11-30)")
     parser.add_argument("--min-impressions", type=int, default=500,
                         help="Minimum impressions (default: 500)")
+    parser.add_argument("--blog-path-filter", help="Only include URLs matching this path prefix")
     parser.add_argument("--output-csv", required=True, help="Output CSV")
     args = parser.parse_args()
 
@@ -37,6 +38,14 @@ def main():
             position = float(str(row.get("position", "0")).replace(",", "") or 0)
 
             slug = url.split("/")[-1] if "/" in url else url
+            slug = slug.split("#")[0]
+
+            # Filter to blog path if specified
+            if args.blog_path_filter:
+                from urllib.parse import urlparse
+                path = urlparse(url).path
+                if not path.startswith(args.blog_path_filter):
+                    continue
 
             if position < pos_min or position > pos_max:
                 continue

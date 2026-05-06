@@ -19,8 +19,17 @@ import re
 import sys
 
 
+DATE_PREFIX_RE = re.compile(r"^\d{4}-\d{1,2}-\d{1,2}-")
+
+
 def load_gsc_traffic(gsc_path: str) -> dict:
-    """Load GSC pages data, keyed by URL slug."""
+    """Load GSC pages data, keyed by URL slug.
+
+    Builds multiple lookup keys per URL to handle slug variations:
+    - Full URL (exact)
+    - Slug (last path component)
+    - Cleaned slug (date-prefix removed, for Squarespace imports)
+    """
     traffic = {}
     with open(gsc_path) as f:
         reader = csv.DictReader(f)
@@ -28,16 +37,36 @@ def load_gsc_traffic(gsc_path: str) -> dict:
             url = row.get("url", "").rstrip("/")
             clicks = int(str(row.get("clicks", "0")).replace(",", "") or 0)
             impressions = int(str(row.get("impressions", "0")).replace(",", "") or 0)
-            # Extract slug from URL
+            data = {"url": url, "clicks": clicks, "impressions": impressions}
+
+            # Key by slug (last path component)
             slug = url.split("/")[-1] if "/" in url else url
-            traffic[slug] = {
-                "url": url,
-                "clicks": clicks,
-                "impressions": impressions,
-            }
-            # Also store by full URL for exact matching
-            traffic[url] = traffic[slug]
+            # Only store if this slug has more traffic than existing entry
+            if slug not in traffic or clicks > traffic[slug]["clicks"]:
+                traffic[slug] = data
+            # Also store by full URL
+            traffic[url] = data
     return traffic
+
+
+def lookup_gsc(traffic: dict, wp_slug: str) -> dict:
+    """Look up GSC traffic for a WP slug, trying multiple matching strategies."""
+    # 1. Exact slug match
+    if wp_slug in traffic:
+        return traffic[wp_slug]
+    # 2. Date-prefix cleaned match (WP slug has date prefix, GSC URL doesn't)
+    cleaned = DATE_PREFIX_RE.sub("", wp_slug)
+    if cleaned != wp_slug and cleaned in traffic:
+        return traffic[cleaned]
+    # 3. Hash-suffix cleaned match
+    hash_cleaned = re.sub(r"-[a-z0-9]{10,}$", "", wp_slug)
+    if hash_cleaned != wp_slug and hash_cleaned in traffic:
+        return traffic[hash_cleaned]
+    # 4. Both cleanings combined
+    both_cleaned = re.sub(r"-[a-z0-9]{10,}$", "", cleaned)
+    if both_cleaned != wp_slug and both_cleaned in traffic:
+        return traffic[both_cleaned]
+    return {"clicks": 0, "impressions": 0}
 
 
 def load_priority_list(path: str) -> set:
@@ -105,8 +134,8 @@ def main():
                 skipped["priority_list"] += 1
                 continue
 
-            # Check GSC traffic
-            gsc = traffic.get(slug, {"clicks": 0, "impressions": 0})
+            # Check GSC traffic (try multiple slug matching strategies)
+            gsc = lookup_gsc(traffic, slug)
             if gsc["clicks"] > 0 or gsc["impressions"] > args.min_impressions:
                 skipped["has_traffic"] += 1
                 continue

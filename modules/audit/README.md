@@ -83,6 +83,20 @@ inventory and triage tools. Can be imported by other RSS modules.
 
 ## File Structure
 
+## Known Limitations (v1.0)
+
+- `identify-deletes.py` finds all zero-traffic posts but does not yet exclude
+  posts with inbound internal link equity. Manual inbound link check required
+  before bulk-deleting candidates. The `--check-inbound-links` flag is planned
+  for v1.1.
+- `identify-cannibalization.py` produces raw detection pairs. Human review is
+  required to filter false positives (e.g., neighborhood guides with identical
+  structure but different cities). Use `--review-mode` to flag pairs for review.
+- `pull-gsc-data.py` currently only supports GSC zip export parsing. Direct API
+  pull is planned for a future version.
+
+## File Structure
+
 ```
 modules/audit/
 ├── README.md
