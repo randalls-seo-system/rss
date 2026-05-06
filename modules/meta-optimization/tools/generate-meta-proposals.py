@@ -1,7 +1,14 @@
 #!/usr/bin/env python3
-"""Generate cluster-optimized title and meta proposals using LLM per page."""
+"""Generate cluster-optimized title and meta proposals using LLM per page.
+
+Integrates with brand-voice module: if a [branding] section exists in the
+site config, voice rules are rendered into the prompt and output is validated
+against the archetype's forbidden phrases. Voice violations trigger one retry
+with a stricter prompt before flagging for human review.
+"""
 
 import argparse
+import configparser
 import csv
 import json
 import os
@@ -9,7 +16,9 @@ import sys
 import time
 from pathlib import Path
 
+REPO_ROOT = Path(__file__).resolve().parent.parent.parent.parent
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+sys.path.insert(0, str(REPO_ROOT / 'modules' / 'brand-voice' / 'lib'))
 
 
 def load_site_conf(site_slug):
@@ -134,6 +143,29 @@ def main():
     conf = load_site_conf(args.site)
     template = load_prompt_template()
 
+    # Brand voice integration: render voice rules into prompt template
+    voice_validator = None
+    branding_conf_path = REPO_ROOT / 'sites' / f'{args.site}.conf'
+    ini = configparser.ConfigParser()
+    ini.read(branding_conf_path)
+    if 'branding' in ini:
+        branding = dict(ini['branding'])
+        archetype_name = branding.get('archetype', '')
+        archetype_path = REPO_ROOT / 'modules' / 'brand-voice' / 'archetypes' / f'{archetype_name}.md'
+        if archetype_path.exists():
+            voice_text = archetype_path.read_text()
+            for key, val in branding.items():
+                voice_text = voice_text.replace('{{' + key.upper() + '}}', val)
+            template = template.replace('{{INJECT_BRAND_VOICE}}', voice_text)
+            print(f"Voice: {archetype_name} archetype loaded ({len(voice_text)} chars)")
+            try:
+                from voice_validator import validate_full
+                voice_validator = validate_full
+            except ImportError:
+                print("  (voice_validator not available, skipping output validation)")
+    else:
+        template = template.replace('{{INJECT_BRAND_VOICE}}', '')
+
     # Determine model
     if args.model:
         model = args.model
@@ -216,8 +248,19 @@ def main():
                 data = parse_llm_response(raw)
                 valid, issues = validate_proposal(data)
 
-                if not valid and attempt == 0:
-                    prompt += f"\n\nPREVIOUS ATTEMPT FAILED VALIDATION: {', '.join(issues)}. Fix these issues."
+                # Voice validation (if available)
+                voice_issues = []
+                if voice_validator and valid:
+                    title = data.get('title', '')
+                    meta = data.get('meta', '')
+                    for text, label in [(title, 'title'), (meta, 'meta')]:
+                        v_ok, v_list = voice_validator(text)
+                        for v in v_list:
+                            voice_issues.append(f"{label}: {v['category']} ({v['match']})")
+
+                all_issues = issues + voice_issues
+                if all_issues and attempt == 0:
+                    prompt += f"\n\nPREVIOUS ATTEMPT FAILED VALIDATION: {', '.join(all_issues)}. Fix these issues."
                     time.sleep(0.5)
                     continue
 
@@ -228,7 +271,10 @@ def main():
                 result_row['captures_variants'] = json.dumps(data.get('captures_variants', []))
                 result_row['captures_gaps'] = json.dumps(data.get('captures_gaps', []))
                 result_row['rationale'] = data.get('rationale', '')
-                result_row['status'] = 'ok' if valid else f'warn: {", ".join(issues)}'
+                status = 'ok' if not all_issues else f'warn: {", ".join(all_issues)}'
+                if voice_issues and not issues:
+                    status = f'voice_warn: {", ".join(voice_issues)}'
+                result_row['status'] = status
                 success += 1
                 break
 

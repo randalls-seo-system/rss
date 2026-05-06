@@ -1,3 +1,7 @@
+{{INJECT_BRAND_VOICE}}
+
+---
+
 You are writing a SEO title tag and meta description for one page on {{SITE_NAME}}, a {{BRAND_TONE}} real estate company serving {{LOCATION_PRIMARY}}.
 
 The page is currently underperforming in click-through rate despite ranking for multiple keywords. Your job is to write a title and meta description that captures the full keyword cluster while reading naturally to humans.
