@@ -1,0 +1,18 @@
+<?php
+/*
+Plugin Name: Rank Logic CSS Loader ({{SITE_NAME}})
+Description: Loads rl-components CSS framework and {{SITE_NAME}} brand theme
+Version: {{VERSION}}
+Author: Rank Logic
+*/
+
+if (!defined('ABSPATH')) exit;
+
+function rl_{{SITE_SLUG}}_enqueue_styles() {
+    $version = '{{VERSION}}';
+    $base_url = plugin_dir_url(__FILE__) . 'rl-css-loader/css/';
+
+    wp_enqueue_style('rl-base', $base_url . 'rl-base.css', [], $version);
+    wp_enqueue_style('rl-{{SITE_SLUG}}-theme', $base_url . 'rl-{{SITE_SLUG}}-theme.css', ['rl-base'], $version);
+}
+add_action('wp_enqueue_scripts', 'rl_{{SITE_SLUG}}_enqueue_styles', 9999);
