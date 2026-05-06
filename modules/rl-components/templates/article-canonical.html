@@ -1,0 +1,211 @@
+<!--
+  Rank Logic — Canonical Article Template
+  Full ATF + BTF structure for informational/authority articles.
+  Replace {{placeholders}} with actual content.
+-->
+
+<!-- ============================================================
+     ATF SECTION — Above The Fold
+     ============================================================ -->
+<section id="{{slug}}" class="rl-page rl-page--{{slug}}" data-rl-page="{{slug}}">
+  <a class="rl-skip" href="#{{slug}}-faqs">Skip to FAQs</a>
+
+  <div class="rl-wrap">
+
+    <!-- Hero -->
+    <header class="rl-card rl-hero" aria-labelledby="{{slug}}-title">
+      <div class="rl-card-inner">
+
+        <nav class="rl-breadcrumb" aria-label="Breadcrumb">
+          <a href="/">Home</a>
+          <span class="sep" aria-hidden="true">&rarr;</span>
+          <a href="/{{parent-slug}}/">{{Parent Name}}</a>
+          <span class="sep" aria-hidden="true">&rarr;</span>
+          <span aria-current="page">{{Page Name}}</span>
+        </nav>
+
+        <div class="rl-eyebrow" aria-label="{{topic}}">
+          <span class="dot"></span>
+          {{Topic Label}}
+          <span class="sep" aria-hidden="true">&middot;</span>
+          <strong>{{Subtitle}}</strong>
+        </div>
+
+        <h1 id="{{slug}}-title">{{Page Title}}</h1>
+
+        <div class="rl-meta" aria-label="Primary sources">
+          <strong>Primary sources:</strong>
+          <a href="{{source-1-url}}" target="_blank" rel="noopener noreferrer">{{Source 1}}</a>
+          <span class="sep" aria-hidden="true">&middot;</span>
+          <a href="{{source-2-url}}" target="_blank" rel="noopener noreferrer">{{Source 2}}</a>
+        </div>
+
+        <nav class="rl-pills" aria-label="Jump to section">
+          <a class="rl-pill" href="#{{section-1-id}}">{{Section 1}}</a>
+          <a class="rl-pill" href="#{{section-2-id}}">{{Section 2}}</a>
+          <a class="rl-pill" href="#{{section-3-id}}">{{Section 3}}</a>
+          <a class="rl-pill" href="#{{slug}}-faqs">FAQs</a>
+        </nav>
+
+        <p class="rl-hero-lead">
+          {{45-65 word intro. First sentence = standalone direct answer.}}
+        </p>
+
+        <p class="rl-hero-lead">
+          <span class="rl-next-pill">
+            <span class="rl-next-label">Next step:</span>
+            <a class="rl-next-link" href="{{cta-url}}">{{CTA Text}}</a>
+          </span>
+        </p>
+
+      </div>
+    </header>
+
+    <!-- Quick Cards -->
+    <section class="rl-quick-grid" aria-label="{{topic}} quick overview">
+      <article class="rl-quick-card">
+        <h3>{{Card 1 Title}}</h3>
+        <ul>
+          <li><strong>{{Label}}:</strong> {{Fact — 14-18 words, hard data}}</li>
+          <li><strong>{{Label}}:</strong> {{Fact}}</li>
+          <li><strong>{{Label}}:</strong> {{Fact}}</li>
+        </ul>
+      </article>
+      <article class="rl-quick-card">
+        <h3>{{Card 2 Title}}</h3>
+        <ul>
+          <li><strong>{{Label}}:</strong> {{Fact}}</li>
+          <li><strong>{{Label}}:</strong> {{Fact}}</li>
+          <li><strong>{{Label}}:</strong> {{Fact}}</li>
+        </ul>
+      </article>
+      <article class="rl-quick-card">
+        <h3>{{Card 3 Title}}</h3>
+        <ul>
+          <li><strong>{{Label}}:</strong> {{Fact}}</li>
+          <li><strong>{{Label}}:</strong> {{Fact}}</li>
+          <li><strong>{{Label}}:</strong> {{Fact}}</li>
+        </ul>
+      </article>
+      <article class="rl-quick-card">
+        <h3>{{Card 4 Title}}</h3>
+        <ul>
+          <li><strong>{{Label}}:</strong> {{Fact}}</li>
+          <li><strong>{{Label}}:</strong> {{Fact}}</li>
+          <li><strong>{{Label}}:</strong> {{Fact}}</li>
+        </ul>
+      </article>
+    </section>
+
+    <!-- ATF FAQs -->
+    <section id="{{slug}}-faqs" class="rl-section" aria-labelledby="{{slug}}-faqs-heading">
+      <div class="rl-section-head">
+        <h2 id="{{slug}}-faqs-heading">Frequently Asked Questions</h2>
+      </div>
+      <div class="rl-faq" aria-label="{{topic}} FAQs">
+        <details>
+          <summary>{{Question 1}}</summary>
+          <div class="ans">{{Direct 2-3 sentence answer}}</div>
+        </details>
+        <details>
+          <summary>{{Question 2}}</summary>
+          <div class="ans">{{Direct answer}}</div>
+        </details>
+        <details>
+          <summary>{{Question 3}}</summary>
+          <div class="ans">{{Direct answer}}</div>
+        </details>
+      </div>
+    </section>
+
+  </div>
+</section>
+
+<!-- ============================================================
+     BTF SECTION — Main Content
+     ============================================================ -->
+<div class="rl-page main-content">
+
+  <!-- BLUF -->
+  <h2>The Bottom Line Up Front</h2>
+  <strong>{{1-2 sentence bold verdict.}}</strong>
+  <p>{{Context paragraph, 50-70 words.}}</p>
+
+  <!-- Body Sections -->
+  <h2>{{Section Title}}</h2>
+  <p>{{Direct 1-2 sentence answer, then supporting detail to 50-70 words.}}</p>
+
+  <!-- Example: table component -->
+  <div class="rl-table-scroll">
+    <table class="rl-table">
+      <thead>
+        <tr>
+          <th>{{Column 1}}</th>
+          <th>{{Column 2}}</th>
+          <th>{{Column 3}}</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>{{Data}}</td>
+          <td>{{Data}}</td>
+          <td>{{Data}}</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Example: bullet section -->
+  <div class="rl-bullet-section rl-bullet-section--green">
+    <strong>{{Callout Title}}</strong>
+    <ul>
+      <li>{{Point 1}}</li>
+      <li>{{Point 2}}</li>
+      <li>{{Point 3}}</li>
+    </ul>
+  </div>
+
+  <!-- Example: callout -->
+  <div class="rl-callout rl-callout--warning">
+    <h3>{{Callout Heading}}</h3>
+    <p>{{Callout content.}}</p>
+  </div>
+
+  <!-- Mid-article CTA -->
+  <p>
+    <span class="rl-next-pill">
+      <span class="rl-next-label">Next step:</span>
+      <a class="rl-next-link" href="{{cta-url}}">{{CTA Text}}</a>
+    </span>
+  </p>
+
+  <!-- Closing -->
+  <h2>The Bottom Line</h2>
+  <strong>{{Bold verdict.}}</strong>
+  <p>{{Context paragraph.}}</p>
+
+  <p>
+    <span class="rl-next-pill">
+      <span class="rl-next-label">Next step:</span>
+      <a class="rl-next-link" href="{{cta-url}}">{{CTA Text}}</a>
+    </span>
+  </p>
+
+  <!-- Article FAQs -->
+  <h2>Frequently Asked Questions</h2>
+  <div class="rl-faq" aria-label="{{topic}} article FAQs">
+    <details>
+      <summary>{{Question}}</summary>
+      <div class="ans">{{Answer}}</div>
+    </details>
+  </div>
+
+  <!-- Resources Used (must be last) -->
+  <h2>Resources Used</h2>
+  <div class="rl-callout rl-disclosure">
+    <ul>
+      <li><a href="{{url}}" target="_blank" rel="noopener noreferrer">{{Source Name}}</a></li>
+    </ul>
+  </div>
+
+</div>

@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>RL Components — LRG Style</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;700;800;900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../css/rl-base.css">
+  <link rel="stylesheet" href="../css/rl-layout.css">
+  <link rel="stylesheet" href="../css/rl-hero.css">
+  <link rel="stylesheet" href="../css/rl-cards.css">
+  <link rel="stylesheet" href="../css/rl-faq.css">
+  <link rel="stylesheet" href="../css/rl-tables.css">
+  <link rel="stylesheet" href="../css/rl-callouts.css">
+  <link rel="stylesheet" href="../css/rl-bullet-sections.css">
+  <link rel="stylesheet" href="../css/rl-utility.css">
+  <style>
+    /* LRG brand overrides — navy base with distinct accent */
+    :root {
+      --rl-primary: #1a365d;
+      --rl-primary-light: #2b4c7e;
+      --rl-primary-dark: #0f2344;
+      --rl-accent: #e85d04;
+      --rl-accent-hover: #d45303;
+      --rl-accent-soft: rgba(232, 93, 4, 0.12);
+      --rl-link: #2563eb;
+      --rl-link-hover: #1d4ed8;
+      --rl-border-accent: rgba(232, 93, 4, 0.45);
+      --rl-bg-soft: #f7f9fc;
+    }
+  </style>
+</head>
+<body>
+
+<section id="mortgage-rates-today" class="rl-page rl-page--mortgage-rates-today" data-rl-page="mortgage-rates-today">
+  <a class="rl-skip" href="#mortgage-rates-today-faqs">Skip to FAQs</a>
+
+  <div class="rl-wrap">
+
+    <header class="rl-card rl-hero" aria-labelledby="mortgage-rates-today-title">
+      <div class="rl-card-inner">
+
+        <nav class="rl-breadcrumb" aria-label="Breadcrumb">
+          <a href="/">Home</a>
+          <span class="sep" aria-hidden="true">&rarr;</span>
+          <a href="/mortgage-rates/">Mortgage Rates</a>
+          <span class="sep" aria-hidden="true">&rarr;</span>
+          <span aria-current="page">Today's Rates</span>
+        </nav>
+
+        <div class="rl-eyebrow" aria-label="Mortgage Rates">
+          <span class="dot"></span>
+          Mortgage Rates
+          <span class="sep" aria-hidden="true">&middot;</span>
+          <strong>May 2026 Update</strong>
+        </div>
+
+        <h1 id="mortgage-rates-today-title">Mortgage Rates Today: May 6, 2026</h1>
+
+        <div class="rl-meta" aria-label="Primary sources">
+          <strong>Primary sources:</strong>
+          <a href="https://www.freddiemac.com/pmms" target="_blank" rel="noopener noreferrer">Freddie Mac PMMS</a>
+          <span class="sep" aria-hidden="true">&middot;</span>
+          <a href="https://www.federalreserve.gov" target="_blank" rel="noopener noreferrer">Federal Reserve</a>
+        </div>
+
+        <nav class="rl-pills" aria-label="Jump to section">
+          <a class="rl-pill" href="#current-rates">Current Rates</a>
+          <a class="rl-pill" href="#rate-forecast">Forecast</a>
+          <a class="rl-pill" href="#how-to-lock">How to Lock</a>
+          <a class="rl-pill" href="#mortgage-rates-today-faqs">FAQs</a>
+        </nav>
+
+        <p class="rl-hero-lead">The average 30-year fixed mortgage rate sits at 6.82% today, down 12 basis points from last week. Rates have been trending lower since the Fed signaled potential cuts later this year. Borrowers with 740+ credit scores are seeing rates in the low 6% range with the right lender.</p>
+
+        <p class="rl-hero-lead">
+          <span class="rl-next-pill">
+            <span class="rl-next-label">Next step:</span>
+            <a class="rl-next-link" href="/get-a-quote/">Compare Today's Rates</a>
+          </span>
+        </p>
+
+      </div>
+    </header>
+
+    <section class="rl-quick-grid" aria-label="Rate overview">
+      <article class="rl-quick-card">
+        <h3>30-Year Fixed</h3>
+        <ul>
+          <li><strong>Average rate:</strong> 6.82% APR as of May 6, 2026 per Freddie Mac PMMS</li>
+          <li><strong>Weekly change:</strong> Down 0.12% from last week's 6.94% average rate</li>
+          <li><strong>Monthly payment:</strong> $2,607/mo on a $400,000 loan at today's rate</li>
+        </ul>
+      </article>
+      <article class="rl-quick-card">
+        <h3>15-Year Fixed</h3>
+        <ul>
+          <li><strong>Average rate:</strong> 6.14% APR, a 68 basis point discount versus the 30-year</li>
+          <li><strong>Weekly change:</strong> Down 0.08% from 6.22% last week</li>
+          <li><strong>Monthly payment:</strong> $3,397/mo on $400K — $790 more but $142K less interest</li>
+        </ul>
+      </article>
+      <article class="rl-quick-card">
+        <h3>5/1 ARM</h3>
+        <ul>
+          <li><strong>Average rate:</strong> 6.28% intro rate, fixed for first 5 years then adjusts annually</li>
+          <li><strong>Cap structure:</strong> 2/2/5 typical caps limit adjustment risk after the fixed period</li>
+          <li><strong>Best for:</strong> Borrowers planning to sell or refinance within 5-7 years</li>
+        </ul>
+      </article>
+      <article class="rl-quick-card">
+        <h3>Rate Factors</h3>
+        <ul>
+          <li><strong>Credit score:</strong> 740+ gets the best rates, 40-80 bps below the average</li>
+          <li><strong>Down payment:</strong> 20% down avoids PMI and often unlocks lower rates</li>
+          <li><strong>Loan size:</strong> Jumbo loans (above $832,750) carry a 15-30 bps premium</li>
+        </ul>
+      </article>
+    </section>
+
+    <section id="mortgage-rates-today-faqs" class="rl-section" aria-labelledby="mortgage-rates-today-faqs-heading">
+      <div class="rl-section-head">
+        <h2 id="mortgage-rates-today-faqs-heading">Frequently Asked Questions</h2>
+      </div>
+      <div class="rl-faq" aria-label="Rate FAQs">
+        <details>
+          <summary>What is a good mortgage rate right now?</summary>
+          <div class="ans">A good 30-year fixed rate today is in the low 6% range for borrowers with 740+ credit scores and 20% down. The national average sits at 6.82%, so anything below that with a strong credit profile is competitive.</div>
+        </details>
+        <details>
+          <summary>Are mortgage rates going down in 2026?</summary>
+          <div class="ans">Rates have dropped 12 basis points this week and are trending lower. Most forecasts project rates reaching the low 6% range by late 2026, contingent on inflation continuing to moderate and the Fed cutting its benchmark rate.</div>
+        </details>
+        <details>
+          <summary>Should I lock my rate today or wait?</summary>
+          <div class="ans">If you are within 45 days of closing and rates are at or below your target, lock now. Rates can move quickly in either direction, and the risk of waiting often outweighs the potential savings of a slightly lower rate.</div>
+        </details>
+      </div>
+    </section>
+
+  </div>
+</section>
+
+<div class="rl-page main-content">
+  <h2>The Bottom Line Up Front</h2>
+  <strong>Rates are trending lower. If you have been waiting for a dip, this week's 12 basis point drop is a real move, not noise.</strong>
+  <p>The average 30-year fixed rate at 6.82% is the lowest in 3 weeks. Borrowers with strong credit are locking below 6.5% with the right lender. The spread between the best and worst offers on the same loan is often 40-60 basis points, so shopping multiple lenders matters more than timing the market.</p>
+
+  <h2>Today's Mortgage Rates by Loan Type</h2>
+  <div class="rl-table-scroll">
+    <table class="rl-table">
+      <thead>
+        <tr><th>Loan Type</th><th>Rate</th><th>APR</th><th>Weekly Change</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>30-Year Fixed</td><td>6.82%</td><td>6.91%</td><td>-0.12%</td></tr>
+        <tr><td>15-Year Fixed</td><td>6.14%</td><td>6.28%</td><td>-0.08%</td></tr>
+        <tr><td>5/1 ARM</td><td>6.28%</td><td>7.04%</td><td>-0.05%</td></tr>
+        <tr><td>30-Year FHA</td><td>6.54%</td><td>7.22%</td><td>-0.10%</td></tr>
+        <tr><td>30-Year VA</td><td>6.38%</td><td>6.52%</td><td>-0.14%</td></tr>
+        <tr><td>30-Year Jumbo</td><td>7.08%</td><td>7.14%</td><td>-0.06%</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="rl-bullet-section rl-bullet-section--blue">
+    <strong>What Is Driving Rates Lower</strong>
+    <ul>
+      <li>Fed signaled 2-3 rate cuts in 2026 during the last FOMC meeting</li>
+      <li>10-year Treasury yield dropped to 4.18%, pulling mortgage rates down</li>
+      <li>Inflation data for April came in at 2.4% YoY, below the 2.6% forecast</li>
+    </ul>
+  </div>
+
+  <div class="rl-callout rl-callout--warning">
+    <h3>Rate Lock Timing</h3>
+    <p>The best rate lock window is 30-45 days before your expected closing date. Locking too early means paying for an extension if your closing is delayed. Locking too late means risking a rate increase.</p>
+  </div>
+
+  <p>
+    <span class="rl-next-pill">
+      <span class="rl-next-label">Next step:</span>
+      <a class="rl-next-link" href="/get-a-quote/">Compare Today's Rates</a>
+    </span>
+  </p>
+
+  <h2>The Bottom Line</h2>
+  <strong>Shop at least 3 lenders, get pre-approved, and lock when your rate target is met.</strong>
+  <p>The difference between the best and worst offer on the same loan can be $100+/month. Shopping is free; overpaying is not.</p>
+
+  <h2>Resources Used</h2>
+  <div class="rl-callout rl-disclosure">
+    <ul>
+      <li><a href="https://www.freddiemac.com/pmms" target="_blank" rel="noopener noreferrer">Freddie Mac &mdash; Primary Mortgage Market Survey</a></li>
+      <li><a href="https://www.federalreserve.gov/monetarypolicy/fomccalendars.htm" target="_blank" rel="noopener noreferrer">Federal Reserve &mdash; FOMC Calendar and Statements</a></li>
+    </ul>
+  </div>
+</div>
+
+</body>
+</html>

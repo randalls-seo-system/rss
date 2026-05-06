@@ -1,0 +1,84 @@
+/* ==========================================================
+   Rank Logic Component Library — Layout
+   .rl-page, .rl-wrap, .rl-section
+   ========================================================== */
+
+/* Root wrapper — page-level scope */
+.rl-page {
+  background:
+    radial-gradient(1200px 600px at 12% 0, rgba(37, 99, 235, 0.12), transparent 55%),
+    radial-gradient(900px 500px at 88% 12%, rgba(59, 130, 246, 0.10), transparent 60%),
+    var(--rl-bg-soft);
+  padding: 28px 16px 72px;
+}
+
+@media (max-width: 640px) {
+  .rl-page { padding: 20px 12px 64px; }
+}
+
+/* Content wrapper — centered container */
+.rl-wrap {
+  max-width: 1120px;
+  margin: 0 auto;
+}
+
+/* Section spacing */
+.rl-section {
+  margin-top: 26px;
+}
+
+.rl-section-head {
+  margin-bottom: 10px;
+}
+
+.rl-section-head p {
+  margin: 6px 0 0;
+  color: var(--rl-text-muted);
+}
+
+/* Grid layouts */
+.rl-grid-2,
+.rl-grid-3 {
+  display: grid;
+  gap: var(--rl-spacing-md);
+  align-items: start;
+}
+
+.rl-grid-2 {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.rl-grid-3 {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+@media (max-width: 900px) {
+  .rl-grid-2 { grid-template-columns: 1fr; }
+}
+
+@media (max-width: 980px) {
+  .rl-grid-3 { grid-template-columns: 1fr; }
+}
+
+/* Skip link */
+.rl-skip {
+  position: absolute;
+  left: -9999px;
+  top: 10px;
+  z-index: 9999;
+  background: var(--rl-bg);
+  color: var(--rl-text);
+  border: 2px solid var(--rl-link);
+  border-radius: 12px;
+  padding: 10px 12px;
+  font-weight: var(--rl-font-weight-bold);
+}
+
+.rl-skip:focus {
+  left: 12px;
+}
+
+/* Hide utility (JS can override with inline style) */
+.rl-hide {
+  display: none;
+}

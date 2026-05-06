@@ -1,0 +1,70 @@
+/* ==========================================================
+   Rank Logic Component Library — Tables
+   .rl-table-scroll, .rl-table
+   ========================================================== */
+
+/* Scroll wrapper — rounded corners + horizontal scroll */
+.rl-page .rl-table-scroll {
+  width: 100%;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  border-radius: var(--rl-card-radius-sm);
+  border: 1px solid var(--rl-border);
+  background: var(--rl-bg);
+}
+
+/* Force table layout inside wrapper */
+.rl-page table {
+  display: table;
+  border-collapse: collapse;
+}
+
+.rl-page .rl-table {
+  width: 100%;
+  border-collapse: collapse;
+  table-layout: auto;
+  font-size: 13px;
+}
+
+/* Optional: force horizontal scroll for wide tables */
+.rl-page .rl-table[data-rl-table="scroll"] {
+  min-width: 640px;
+}
+
+.rl-page .rl-table th,
+.rl-page .rl-table td {
+  border-bottom: 1px solid var(--rl-border);
+  padding: 10px;
+  text-align: left;
+  vertical-align: top;
+}
+
+@media (max-width: 640px) {
+  .rl-page .rl-table th,
+  .rl-page .rl-table td {
+    padding: 8px;
+  }
+}
+
+.rl-page .rl-table thead th {
+  background: var(--rl-bg-alt);
+  color: var(--rl-text);
+  font-weight: var(--rl-font-weight-bold);
+}
+
+/* First column: keep key cells on one line */
+.rl-page .rl-table th:first-child,
+.rl-page .rl-table td:first-child {
+  white-space: nowrap;
+  width: 46%;
+}
+
+.rl-page .rl-table th:not(:first-child),
+.rl-page .rl-table td:not(:first-child) {
+  white-space: nowrap;
+}
+
+/* Remove bottom border from last row */
+.rl-page .rl-table tbody tr:last-child td {
+  border-bottom: 0;
+}

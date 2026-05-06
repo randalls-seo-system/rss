@@ -1,0 +1,131 @@
+<!--
+  Rank Logic — Process Intent Template
+  For "how do I do X?" step-by-step articles.
+  Emphasizes numbered steps, timelines, and action items.
+-->
+<section id="{{slug}}" class="rl-page rl-page--{{slug}}" data-rl-page="{{slug}}">
+  <a class="rl-skip" href="#{{slug}}-faqs">Skip to FAQs</a>
+  <div class="rl-wrap">
+
+    <header class="rl-card rl-hero" aria-labelledby="{{slug}}-title">
+      <div class="rl-card-inner">
+        <nav class="rl-breadcrumb" aria-label="Breadcrumb">
+          <a href="/">Home</a>
+          <span class="sep" aria-hidden="true">&rarr;</span>
+          <a href="/{{parent-slug}}/">{{Parent}}</a>
+          <span class="sep" aria-hidden="true">&rarr;</span>
+          <span aria-current="page">{{Page Name}}</span>
+        </nav>
+        <div class="rl-eyebrow" aria-label="{{topic}}">
+          <span class="dot"></span>
+          {{Topic}} <span class="sep" aria-hidden="true">&middot;</span>
+          <strong>Step-by-Step Guide</strong>
+        </div>
+        <h1 id="{{slug}}-title">How To {{Process Name}}</h1>
+        <p class="rl-hero-lead">{{Lead: state the timeline and key requirement upfront.}}</p>
+        <p class="rl-hero-lead">
+          <span class="rl-next-pill">
+            <span class="rl-next-label">Next step:</span>
+            <a class="rl-next-link" href="{{cta-url}}">{{CTA}}</a>
+          </span>
+        </p>
+      </div>
+    </header>
+
+    <!-- Quick cards: prerequisites, timeline, documents, costs -->
+    <section class="rl-quick-grid" aria-label="Process overview">
+      <article class="rl-quick-card">
+        <h3>Prerequisites</h3>
+        <ul>
+          <li><strong>Eligibility:</strong> {{Key requirement}}</li>
+          <li><strong>Documents:</strong> {{What to gather}}</li>
+          <li><strong>Timeline:</strong> {{Expected duration}}</li>
+        </ul>
+      </article>
+      <article class="rl-quick-card">
+        <h3>What You Need</h3>
+        <ul>
+          <li><strong>Document 1:</strong> {{Detail}}</li>
+          <li><strong>Document 2:</strong> {{Detail}}</li>
+          <li><strong>Document 3:</strong> {{Detail}}</li>
+        </ul>
+      </article>
+      <article class="rl-quick-card">
+        <h3>Expected Timeline</h3>
+        <ul>
+          <li><strong>Step 1:</strong> {{Duration}}</li>
+          <li><strong>Step 2:</strong> {{Duration}}</li>
+          <li><strong>Total:</strong> {{Overall timeline}}</li>
+        </ul>
+      </article>
+      <article class="rl-quick-card">
+        <h3>Costs Involved</h3>
+        <ul>
+          <li><strong>{{Fee 1}}:</strong> {{Amount}}</li>
+          <li><strong>{{Fee 2}}:</strong> {{Amount}}</li>
+          <li><strong>Total range:</strong> {{Range}}</li>
+        </ul>
+      </article>
+    </section>
+
+    <section id="{{slug}}-faqs" class="rl-section" aria-labelledby="{{slug}}-faqs-heading">
+      <div class="rl-section-head">
+        <h2 id="{{slug}}-faqs-heading">Frequently Asked Questions</h2>
+      </div>
+      <div class="rl-faq" aria-label="{{topic}} FAQs">
+        <details>
+          <summary>{{Process question}}</summary>
+          <div class="ans">{{Direct answer}}</div>
+        </details>
+      </div>
+    </section>
+  </div>
+</section>
+
+<div class="rl-page main-content">
+  <h2>The Bottom Line Up Front</h2>
+  <strong>{{Verdict: the process takes X and requires Y.}}</strong>
+  <p>{{Context paragraph.}}</p>
+
+  <!-- Each H2 = one step -->
+  <h2>Step 1: {{Action}}</h2>
+  <p>{{What to do and why it matters.}}</p>
+  <div class="rl-bullet-section rl-bullet-section--green">
+    <strong>What you need for this step:</strong>
+    <ul>
+      <li>{{Requirement}}</li>
+      <li>{{Requirement}}</li>
+    </ul>
+  </div>
+
+  <h2>Step 2: {{Action}}</h2>
+  <p>{{Instructions.}}</p>
+
+  <h2>Step 3: {{Action}}</h2>
+  <p>{{Instructions.}}</p>
+
+  <!-- Common mistakes callout -->
+  <div class="rl-callout rl-callout--danger">
+    <h3>Common Mistakes to Avoid</h3>
+    <ul>
+      <li>{{Mistake 1}}</li>
+      <li>{{Mistake 2}}</li>
+    </ul>
+  </div>
+
+  <h2>The Bottom Line</h2>
+  <strong>{{Final summary.}}</strong>
+  <p>
+    <span class="rl-next-pill">
+      <span class="rl-next-label">Ready to start?</span>
+      <a class="rl-next-link" href="{{cta-url}}">{{CTA}}</a>
+    </span>
+  </p>
+
+  <h2>Resources Used</h2>
+  <div class="rl-callout rl-disclosure">
+    <ul>
+      <li><a href="{{url}}" target="_blank" rel="noopener noreferrer">{{Source}}</a></li>
+    </ul>
+  </div>
+</div>

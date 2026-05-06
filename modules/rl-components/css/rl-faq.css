@@ -1,0 +1,71 @@
+/* ==========================================================
+   Rank Logic Component Library — FAQ
+   .rl-faq — uses native <details>/<summary>
+   ========================================================== */
+
+.rl-page .rl-faq {
+  margin-top: 12px;
+  border: 1px solid var(--rl-border);
+  border-radius: var(--rl-card-radius);
+  background: var(--rl-bg);
+  overflow: hidden;
+  box-shadow: 0 18px 45px rgba(15, 23, 42, 0.10);
+}
+
+.rl-page .rl-faq details {
+  border: 0;
+}
+
+.rl-page .rl-faq details:not(:first-child) {
+  border-top: 1px solid var(--rl-border);
+}
+
+.rl-page .rl-faq summary {
+  cursor: pointer;
+  list-style: none;
+  padding: 16px;
+  font-weight: 950;
+  color: var(--rl-text);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--rl-spacing-md);
+  position: relative;
+}
+
+.rl-page .rl-faq summary::-webkit-details-marker {
+  display: none;
+}
+
+/* +/- toggle icon */
+.rl-page .rl-faq summary::after {
+  content: "+";
+  width: 28px;
+  height: 28px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  border: 1px solid var(--rl-border);
+  background: var(--rl-bg-alt);
+  color: var(--rl-text-muted);
+  font-size: 16px;
+  font-weight: 700;
+  flex: 0 0 28px;
+}
+
+.rl-page .rl-faq details[open] summary::after {
+  content: "\2013";
+}
+
+/* Answer body */
+.rl-page .rl-faq .ans,
+.rl-page .rl-faq-body {
+  border-top: 1px solid var(--rl-border);
+  padding: 12px 16px 16px;
+}
+
+.rl-page .rl-faq .ans p {
+  margin: 0;
+  color: var(--rl-text-muted);
+}

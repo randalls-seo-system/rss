@@ -1,0 +1,140 @@
+<!--
+  Rank Logic — Definition Intent Template
+  For "what is X?" informational/educational articles.
+  Emphasizes clear definitions, examples, and structured knowledge.
+-->
+<section id="{{slug}}" class="rl-page rl-page--{{slug}}" data-rl-page="{{slug}}">
+  <a class="rl-skip" href="#{{slug}}-faqs">Skip to FAQs</a>
+  <div class="rl-wrap">
+
+    <header class="rl-card rl-hero" aria-labelledby="{{slug}}-title">
+      <div class="rl-card-inner">
+        <nav class="rl-breadcrumb" aria-label="Breadcrumb">
+          <a href="/">Home</a>
+          <span class="sep" aria-hidden="true">&rarr;</span>
+          <a href="/{{parent-slug}}/">{{Parent}}</a>
+          <span class="sep" aria-hidden="true">&rarr;</span>
+          <span aria-current="page">{{Page Name}}</span>
+        </nav>
+        <div class="rl-eyebrow" aria-label="{{topic}}">
+          <span class="dot"></span>
+          {{Topic}} <span class="sep" aria-hidden="true">&middot;</span>
+          <strong>Key Concepts</strong>
+        </div>
+        <h1 id="{{slug}}-title">What Is {{Term}}?</h1>
+        <div class="rl-meta" aria-label="Primary sources">
+          <strong>Primary sources:</strong>
+          <a href="{{url}}" target="_blank" rel="noopener noreferrer">{{Source}}</a>
+        </div>
+        <nav class="rl-pills" aria-label="Jump to section">
+          <a class="rl-pill" href="#definition">Definition</a>
+          <a class="rl-pill" href="#how-it-works">How It Works</a>
+          <a class="rl-pill" href="#examples">Examples</a>
+          <a class="rl-pill" href="#{{slug}}-faqs">FAQs</a>
+        </nav>
+        <p class="rl-hero-lead">{{Lead: one-sentence definition + why it matters.}}</p>
+        <p class="rl-hero-lead">
+          <span class="rl-next-pill">
+            <span class="rl-next-label">Next step:</span>
+            <a class="rl-next-link" href="{{cta-url}}">{{CTA}}</a>
+          </span>
+        </p>
+      </div>
+    </header>
+
+    <section class="rl-quick-grid" aria-label="{{term}} overview">
+      <article class="rl-quick-card">
+        <h3>Definition</h3>
+        <ul>
+          <li><strong>What it is:</strong> {{Plain-language definition}}</li>
+          <li><strong>Also called:</strong> {{Synonyms/abbreviations}}</li>
+          <li><strong>Category:</strong> {{Where it fits}}</li>
+        </ul>
+      </article>
+      <article class="rl-quick-card">
+        <h3>Key Facts</h3>
+        <ul>
+          <li><strong>{{Fact label}}:</strong> {{Value}}</li>
+          <li><strong>{{Fact label}}:</strong> {{Value}}</li>
+          <li><strong>{{Fact label}}:</strong> {{Value}}</li>
+        </ul>
+      </article>
+      <article class="rl-quick-card">
+        <h3>Why It Matters</h3>
+        <ul>
+          <li><strong>Impact:</strong> {{How it affects the reader}}</li>
+          <li><strong>Common mistake:</strong> {{What people get wrong}}</li>
+          <li><strong>Bottom line:</strong> {{Key takeaway}}</li>
+        </ul>
+      </article>
+      <article class="rl-quick-card">
+        <h3>Related Terms</h3>
+        <ul>
+          <li><strong>{{Term 1}}:</strong> {{Brief distinction}}</li>
+          <li><strong>{{Term 2}}:</strong> {{Brief distinction}}</li>
+          <li><strong>{{Term 3}}:</strong> {{Brief distinction}}</li>
+        </ul>
+      </article>
+    </section>
+
+    <section id="{{slug}}-faqs" class="rl-section" aria-labelledby="{{slug}}-faqs-heading">
+      <div class="rl-section-head">
+        <h2 id="{{slug}}-faqs-heading">Frequently Asked Questions</h2>
+      </div>
+      <div class="rl-faq" aria-label="{{topic}} FAQs">
+        <details>
+          <summary>What is {{term}} in simple terms?</summary>
+          <div class="ans">{{Plain-language answer}}</div>
+        </details>
+        <details>
+          <summary>{{Common question about term}}</summary>
+          <div class="ans">{{Answer}}</div>
+        </details>
+      </div>
+    </section>
+  </div>
+</section>
+
+<div class="rl-page main-content">
+  <h2>The Bottom Line Up Front</h2>
+  <strong>{{One-sentence definition + practical implication.}}</strong>
+  <p>{{Expanded definition with context. 50-70 words.}}</p>
+
+  <h2>How {{Term}} Works</h2>
+  <p>{{Mechanical explanation.}}</p>
+
+  <h2>{{Term}} Examples</h2>
+  <p>{{Real-world scenarios.}}</p>
+
+  <!-- Example table -->
+  <div class="rl-table-scroll">
+    <table class="rl-table">
+      <thead>
+        <tr><th>Scenario</th><th>{{Term}} Value</th><th>Result</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>{{Example 1}}</td><td>{{Value}}</td><td>{{Outcome}}</td></tr>
+        <tr><td>{{Example 2}}</td><td>{{Value}}</td><td>{{Outcome}}</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h2>{{Term}} vs {{Related Term}}</h2>
+  <p>{{Key distinctions.}}</p>
+
+  <h2>The Bottom Line</h2>
+  <strong>{{Summary.}}</strong>
+  <p>
+    <span class="rl-next-pill">
+      <span class="rl-next-label">Next step:</span>
+      <a class="rl-next-link" href="{{cta-url}}">{{CTA}}</a>
+    </span>
+  </p>
+
+  <h2>Resources Used</h2>
+  <div class="rl-callout rl-disclosure">
+    <ul>
+      <li><a href="{{url}}" target="_blank" rel="noopener noreferrer">{{Source}}</a></li>
+    </ul>
+  </div>
+</div>

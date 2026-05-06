@@ -1,0 +1,102 @@
+<!--
+  Rank Logic — News/Update Intent Template
+  For time-sensitive news, rate changes, regulation updates.
+  Emphasizes recency, impact summary, and what-to-do-now.
+-->
+<section id="{{slug}}" class="rl-page rl-page--{{slug}}" data-rl-page="{{slug}}">
+  <a class="rl-skip" href="#{{slug}}-faqs">Skip to FAQs</a>
+  <div class="rl-wrap">
+
+    <header class="rl-card rl-hero" aria-labelledby="{{slug}}-title">
+      <div class="rl-card-inner">
+        <nav class="rl-breadcrumb" aria-label="Breadcrumb">
+          <a href="/">Home</a>
+          <span class="sep" aria-hidden="true">&rarr;</span>
+          <a href="/{{parent-slug}}/">{{Parent}}</a>
+          <span class="sep" aria-hidden="true">&rarr;</span>
+          <span aria-current="page">{{Page Name}}</span>
+        </nav>
+        <div class="rl-eyebrow" aria-label="{{topic}}">
+          <span class="dot"></span>
+          {{Topic}} <span class="sep" aria-hidden="true">&middot;</span>
+          <strong>{{Month}} {{Year}} Update</strong>
+        </div>
+        <h1 id="{{slug}}-title">{{Headline}}</h1>
+        <div class="rl-meta" aria-label="Update date">
+          <strong>Updated:</strong> {{Date}}
+        </div>
+        <p class="rl-hero-lead">{{Lead: what changed and how it impacts readers.}}</p>
+        <p class="rl-hero-lead">
+          <span class="rl-next-pill">
+            <span class="rl-next-label">Next step:</span>
+            <a class="rl-next-link" href="{{cta-url}}">{{CTA}}</a>
+          </span>
+        </p>
+      </div>
+    </header>
+
+    <section class="rl-quick-grid" aria-label="Update summary">
+      <article class="rl-quick-card">
+        <h3>What Changed</h3>
+        <ul>
+          <li><strong>Old:</strong> {{Previous value/rule}}</li>
+          <li><strong>New:</strong> {{Current value/rule}}</li>
+          <li><strong>Effective:</strong> {{Date}}</li>
+        </ul>
+      </article>
+      <article class="rl-quick-card">
+        <h3>Who Is Affected</h3>
+        <ul>
+          <li><strong>Impacted:</strong> {{Group}}</li>
+          <li><strong>Not impacted:</strong> {{Group}}</li>
+          <li><strong>Action needed:</strong> {{Yes/No + what}}</li>
+        </ul>
+      </article>
+    </section>
+
+    <section id="{{slug}}-faqs" class="rl-section" aria-labelledby="{{slug}}-faqs-heading">
+      <div class="rl-section-head">
+        <h2 id="{{slug}}-faqs-heading">Frequently Asked Questions</h2>
+      </div>
+      <div class="rl-faq" aria-label="{{topic}} FAQs">
+        <details>
+          <summary>{{News question}}</summary>
+          <div class="ans">{{Answer}}</div>
+        </details>
+      </div>
+    </section>
+  </div>
+</section>
+
+<div class="rl-page main-content">
+  <h2>The Bottom Line Up Front</h2>
+  <strong>{{Impact statement: what this means for the reader.}}</strong>
+  <p>{{Context on the change and timing.}}</p>
+
+  <h2>What Changed and Why</h2>
+  <p>{{Background on the change.}}</p>
+
+  <h2>How This Affects You</h2>
+  <p>{{Practical impact.}}</p>
+
+  <div class="rl-callout rl-callout--warning">
+    <h3>Action Required</h3>
+    <p>{{What readers should do now.}}</p>
+  </div>
+
+  <h2>The Bottom Line</h2>
+  <strong>{{Summary verdict.}}</strong>
+  <p>
+    <span class="rl-next-pill">
+      <span class="rl-next-label">Next step:</span>
+      <a class="rl-next-link" href="{{cta-url}}">{{CTA}}</a>
+    </span>
+  </p>
+
+  <h2>Resources Used</h2>
+  <div class="rl-callout rl-disclosure">
+    <ul>
+      <li><a href="{{url}}" target="_blank" rel="noopener noreferrer">{{Source}}</a></li>
+    </ul>
+  </div>
+</div>

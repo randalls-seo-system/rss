@@ -1,0 +1,115 @@
+/* ==========================================================
+   Rank Logic Component Library — Utility Classes
+   Spacing, alignment, and common helpers
+   ========================================================== */
+
+/* Spacing — margin top */
+.rl-mt-0 { margin-top: 0 !important; }
+.rl-mt-xs { margin-top: var(--rl-spacing-xs) !important; }
+.rl-mt-sm { margin-top: var(--rl-spacing-sm) !important; }
+.rl-mt-md { margin-top: var(--rl-spacing-md) !important; }
+.rl-mt-lg { margin-top: var(--rl-spacing-lg) !important; }
+.rl-mt-xl { margin-top: var(--rl-spacing-xl) !important; }
+
+/* Spacing — margin bottom */
+.rl-mb-0 { margin-bottom: 0 !important; }
+.rl-mb-xs { margin-bottom: var(--rl-spacing-xs) !important; }
+.rl-mb-sm { margin-bottom: var(--rl-spacing-sm) !important; }
+.rl-mb-md { margin-bottom: var(--rl-spacing-md) !important; }
+.rl-mb-lg { margin-bottom: var(--rl-spacing-lg) !important; }
+.rl-mb-xl { margin-bottom: var(--rl-spacing-xl) !important; }
+
+/* Text alignment */
+.rl-text-left { text-align: left !important; }
+.rl-text-center { text-align: center !important; }
+.rl-text-right { text-align: right !important; }
+
+/* Text color helpers */
+.rl-text-primary { color: var(--rl-primary) !important; }
+.rl-text-accent { color: var(--rl-accent) !important; }
+.rl-text-muted { color: var(--rl-text-muted) !important; }
+
+/* Display */
+.rl-flex { display: flex !important; }
+.rl-flex-wrap { flex-wrap: wrap !important; }
+.rl-items-center { align-items: center !important; }
+.rl-justify-between { justify-content: space-between !important; }
+.rl-gap-sm { gap: var(--rl-spacing-sm) !important; }
+.rl-gap-md { gap: var(--rl-spacing-md) !important; }
+
+/* Width */
+.rl-w-full { width: 100% !important; }
+
+/* Screen reader only */
+.rl-sr-only {
+  position: absolute !important;
+  width: 1px !important;
+  height: 1px !important;
+  padding: 0 !important;
+  margin: -1px !important;
+  overflow: hidden !important;
+  clip: rect(0, 0, 0, 0) !important;
+  white-space: nowrap !important;
+  border: 0 !important;
+}
+
+/* Buttons */
+.rl-page .rl-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--rl-spacing-sm);
+  border-radius: 999px;
+  border: 1px solid transparent;
+  padding: 11px 18px;
+  font-weight: var(--rl-font-weight-heavy);
+  font-size: 14px;
+  cursor: pointer;
+  text-decoration: none !important;
+  line-height: 1.2;
+  user-select: none;
+}
+
+@media (max-width: 640px) {
+  .rl-page .rl-btn {
+    padding: 10px 14px;
+    font-size: 13.5px;
+  }
+}
+
+.rl-page .rl-btn--primary {
+  background: var(--rl-primary-dark);
+  border-color: var(--rl-primary-dark);
+  color: #fff !important;
+}
+
+.rl-page .rl-btn--primary:hover {
+  background: var(--rl-primary);
+  border-color: var(--rl-primary);
+}
+
+.rl-page .rl-btn--secondary {
+  background: var(--rl-bg);
+  border-color: var(--rl-border);
+  color: var(--rl-primary-dark) !important;
+}
+
+.rl-page .rl-btn--secondary:hover {
+  background: #f1f5ff;
+}
+
+.rl-page .rl-btn--accent {
+  background: var(--rl-accent);
+  border-color: var(--rl-accent);
+  color: #fff !important;
+}
+
+.rl-page .rl-btn--accent:hover {
+  background: var(--rl-accent-hover);
+  border-color: var(--rl-accent-hover);
+}
+
+.rl-page .rl-btn--sm {
+  padding: 8px 14px;
+  font-size: 13px;
+}

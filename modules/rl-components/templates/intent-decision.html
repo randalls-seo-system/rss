@@ -1,0 +1,123 @@
+<!--
+  Rank Logic — Decision Intent Template
+  For "which one should I choose?" comparison/decision articles.
+  Emphasizes comparison tables, pros/cons, and clear verdict.
+-->
+<section id="{{slug}}" class="rl-page rl-page--{{slug}}" data-rl-page="{{slug}}">
+  <a class="rl-skip" href="#{{slug}}-faqs">Skip to FAQs</a>
+  <div class="rl-wrap">
+
+    <header class="rl-card rl-hero" aria-labelledby="{{slug}}-title">
+      <div class="rl-card-inner">
+        <nav class="rl-breadcrumb" aria-label="Breadcrumb">
+          <a href="/">Home</a>
+          <span class="sep" aria-hidden="true">&rarr;</span>
+          <a href="/{{parent-slug}}/">{{Parent}}</a>
+          <span class="sep" aria-hidden="true">&rarr;</span>
+          <span aria-current="page">{{Page Name}}</span>
+        </nav>
+        <div class="rl-eyebrow" aria-label="{{topic}}">
+          <span class="dot"></span>
+          {{Topic}} <span class="sep" aria-hidden="true">&middot;</span>
+          <strong>Comparison</strong>
+        </div>
+        <h1 id="{{slug}}-title">{{Option A}} vs {{Option B}}: {{Verdict Framing}}</h1>
+        <p class="rl-hero-lead">{{Lead: state the winner upfront with the key differentiator.}}</p>
+        <p class="rl-hero-lead">
+          <span class="rl-next-pill">
+            <span class="rl-next-label">Next step:</span>
+            <a class="rl-next-link" href="{{cta-url}}">{{CTA}}</a>
+          </span>
+        </p>
+      </div>
+    </header>
+
+    <!-- Quick cards: one per option + one for "who should choose which" -->
+    <section class="rl-quick-grid" aria-label="Comparison overview">
+      <article class="rl-quick-card">
+        <h3>{{Option A}} at a Glance</h3>
+        <ul>
+          <li><strong>Best for:</strong> {{Who this serves}}</li>
+          <li><strong>Key advantage:</strong> {{Primary strength}}</li>
+          <li><strong>Watch out:</strong> {{Primary downside}}</li>
+        </ul>
+      </article>
+      <article class="rl-quick-card">
+        <h3>{{Option B}} at a Glance</h3>
+        <ul>
+          <li><strong>Best for:</strong> {{Who this serves}}</li>
+          <li><strong>Key advantage:</strong> {{Primary strength}}</li>
+          <li><strong>Watch out:</strong> {{Primary downside}}</li>
+        </ul>
+      </article>
+    </section>
+
+    <section id="{{slug}}-faqs" class="rl-section" aria-labelledby="{{slug}}-faqs-heading">
+      <div class="rl-section-head">
+        <h2 id="{{slug}}-faqs-heading">Frequently Asked Questions</h2>
+      </div>
+      <div class="rl-faq" aria-label="{{topic}} FAQs">
+        <details>
+          <summary>{{Comparison question}}</summary>
+          <div class="ans">{{Direct answer with verdict}}</div>
+        </details>
+      </div>
+    </section>
+  </div>
+</section>
+
+<div class="rl-page main-content">
+  <h2>The Bottom Line Up Front</h2>
+  <strong>{{Clear verdict: which option wins and why.}}</strong>
+  <p>{{Context with the key differentiating factor.}}</p>
+
+  <!-- Head-to-head comparison table -->
+  <h2>{{Option A}} vs {{Option B}}: Side-by-Side</h2>
+  <div class="rl-table-scroll">
+    <table class="rl-table">
+      <thead>
+        <tr><th>Feature</th><th>{{Option A}}</th><th>{{Option B}}</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>{{Factor 1}}</td><td>{{A value}}</td><td>{{B value}}</td></tr>
+        <tr><td>{{Factor 2}}</td><td>{{A value}}</td><td>{{B value}}</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Pros/cons using bullet sections -->
+  <h2>When {{Option A}} Is the Better Choice</h2>
+  <div class="rl-bullet-section rl-bullet-section--green">
+    <strong>Choose {{Option A}} if:</strong>
+    <ul>
+      <li>{{Scenario 1}}</li>
+      <li>{{Scenario 2}}</li>
+    </ul>
+  </div>
+
+  <h2>When {{Option B}} Is the Better Choice</h2>
+  <div class="rl-bullet-section rl-bullet-section--blue">
+    <strong>Choose {{Option B}} if:</strong>
+    <ul>
+      <li>{{Scenario 1}}</li>
+      <li>{{Scenario 2}}</li>
+    </ul>
+  </div>
+
+  <h2>The Bottom Line</h2>
+  <strong>{{Final verdict.}}</strong>
+  <p>{{Closing guidance.}}</p>
+  <p>
+    <span class="rl-next-pill">
+      <span class="rl-next-label">Next step:</span>
+      <a class="rl-next-link" href="{{cta-url}}">{{CTA}}</a>
+    </span>
+  </p>
+
+  <h2>Resources Used</h2>
+  <div class="rl-callout rl-disclosure">
+    <ul>
+      <li><a href="{{url}}" target="_blank" rel="noopener noreferrer">{{Source}}</a></li>
+    </ul>
+  </div>
+</div>

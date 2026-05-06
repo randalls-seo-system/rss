@@ -1,0 +1,131 @@
+<!--
+  Rank Logic — Comparison Intent Template
+  For "X vs Y" or "best X for Y" comparison articles.
+  Emphasizes data tables, scoring, and ranked options.
+-->
+<section id="{{slug}}" class="rl-page rl-page--{{slug}}" data-rl-page="{{slug}}">
+  <a class="rl-skip" href="#{{slug}}-faqs">Skip to FAQs</a>
+  <div class="rl-wrap">
+
+    <header class="rl-card rl-hero" aria-labelledby="{{slug}}-title">
+      <div class="rl-card-inner">
+        <nav class="rl-breadcrumb" aria-label="Breadcrumb">
+          <a href="/">Home</a>
+          <span class="sep" aria-hidden="true">&rarr;</span>
+          <a href="/{{parent-slug}}/">{{Parent}}</a>
+          <span class="sep" aria-hidden="true">&rarr;</span>
+          <span aria-current="page">{{Page Name}}</span>
+        </nav>
+        <div class="rl-eyebrow" aria-label="{{topic}}">
+          <span class="dot"></span>
+          {{Topic}} <span class="sep" aria-hidden="true">&middot;</span>
+          <strong>Ranked Comparison</strong>
+        </div>
+        <h1 id="{{slug}}-title">Best {{Category}} in {{Year}}</h1>
+        <p class="rl-hero-lead">{{Lead: state the top pick and why.}}</p>
+        <p class="rl-hero-lead">
+          <span class="rl-next-pill">
+            <span class="rl-next-label">Next step:</span>
+            <a class="rl-next-link" href="{{cta-url}}">{{CTA}}</a>
+          </span>
+        </p>
+      </div>
+    </header>
+
+    <section class="rl-quick-grid" aria-label="Top picks overview">
+      <article class="rl-quick-card">
+        <h3>Our Top Pick</h3>
+        <ul>
+          <li><strong>Winner:</strong> {{Best option + key metric}}</li>
+          <li><strong>Why:</strong> {{Primary differentiator}}</li>
+          <li><strong>Best for:</strong> {{Target audience}}</li>
+        </ul>
+      </article>
+      <article class="rl-quick-card">
+        <h3>Runner-Up</h3>
+        <ul>
+          <li><strong>Pick:</strong> {{Second option}}</li>
+          <li><strong>Edge:</strong> {{Where it beats #1}}</li>
+          <li><strong>Best for:</strong> {{Specific use case}}</li>
+        </ul>
+      </article>
+      <article class="rl-quick-card">
+        <h3>Budget Pick</h3>
+        <ul>
+          <li><strong>Pick:</strong> {{Budget option}}</li>
+          <li><strong>Price:</strong> {{Cost comparison}}</li>
+          <li><strong>Trade-off:</strong> {{What you give up}}</li>
+        </ul>
+      </article>
+      <article class="rl-quick-card">
+        <h3>How We Scored</h3>
+        <ul>
+          <li><strong>{{Factor 1}}:</strong> {{Weight/method}}</li>
+          <li><strong>{{Factor 2}}:</strong> {{Weight/method}}</li>
+          <li><strong>Options reviewed:</strong> {{Count}}</li>
+        </ul>
+      </article>
+    </section>
+
+    <section id="{{slug}}-faqs" class="rl-section" aria-labelledby="{{slug}}-faqs-heading">
+      <div class="rl-section-head">
+        <h2 id="{{slug}}-faqs-heading">Frequently Asked Questions</h2>
+      </div>
+      <div class="rl-faq" aria-label="{{topic}} FAQs">
+        <details>
+          <summary>{{Comparison question}}</summary>
+          <div class="ans">{{Answer}}</div>
+        </details>
+      </div>
+    </section>
+  </div>
+</section>
+
+<div class="rl-page main-content">
+  <h2>The Bottom Line Up Front</h2>
+  <strong>{{Top pick and the metric that matters.}}</strong>
+  <p>{{Context: methodology and what matters most.}}</p>
+
+  <!-- Master comparison table -->
+  <h2>{{Category}} Compared: Full Breakdown</h2>
+  <div class="rl-table-scroll">
+    <table class="rl-table" data-rl-table="scroll">
+      <thead>
+        <tr>
+          <th>{{Option}}</th>
+          <th>{{Metric 1}}</th>
+          <th>{{Metric 2}}</th>
+          <th>{{Metric 3}}</th>
+          <th>Overall</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr><td>{{Option 1}}</td><td>{{Score}}</td><td>{{Score}}</td><td>{{Score}}</td><td>{{Total}}</td></tr>
+        <tr><td>{{Option 2}}</td><td>{{Score}}</td><td>{{Score}}</td><td>{{Score}}</td><td>{{Total}}</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Individual reviews as H2s -->
+  <h2>{{Option 1}}: {{One-Line Verdict}}</h2>
+  <p>{{Review.}}</p>
+
+  <h2>{{Option 2}}: {{One-Line Verdict}}</h2>
+  <p>{{Review.}}</p>
+
+  <h2>The Bottom Line</h2>
+  <strong>{{Final recommendation.}}</strong>
+  <p>
+    <span class="rl-next-pill">
+      <span class="rl-next-label">Next step:</span>
+      <a class="rl-next-link" href="{{cta-url}}">{{CTA}}</a>
+    </span>
+  </p>
+
+  <h2>Resources Used</h2>
+  <div class="rl-callout rl-disclosure">
+    <ul>
+      <li><a href="{{url}}" target="_blank" rel="noopener noreferrer">{{Source}}</a></li>
+    </ul>
+  </div>
+</div>

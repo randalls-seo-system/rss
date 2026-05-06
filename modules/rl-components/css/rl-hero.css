@@ -1,0 +1,177 @@
+/* ==========================================================
+   Rank Logic Component Library — Hero
+   .rl-hero, .rl-hero-lead, .rl-eyebrow, .rl-breadcrumb,
+   .rl-meta, .rl-pills, .rl-pill, .rl-next-pill
+   ========================================================== */
+
+/* Hero card — sits at top of article */
+.rl-page .rl-hero {
+  margin-bottom: 18px;
+}
+
+/* Breadcrumb */
+.rl-page .rl-breadcrumb {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--rl-spacing-sm);
+  align-items: center;
+  color: var(--rl-text-muted);
+  font-size: 12.5px;
+}
+
+.rl-page .rl-breadcrumb a {
+  font-weight: var(--rl-font-weight-bold);
+}
+
+.rl-page .rl-breadcrumb .sep,
+.rl-page .rl-breadcrumb span[aria-hidden="true"] {
+  color: var(--rl-text-light);
+}
+
+/* Eyebrow — topic label above H1 */
+.rl-page .rl-eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--rl-spacing-sm);
+  padding: 6px 12px;
+  border-radius: 999px;
+  background: var(--rl-bg);
+  border: 1px solid var(--rl-border-accent);
+  color: var(--rl-text-muted);
+  font-size: 11.5px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  margin-top: 10px;
+}
+
+.rl-page .rl-eyebrow .dot {
+  width: 9px;
+  height: 9px;
+  border-radius: 999px;
+  background: var(--rl-accent);
+  box-shadow: 0 0 0 5px var(--rl-accent-soft);
+}
+
+.rl-page .rl-eyebrow strong {
+  color: var(--rl-accent);
+  font-weight: var(--rl-font-weight-heavy);
+}
+
+/* Meta — primary sources line */
+.rl-page .rl-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--rl-spacing-sm);
+  align-items: center;
+  margin-top: 8px;
+  color: var(--rl-text-muted);
+  font-size: 12.5px;
+  width: 100%;
+}
+
+.rl-page .rl-meta strong {
+  color: var(--rl-text);
+  font-weight: var(--rl-font-weight-bold);
+}
+
+.rl-page .rl-meta .sep {
+  color: var(--rl-text-light);
+}
+
+/* Hero lead paragraph */
+.rl-page .rl-hero-lead {
+  margin-top: 10px;
+  color: var(--rl-text-muted);
+  width: 100%;
+}
+
+/* Jump pill nav */
+.rl-page .rl-pills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 12px;
+  padding: 0;
+}
+
+@media (max-width: 760px) {
+  .rl-page .rl-pills {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    padding-bottom: 6px;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .rl-page .rl-pills::-webkit-scrollbar {
+    display: none;
+  }
+}
+
+.rl-page .rl-pill {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 8px 12px;
+  border-radius: 999px;
+  border: 1px solid var(--rl-border);
+  background: var(--rl-bg);
+  color: var(--rl-primary-dark);
+  font-weight: var(--rl-font-weight-bold);
+  font-size: 12.5px;
+  white-space: nowrap;
+  text-decoration: none !important;
+  user-select: none;
+}
+
+.rl-page .rl-pill:hover {
+  background: #fff7ed;
+  text-decoration: none !important;
+}
+
+/* Next step CTA pill */
+.rl-page .rl-next-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--rl-spacing-sm);
+  padding: 6px 12px;
+  border-radius: 999px;
+  background: var(--rl-bg);
+  border: 1px solid var(--rl-border-accent);
+  color: var(--rl-text-muted);
+  font-size: 13px;
+  line-height: 1.2;
+  font-weight: 700;
+  width: fit-content;
+}
+
+.rl-page .rl-next-pill br {
+  display: none !important;
+}
+
+.rl-page .rl-next-label {
+  color: var(--rl-text-muted);
+  font-weight: var(--rl-font-weight-bold);
+}
+
+.rl-page .rl-next-link {
+  color: var(--rl-accent) !important;
+  font-weight: var(--rl-font-weight-heavy);
+  text-decoration: none !important;
+}
+
+.rl-page .rl-next-link:hover {
+  text-decoration: underline !important;
+}
+
+@media (max-width: 640px) {
+  .rl-page .rl-next-pill {
+    flex-wrap: wrap;
+    row-gap: 4px;
+  }
+
+  .rl-page .rl-next-link {
+    flex: 1 1 auto;
+    min-width: 0;
+    overflow-wrap: anywhere;
+  }
+}

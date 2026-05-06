@@ -1,0 +1,116 @@
+/* ==========================================================
+   Rank Logic Component Library — Callouts
+   .rl-callout, .rl-disclosure, and semantic variants
+   ========================================================== */
+
+/* Base callout */
+.rl-page .rl-callout {
+  border-radius: var(--rl-card-radius-sm);
+  border: 1px solid var(--rl-border);
+  background: var(--rl-bg);
+  padding: 12px 12px 10px;
+  box-shadow: var(--rl-card-shadow-sm);
+  margin-top: 12px;
+}
+
+.rl-page .rl-callout h3 {
+  font-size: 15px;
+  margin: 0 0 6px;
+}
+
+.rl-page .rl-callout p {
+  margin: 0;
+  color: var(--rl-text-muted);
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+.rl-page .rl-callout ul {
+  margin: 0;
+  padding-left: 18px;
+  list-style-type: disc;
+  list-style-position: outside;
+  color: var(--rl-text-muted);
+}
+
+.rl-page .rl-callout li {
+  margin: 8px 0;
+  display: list-item;
+}
+
+/* Callout title */
+.rl-page .rl-callout-title {
+  font-weight: var(--rl-font-weight-bold);
+  margin: 0 0 10px;
+  line-height: 1.25;
+}
+
+/* Semantic variants */
+.rl-page .rl-callout--warning {
+  border-color: #fed7aa;
+  background: linear-gradient(180deg, #fffbeb 0%, var(--rl-bg) 100%);
+}
+
+.rl-page .rl-callout--info {
+  border-color: var(--rl-border);
+  background: linear-gradient(180deg, #fff7ed 0%, var(--rl-bg) 100%);
+}
+
+.rl-page .rl-callout--success {
+  border-color: rgba(34, 197, 94, 0.35);
+  background: linear-gradient(180deg, #ecfdf5 0%, var(--rl-bg) 100%);
+}
+
+.rl-page .rl-callout--danger {
+  border-color: rgba(239, 68, 68, 0.35);
+  background: linear-gradient(180deg, #fef2f2 0%, var(--rl-bg) 100%);
+}
+
+/* Disclosure — Resources Used / references */
+.rl-page .rl-disclosure {
+  border-radius: var(--rl-card-radius);
+  border: 1px solid var(--rl-border);
+  background: var(--rl-bg);
+  padding: 12px 12px 10px;
+  box-shadow: var(--rl-card-shadow-sm);
+  margin-top: 12px;
+}
+
+.rl-page .rl-disclosure h3,
+.rl-page .rl-disclosure h4 {
+  font-size: 15px;
+  margin: 0 0 6px;
+}
+
+.rl-page .rl-disclosure ul {
+  margin: 0;
+  padding-left: 18px;
+  list-style-type: disc;
+  list-style-position: outside;
+  color: var(--rl-text-muted);
+}
+
+.rl-page .rl-disclosure li {
+  margin: 6px 0;
+  font-size: 13px;
+}
+
+.rl-page .rl-disclosure a {
+  color: var(--rl-link);
+  text-decoration: underline;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 2px;
+}
+
+.rl-page .rl-disclosure a:hover {
+  color: var(--rl-link-hover);
+}
+
+/* References section — collapsible */
+.rl-page .rl-refs {
+  margin-top: 12px;
+  border: 1px solid var(--rl-border);
+  border-radius: var(--rl-card-radius);
+  background: var(--rl-bg);
+  overflow: hidden;
+}
