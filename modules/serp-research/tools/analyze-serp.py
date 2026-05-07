@@ -24,10 +24,10 @@ def get_providers(provider_arg: str):
     """Instantiate providers based on --provider flag."""
     providers = []
 
-    if provider_arg in ("auto", "serpdev"):
+    if provider_arg in ("auto", "serpdev", "serper"):
         try:
-            from serpdev_client import SerpDevClient
-            providers.append(SerpDevClient())
+            from serpdev_client import SerperDevClient
+            providers.append(SerperDevClient())
         except (ValueError, Exception) as e:
             if provider_arg == "serpdev":
                 print(f"ERROR: SerpDev unavailable: {e}", file=sys.stderr)

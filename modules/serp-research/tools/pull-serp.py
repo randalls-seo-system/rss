@@ -23,13 +23,13 @@ def get_provider(provider_name: str):
     if provider_name == "serpapi":
         from serpapi_client import SerpAPIClient
         return SerpAPIClient()
-    elif provider_name == "serpdev":
-        from serpdev_client import SerpDevClient
-        return SerpDevClient()
+    elif provider_name in ("serpdev", "serper"):
+        from serpdev_client import SerperDevClient
+        return SerperDevClient()
     elif provider_name == "auto":
         try:
-            from serpdev_client import SerpDevClient
-            return SerpDevClient()
+            from serpdev_client import SerperDevClient
+            return SerperDevClient()
         except ValueError:
             from serpapi_client import SerpAPIClient
             return SerpAPIClient()

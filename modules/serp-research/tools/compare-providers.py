@@ -64,8 +64,8 @@ def main():
 
     # SerpDev
     try:
-        from serpdev_client import SerpDevClient
-        client = SerpDevClient()
+        from serpdev_client import SerperDevClient
+        client = SerperDevClient()
         cached = cache.get("serpdev", args.keyword, args.location, args.device)
         if cached:
             response = cached

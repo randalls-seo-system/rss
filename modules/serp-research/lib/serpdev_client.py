@@ -1,12 +1,16 @@
-"""SerpDev provider implementation.
+"""Serper.dev provider implementation.
 
-SerpDev is the default provider (cheaper, more credits).
-Does NOT support AI Overview — falls back to SerpAPI for that feature.
+Serper.dev (serper.dev) is the default provider — high credit allowance,
+low cost per query. Uses POST with X-API-KEY header.
 
-TODO: Set endpoint URL once SerpDev API key is provided and endpoint
-      is discovered. Currently a ready stub.
+Does NOT return AI Overview. PAA and knowledge graph may require paid
+plan — falls back to SerpAPI for those features when not present.
+
+Dashboard: https://serper.dev/dashboard
+Docs: https://serper.dev/docs
 """
 
+import json as json_module
 import os
 import requests
 
@@ -18,81 +22,78 @@ except ImportError:
     from rate_limiter import RateLimiter
 
 
-class SerpDevClient(SerpProvider):
-    """SerpDev provider — high credit allowance, no AI Overview.
+class SerperDevClient(SerpProvider):
+    """Serper.dev provider — default for organic results and related searches.
 
-    Endpoint and response shape TBD. This is a ready stub that will
-    be completed once the SerpDev API key is provided and the endpoint
-    is discovered via their documentation.
-
-    Expected setup:
-        export SERPDEV_API_KEY="your-key-here"
+    Setup:
+        export SERPDEV_API_KEY="your-serper-dev-key"
     """
 
-    name = "serpdev"
+    name = "serper"
 
     def __init__(self, api_key: str = None):
         self.api_key = api_key or os.environ.get("SERPDEV_API_KEY", "")
         if not self.api_key:
             raise ValueError(
                 "SERPDEV_API_KEY not set. "
-                "Set env var or pass api_key= to constructor."
+                "Get your key at https://serper.dev/dashboard"
             )
-        # TODO: Confirm endpoint from SerpDev docs
-        self.endpoint = "https://api.serpdev.com/search"
+        self.endpoint = "https://google.serper.dev/search"
         self.rate_limiter = RateLimiter(min_interval=2.0)
 
     def search(self, keyword: str, location: str = "United States",
                device: str = "desktop") -> dict:
         self.rate_limiter.wait()
-        params = {
+        payload = {
             "q": keyword,
-            "api_key": self.api_key,
             "location": location,
-            "device": device,
-            "hl": "en",
             "gl": "us",
+            "hl": "en",
+            "num": 10,
         }
-        response = requests.get(self.endpoint, params=params, timeout=30)
+        headers = {
+            "X-API-KEY": self.api_key,
+            "Content-Type": "application/json",
+        }
+        response = requests.post(
+            self.endpoint, headers=headers,
+            data=json_module.dumps(payload), timeout=30,
+        )
         response.raise_for_status()
         return response.json()
 
     def get_top_results(self, response: dict, top_n: int = 10) -> list[dict]:
-        # TODO: Adjust field names per SerpDev's actual response shape
-        organic = response.get("organic_results", response.get("results", []))
+        organic = response.get("organic", [])
         results = []
         for item in organic[:top_n]:
             results.append({
-                "position": item.get("position", item.get("rank", 0)),
+                "position": item.get("position", 0),
                 "title": item.get("title", ""),
-                "url": item.get("link", item.get("url", "")),
-                "snippet": item.get("snippet", item.get("description", "")),
+                "url": item.get("link", ""),
+                "snippet": item.get("snippet", ""),
             })
         return results
 
     def get_paa(self, response: dict) -> list[dict]:
-        # TODO: Adjust field names per SerpDev's actual response shape
-        questions = response.get("related_questions", response.get("people_also_ask", []))
+        questions = response.get("peopleAlsoAsk", [])
         results = []
         for i, q in enumerate(questions):
             results.append({
                 "question": q.get("question", ""),
-                "answer": q.get("snippet", q.get("answer", "")),
+                "answer": q.get("snippet", ""),
                 "position": i + 1,
             })
         return results
 
     def get_related_searches(self, response: dict) -> list[str]:
-        related = response.get("related_searches", [])
-        if isinstance(related, list) and related and isinstance(related[0], dict):
-            return [r.get("query", r.get("text", "")) for r in related]
-        return related
+        related = response.get("relatedSearches", [])
+        return [r.get("query", "") for r in related if r.get("query")]
 
     def get_ai_overview(self, response: dict) -> dict | None:
-        raise FeatureNotSupported("SerpDev does not provide AI Overview data")
+        raise FeatureNotSupported("Serper.dev does not provide AI Overview data")
 
     def get_knowledge_panel(self, response: dict) -> dict | None:
-        kg = response.get("knowledge_graph", response.get("knowledge_panel"))
+        kg = response.get("knowledgeGraph")
         if not kg:
             return None
         return {
@@ -103,8 +104,7 @@ class SerpDevClient(SerpProvider):
         }
 
     def get_local_pack(self, response: dict) -> list | None:
-        local = response.get("local_results", response.get("local_pack", {}))
-        places = local.get("places", local.get("results", []))
+        places = response.get("places", [])
         if not places:
             return None
         return [
@@ -118,4 +118,4 @@ class SerpDevClient(SerpProvider):
         ]
 
     def has_featured_snippet(self, response: dict) -> bool:
-        return "answer_box" in response or "featured_snippet" in response
+        return "answerBox" in response
