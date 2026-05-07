@@ -141,7 +141,7 @@ class SSHSession:
             self.log(f"EVAL FAIL: {remote_path} → exit {result.returncode}")
             # Try cleanup
             subprocess.run(self._ssh_base_cmd() + [f'rm -f {remote_path}'],
-                          capture_output=True, timeout=10)
+                          capture_output=True, timeout=30)
             raise RuntimeError(
                 f"Eval failed (exit {result.returncode}): "
                 f"{result.stderr.decode('utf-8', errors='replace')[:200]}")
@@ -158,7 +158,19 @@ class SSHSession:
         return result.stdout.strip()
 
     def wp_eval_file(self, remote_php_path, timeout=45):
-        """Execute a PHP file via wp eval-file. Returns stdout."""
+        """Execute a PHP file via wp eval-file. Returns stdout.
+
+        WARNING: This only works if the file at remote_php_path persists
+        across SSH sessions. On WP Engine, /tmp/ is session-local — files
+        written in one SSH session are invisible to the next. For /tmp paths,
+        use upload_and_eval() instead which handles persistence automatically.
+        """
+        if remote_php_path.startswith('/tmp/'):
+            raise RuntimeError(
+                f"wp_eval_file() called with /tmp path '{remote_php_path}'. "
+                f"WP Engine /tmp is session-local — file won't exist in this session. "
+                f"Use upload_and_eval() instead."
+            )
         result = self.run(f'wp eval-file {remote_php_path}', timeout=timeout)
         return result.stdout.strip()
 

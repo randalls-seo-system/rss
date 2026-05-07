@@ -69,9 +69,7 @@ def main():
             continue
 
         php = generate_status_update_script(post_id, args.target_status)
-        remote_path = f'/tmp/status-{post_id}.php'
-        ssh.upload_string(php, remote_path)
-        output = ssh.wp_eval_file(remote_path)
+        output = ssh.upload_and_eval(php)
         parsed = ssh.parse_pipe_output(output)
 
         backup_rows.append({
