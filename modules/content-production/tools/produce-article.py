@@ -98,6 +98,7 @@ def pull_serp_data(keyword, site_slug):
         return str(serp_path), data
     except Exception as e:
         print(f"  SERP pull failed: {e}")
+        print(f"  Continuing without SERP data (FAQ will use generated questions)")
         return None, None
 
 

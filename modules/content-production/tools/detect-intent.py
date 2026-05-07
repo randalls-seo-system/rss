@@ -15,7 +15,9 @@ import sys
 INTENT_RULES = [
     # (intent, patterns, confidence)
     ('process', [
-        r'^how\s+to\b', r'^steps?\s+to\b', r'^guide\s+to\b',
+        r'^how\s+to\b', r'^how\s+long\b', r'^how\s+do\b',
+        r'^when\s+to\b', r'^what\s+to\s+do\b',
+        r'^steps?\s+to\b', r'^guide\s+to\b',
         r'\bstep[- ]by[- ]step\b', r'\bchecklist\b', r'\bprocess\b',
     ], 'high'),
     ('comparison', [
@@ -23,12 +25,14 @@ INTENT_RULES = [
         r'\bor\b.*\bwhich\b', r'\bwhich\s+is\s+better\b',
     ], 'high'),
     ('definition', [
-        r'^what\s+(is|are)\b', r'^define\b', r'\bdefinition\s+of\b',
-        r'\bexplained\b', r'\bmeaning\s+of\b', r'^understanding\b',
+        r'^what\s+(is|are)\b', r'^what\s+does\b', r'^define\b',
+        r'\bdefinition\s+of\b', r'\bexplained\b', r'\bmeaning\s+of\b',
+        r'^understanding\b',
     ], 'high'),
     ('decision', [
         r'^best\b', r'^top\s+\d+', r'\breview\b', r'\branked\b',
-        r'\bworth\s+it\b', r'\bshould\s+i\b',
+        r'\bworth\s+it\b', r'\bshould\s+i\b', r'^how\s+much\b',
+        r'\bis\s+it\s+worth\b', r'\bgood\s+place\s+to\b',
     ], 'high'),
     ('news', [
         r'\b202[4-9]\b', r'\btoday\b', r'\blatest\b', r'\bnew\b',
