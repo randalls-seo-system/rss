@@ -236,10 +236,10 @@ if [ "$SUCCESS" -gt 0 ]; then
     AVG_ANCHORS=$(echo "scale=1; $TOTAL_ANCHORS / $SUCCESS" | bc)
 fi
 
-# Cost calculation (GPT-4o-mini pricing: $0.15/1M input, $0.60/1M output)
+# Cost calculation (gpt-5.4-mini pricing: $0.75/1M input, $4.50/1M output)
 COST="0"
-if [ "$AI_PROVIDER" = "openai" ] && [ "$AI_MODEL" = "gpt-4o-mini" ]; then
-    COST=$(echo "scale=4; ($TOTAL_PROMPT_TOKENS * 0.00000015) + ($TOTAL_COMPLETION_TOKENS * 0.0000006)" | bc)
+if [ "$AI_PROVIDER" = "openai" ]; then
+    COST=$(echo "scale=4; ($TOTAL_PROMPT_TOKENS * 0.00000075) + ($TOTAL_COMPLETION_TOKENS * 0.0000045)" | bc)
 fi
 
 echo ""

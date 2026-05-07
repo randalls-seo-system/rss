@@ -75,7 +75,7 @@ def build_prompt(template, conf, row):
     return prompt
 
 
-def call_openai(prompt, model='gpt-4o-mini', api_key=None):
+def call_openai(prompt, model='gpt-5.4-mini', api_key=None):
     from openai import OpenAI
     client = OpenAI(api_key=api_key)
     resp = client.chat.completions.create(
@@ -88,15 +88,18 @@ def call_openai(prompt, model='gpt-4o-mini', api_key=None):
     return resp.choices[0].message.content, resp.usage
 
 
-def call_anthropic(prompt, model='claude-haiku-4-5-20251001', api_key=None):
-    import anthropic
-    client = anthropic.Anthropic(api_key=api_key)
-    resp = client.messages.create(
+def call_openai_quality(prompt, model='gpt-5.4', api_key=None):
+    """Fallback to full gpt-5.4 for complex reasoning tasks."""
+    from openai import OpenAI
+    client = OpenAI(api_key=api_key)
+    resp = client.chat.completions.create(
         model=model,
-        max_tokens=500,
         messages=[{'role': 'user', 'content': prompt}],
+        temperature=0.7,
+        max_tokens=500,
+        response_format={"type": "json_object"},
     )
-    return resp.content[0].text, None
+    return resp.choices[0].message.content, resp.usage
 
 
 def parse_llm_response(text):
@@ -132,8 +135,8 @@ def main():
     parser.add_argument('--site', required=True, help='Site slug')
     parser.add_argument('--output-csv', required=True, help='Output proposals CSV')
     parser.add_argument('--batch-size', type=int, default=50, help='Progress report interval')
-    parser.add_argument('--provider', default='openai', choices=['openai', 'claude'],
-                        help='LLM provider')
+    parser.add_argument('--provider', default='openai', choices=['openai'],
+                        help='LLM provider (meta generation uses OpenAI gpt-5.4-mini)')
     parser.add_argument('--model', default=None, help='Model override')
     parser.add_argument('--dry-run', action='store_true', help='Validate inputs only')
     parser.add_argument('--resume', action='store_true', help='Skip URLs already in output')
@@ -147,7 +150,13 @@ def main():
     voice_validator = None
     branding_conf_path = REPO_ROOT / 'sites' / f'{args.site}.conf'
     ini = configparser.ConfigParser()
-    ini.read(branding_conf_path)
+    # Site confs are mixed format: shell KEY="val" at top, INI [sections] at bottom.
+    # Extract only the INI portion (from first [section] onwards) for configparser.
+    raw_conf = branding_conf_path.read_text()
+    import io, re as _re
+    ini_match = _re.search(r'(?m)^\[', raw_conf)
+    if ini_match:
+        ini.read_string(raw_conf[ini_match.start():])
     if 'branding' in ini:
         branding = dict(ini['branding'])
         archetype_name = branding.get('archetype', '')
@@ -170,9 +179,9 @@ def main():
     if args.model:
         model = args.model
     elif args.provider == 'openai':
-        model = conf.get('AI_MODEL', 'gpt-4o-mini')
+        model = conf.get('AI_MODEL', 'gpt-5.4-mini')
     else:
-        model = 'claude-haiku-4-5-20251001'
+        model = 'gpt-5.4-mini'
 
     # API key
     if args.provider == 'openai':
@@ -238,12 +247,9 @@ def main():
 
         for attempt in range(2):
             try:
-                if args.provider == 'openai':
-                    raw, usage = call_openai(prompt, model, api_key)
-                    if usage:
-                        total_tokens += usage.total_tokens
-                else:
-                    raw, _ = call_anthropic(prompt, model, api_key)
+                raw, usage = call_openai(prompt, model, api_key)
+                if usage:
+                    total_tokens += usage.total_tokens
 
                 data = parse_llm_response(raw)
                 valid, issues = validate_proposal(data)

@@ -92,21 +92,8 @@ def call_llm(prompt, provider, model):
             response_format={'type': 'json_object'},
         )
         return json.loads(resp.choices[0].message.content)
-    elif provider == 'claude':
-        import anthropic
-        client = anthropic.Anthropic()
-        resp = client.messages.create(
-            model=model,
-            max_tokens=1024,
-            messages=[{'role': 'user', 'content': prompt + '\n\nRespond with valid JSON only.'}],
-        )
-        text = resp.content[0].text
-        # Extract JSON from response
-        start = text.find('{')
-        end = text.rfind('}') + 1
-        return json.loads(text[start:end])
     else:
-        raise ValueError(f"Unknown provider: {provider}")
+        raise ValueError(f"Unknown provider: {provider}. Use 'openai' with gpt-5.4-mini.")
 
 
 def validate_output(result, target_wc):
@@ -136,8 +123,8 @@ def main():
     parser.add_argument('--clusters-json', default='')
     parser.add_argument('--site', required=True, choices=SITE_META.keys())
     parser.add_argument('--output-csv', required=True)
-    parser.add_argument('--provider', default='openai', choices=['openai', 'claude'])
-    parser.add_argument('--model', default='gpt-4o-mini')
+    parser.add_argument('--provider', default='openai', choices=['openai'])
+    parser.add_argument('--model', default='gpt-5.4-mini')
     parser.add_argument('--target-word-count', type=int, default=60)
     parser.add_argument('--batch-size', type=int, default=25)
     parser.add_argument('--resume', action='store_true')
