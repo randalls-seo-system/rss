@@ -78,11 +78,9 @@ def main():
             print(f"[DRY RUN] would set to: {meta_value[:60]}")
             continue
 
-        # Generate and execute PHP
+        # Generate and execute PHP (uses persistent path, not /tmp/)
         php = generate_meta_update_script(post_id, meta_key, meta_value)
-        remote_path = f'/tmp/meta-{post_id}.php'
-        ssh.upload_string(php, remote_path)
-        output = ssh.wp_eval_file(remote_path, timeout=30)
+        output = ssh.upload_and_eval(php, timeout=30)
         parsed = ssh.parse_pipe_output(output)
 
         # Record backup

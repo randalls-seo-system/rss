@@ -35,7 +35,7 @@ def main():
     args = parser.parse_args()
 
     conf = load_site_conf(args.site)
-    sa_path = conf.get('GSC_SERVICE_ACCOUNT', '')
+    sa_path = os.path.expanduser(conf.get('GSC_SERVICE_ACCOUNT', ''))
     if not sa_path:
         sa_path = os.path.expanduser('~/valn-rewrite/.gsc-credentials.json')
 
