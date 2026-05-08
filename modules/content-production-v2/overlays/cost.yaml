@@ -1,0 +1,58 @@
+intent: cost
+display_name: "Cost Article"
+spec_reference: "docs/article-spec.md Section 1, Section 6.6"
+
+# When to include BLUF (Section 8.1)
+bluf_default: include
+
+# Body structural element preference (Section 9.4)
+body_default: tables_dominant
+
+# Card slot definitions (Section 6.6)
+card_slots:
+  - role: rates_by_category_card
+    h3_pattern: "{Topic} Rates by Category"
+    bullet_label_hints:
+      - "Standard rate:"
+      - "Reduced rate:"
+      - "Exempt category:"
+      - "Bottom line:"
+  - role: rates_by_scenario_card
+    h3_pattern: "{Topic} by Down Payment Tier"
+    bullet_label_hints:
+      - "First-time use:"
+      - "Subsequent use:"
+      - "Down payment offset:"
+      - "Break-even:"
+  - role: exemptions_card
+    h3_pattern: "Exemptions and Reductions"
+    bullet_label_hints:
+      - "Common exemptions:"
+      - "Edge cases:"
+      - "Documentation:"
+      - "Timing matters:"
+  - role: examples_card
+    h3_pattern: "Real-World {Topic} Examples"
+    bullet_label_hints:
+      - "Purchase example:"
+      - "Refinance example:"
+      - "Exemption example:"
+      - "Worth noting:"
+
+# Callout type preferences per section role (Section 10.5)
+# Values are archetype-neutral — archetype YAML maps these to actual callout labels
+callout_preferences:
+  high_stakes_section: ["numerical_proof", "reality_check"]
+  procedural_section: ["procedural_guidance", "deal_preservation"]
+  qualification_section: ["qualification_gate"]
+  scenario_section: ["situational_example"]
+
+# Default ATF FAQ patterns when SERP PAA is empty (Section 7.2 fallback)
+default_atf_faq_patterns:
+  - "What is the {Topic} in {Year}?"
+  - "How does {Topic} work?"
+  - "What are the {Topic} exemptions?"
+
+# Default H2 question/statement mix (Section 9.2.2)
+question_h2_floor_when_paa_sparse: 0
+question_h2_floor_when_paa_rich: 30

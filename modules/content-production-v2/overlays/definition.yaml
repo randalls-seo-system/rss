@@ -1,0 +1,57 @@
+intent: definition
+display_name: "Definition Article"
+spec_reference: "docs/article-spec.md Section 1, Section 6.6"
+
+# When to include BLUF (Section 8.1)
+bluf_default: omit
+
+# Body structural element preference (Section 9.4)
+body_default: bullets_dominant
+
+# Card slot definitions (Section 6.6)
+card_slots:
+  - role: definition_card
+    h3_pattern: "What Is {Term}?"
+    bullet_label_hints:
+      - "Core definition:"
+      - "Key distinction:"
+      - "Common misconception:"
+      - "Worth knowing:"
+  - role: key_facts_card
+    h3_pattern: "Key Facts About {Term}"
+    bullet_label_hints:
+      - "Current figure:"
+      - "Eligibility:"
+      - "Timeline:"
+      - "Bottom line:"
+  - role: why_matters_card
+    h3_pattern: "Why {Term} Matters"
+    bullet_label_hints:
+      - "Financial impact:"
+      - "Risk factor:"
+      - "Opportunity:"
+      - "Main takeaway:"
+  - role: common_confusions_card
+    h3_pattern: "{Term} Misconceptions"
+    bullet_label_hints:
+      - "Myth vs reality:"
+      - "Common mistake:"
+      - "Overlooked detail:"
+      - "Worth noting:"
+
+# Callout type preferences per section role (Section 10.5)
+# Values are archetype-neutral — archetype YAML maps these to actual callout labels
+callout_preferences:
+  procedural_section: ["procedural_guidance"]
+  clarification_section: ["authority_note"]
+  scenario_section: ["situational_example"]
+
+# Default ATF FAQ patterns when SERP PAA is empty (Section 7.2 fallback)
+default_atf_faq_patterns:
+  - "What is {Topic}?"
+  - "How does {Topic} work?"
+  - "Who qualifies for {Topic}?"
+
+# Default H2 question/statement mix (Section 9.2.2)
+question_h2_floor_when_paa_sparse: 0
+question_h2_floor_when_paa_rich: 30

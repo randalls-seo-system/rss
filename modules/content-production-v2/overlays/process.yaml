@@ -1,0 +1,58 @@
+intent: process
+display_name: "Process Article"
+spec_reference: "docs/article-spec.md Section 1, Section 6.6"
+
+# When to include BLUF (Section 8.1)
+bluf_default: conditional
+
+# Body structural element preference (Section 9.4)
+body_default: bullets_dominant
+
+# Card slot definitions (Section 6.6)
+card_slots:
+  - role: prerequisites_card
+    h3_pattern: "Before You Start"
+    bullet_label_hints:
+      - "Required document:"
+      - "Eligibility check:"
+      - "Common blocker:"
+      - "Worth knowing:"
+  - role: requirements_card
+    h3_pattern: "What You Need"
+    bullet_label_hints:
+      - "Must have:"
+      - "Strongly recommended:"
+      - "Optional but helpful:"
+      - "Bottom line:"
+  - role: timeline_card
+    h3_pattern: "Process Timeline"
+    bullet_label_hints:
+      - "First step:"
+      - "Middle phase:"
+      - "Final stage:"
+      - "Typical duration:"
+  - role: costs_card
+    h3_pattern: "What It Costs"
+    bullet_label_hints:
+      - "Primary cost:"
+      - "Secondary cost:"
+      - "Ways to reduce:"
+      - "Break-even:"
+
+# Callout type preferences per section role (Section 10.5)
+# Values are archetype-neutral — archetype YAML maps these to actual callout labels
+callout_preferences:
+  high_stakes_section: ["deal_preservation"]
+  procedural_section: ["procedural_guidance"]
+  qualification_section: ["qualification_gate"]
+  scenario_section: ["situational_example"]
+
+# Default ATF FAQ patterns when SERP PAA is empty (Section 7.2 fallback)
+default_atf_faq_patterns:
+  - "How do I start the {Topic} process?"
+  - "How long does {Topic} take?"
+  - "What documents do I need for {Topic}?"
+
+# Default H2 question/statement mix (Section 9.2.2)
+question_h2_floor_when_paa_sparse: 0
+question_h2_floor_when_paa_rich: 30
