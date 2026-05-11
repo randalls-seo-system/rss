@@ -15,6 +15,16 @@ if ( is_admin() && ! wp_doing_ajax() ) {
 if ( is_admin() ) { return; }
 
 add_action('wp_footer', 'rss_sticky_cta_render', 99);
+add_action('wp_enqueue_scripts', 'rss_sticky_cta_enqueue_deps');
+
+function rss_sticky_cta_enqueue_deps() {
+    $s = rss_sticky_cta_get_settings();
+    if ( ! empty($s['ticker_shortcode']) && defined('RSS_REVIEWS_URL') ) {
+        $v = defined('RSS_REVIEWS_VERS') ? RSS_REVIEWS_VERS : '1.0.0';
+        wp_enqueue_style('rss-reviews-frontend', RSS_REVIEWS_URL . 'assets/frontend.css', [], $v);
+        wp_enqueue_script('rss-reviews-frontend', RSS_REVIEWS_URL . 'assets/frontend.js', [], $v, true);
+    }
+}
 
 function rss_sticky_cta_defaults() {
     return [
@@ -113,7 +123,8 @@ body.rss-sticky-pad{
 /* Ticker */
 .rssTickerWrap{ flex:1 1 auto; min-width:0; }
 .rssTickerWrap .tvln-ticker, .rssTickerWrap .tvln-ticker *{ color:#fff !important; }
-.rssTickerWrap .tvln-ticker{ overflow:hidden !important; max-width:100% !important; }
+.rssTickerWrap .tvln-ticker{ overflow:hidden !important; max-width:100% !important; background:transparent !important; }
+.rssTickerWrap .tvln-ticker .name{ color:#fff !important; }
 .rssTickerWrap .tvln-ticker-viewport{ overflow:hidden !important; width:100% !important; }
 .rssTickerWrap .tvln-stars svg.star{ width:14px !important; height:14px !important; fill:<?php echo $star_color; ?> !important; }
 .rssTickerWrap .snippet{ color:rgba(255,255,255,0.88) !important; }

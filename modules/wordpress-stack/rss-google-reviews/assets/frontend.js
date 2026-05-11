@@ -184,8 +184,13 @@
     window.addEventListener('orientationchange', recalc);
   }
 
-  document.addEventListener('DOMContentLoaded', function(){
-    document.querySelectorAll('.tvln-module').forEach(initSlider);
-    document.querySelectorAll('.tvln-ticker').forEach(initTicker);
-  });
+  function rssReviewsInit(){
+    document.querySelectorAll('.tvln-module:not([data-rss-init])').forEach(function(el){ el.setAttribute('data-rss-init','1'); initSlider(el); });
+    document.querySelectorAll('.tvln-ticker:not([data-rss-init])').forEach(function(el){ el.setAttribute('data-rss-init','1'); initTicker(el); });
+  }
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', rssReviewsInit);
+  } else {
+    rssReviewsInit();
+  }
 })();

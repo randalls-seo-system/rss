@@ -9,13 +9,22 @@ Each plugin lives in its own subdirectory with:
 - The main `.php` plugin file (mu-plugin format, auto-activates)
 - A `CLAUDE.md` with deployment instructions and configuration reference
 
-## Current plugins
+## Core plugins (every client site)
 
 | Plugin | Directory | Status |
 |--------|-----------|--------|
 | RSS TOC Manager | `rss-toc-manager/` | v1.0.0 — generalized from VALN TOC Manager |
-| RSS Google Reviews | `rss-google-reviews/` | v1.0.0 — generalized from TVLN Reviews Pro 3.5.0 |
-| RSS Sticky CTA | `rss-sticky-cta/` | v1.0.0 — generalized from VALN Sitebar |
+
+## Optional add-ons (per-client)
+
+Not every site gets these. Deploy only when the client has the relevant
+use case (e.g. strong Google review presence, scroll-triggered CTA need).
+
+| Plugin | Directory | Status | When to deploy |
+|--------|-----------|--------|----------------|
+| RSS Google Reviews | `rss-google-reviews/` | v1.0.0 | Client has Google Business reviews worth showcasing |
+| RSS Sticky CTA | `rss-sticky-cta/` | v1.0.0 | Site needs scroll-triggered conversion bar |
+| RSS Blog Home | `rss-blog-home/` | v1.0.0 | Client wants a custom conversion-focused blog home page |
 
 ## Future plugins to generalize
 

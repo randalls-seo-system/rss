@@ -74,29 +74,28 @@ class RSS_Google_Reviews {
         wp_enqueue_style('rss-reviews-admin', RSS_REVIEWS_URL . 'assets/admin.css', [], RSS_REVIEWS_VERS);
         wp_enqueue_script('rss-reviews-admin', RSS_REVIEWS_URL . 'assets/admin.js', ['jquery','wp-color-picker'], RSS_REVIEWS_VERS, true);
     }
+    private $assets_enqueued = false;
+
+    public function ensure_frontend_assets() {
+        if ($this->assets_enqueued || is_admin()) return;
+        $this->assets_enqueued = true;
+        wp_enqueue_style('rss-reviews-frontend', RSS_REVIEWS_URL . 'assets/frontend.css', [], RSS_REVIEWS_VERS);
+        wp_enqueue_script('rss-reviews-frontend', RSS_REVIEWS_URL . 'assets/frontend.js', [], RSS_REVIEWS_VERS, true);
+    }
+
     public function maybe_enqueue_frontend() {
         if (is_admin()) return;
         global $post;
-        $enqueue = false;
         $shortcodes = ['rss_reviews','rss_reviews_list','rss_reviews_both','rss_reviews_compact','rss_reviews_ticker','tvln_reviews','va_reviews','tvln_reviews_list','tvln_reviews_both','tvln_reviews_compact','tvln_reviews_ticker'];
         if ($post && is_a($post, 'WP_Post')) {
             foreach ($shortcodes as $sc) {
-                if (has_shortcode($post->post_content, $sc)) { $enqueue = true; break; }
+                if (has_shortcode($post->post_content, $sc)) { $this->ensure_frontend_assets(); return; }
             }
         }
-        if (!$enqueue) {
-            add_filter('the_content', function($content) use ($shortcodes, &$enqueue){
-                foreach ($shortcodes as $sc) { if (strpos($content, $sc) !== false) { $enqueue=true; break; } }
-                if ($enqueue) {
-                    wp_enqueue_style('rss-reviews-frontend', RSS_REVIEWS_URL . 'assets/frontend.css', [], RSS_REVIEWS_VERS);
-                    wp_enqueue_script('rss-reviews-frontend', RSS_REVIEWS_URL . 'assets/frontend.js', [], RSS_REVIEWS_VERS, true);
-                }
-                return $content;
-            }, 1);
-        } else {
-            wp_enqueue_style('rss-reviews-frontend', RSS_REVIEWS_URL . 'assets/frontend.css', [], RSS_REVIEWS_VERS);
-            wp_enqueue_script('rss-reviews-frontend', RSS_REVIEWS_URL . 'assets/frontend.js', [], RSS_REVIEWS_VERS, true);
-        }
+        add_filter('the_content', function($content) use ($shortcodes){
+            foreach ($shortcodes as $sc) { if (strpos($content, $sc) !== false) { $this->ensure_frontend_assets(); break; } }
+            return $content;
+        }, 1);
     }
 
     public function admin_menu() {
@@ -352,6 +351,7 @@ class RSS_Google_Reviews {
     }
     public function shortcode_both($atts=[]) { return $this->shortcode_slider($atts) . $this->shortcode_list($atts); }
     public function shortcode_slider($atts=[]) {
+        $this->ensure_frontend_assets();
         list($business, $reviews) = $this->get_business_and_reviews();
         $accent = $business['accent'] ?? '#D4AF37'; $interval = !empty($atts['interval']) ? intval($atts['interval']) : 10000;
         $bg = $business['bg'] ?? '#ffffff'; $text = $business['text'] ?? '#0F172A';
@@ -363,6 +363,7 @@ class RSS_Google_Reviews {
         <?php return ob_get_clean();
     }
     public function shortcode_compact($atts=[]) {
+        $this->ensure_frontend_assets();
         list($business, $reviews) = $this->get_business_and_reviews();
         $accent = $business['accent'] ?? '#D4AF37'; $interval = !empty($atts['interval']) ? intval($atts['interval']) : 10000;
         $bg = $business['bg'] ?? '#ffffff'; $text = $business['text'] ?? '#0F172A';
@@ -375,11 +376,13 @@ class RSS_Google_Reviews {
         <?php return ob_get_clean();
     }
     public function shortcode_list($atts=[]) {
+        $this->ensure_frontend_assets();
         list($business, $reviews) = $this->get_business_and_reviews();
         $accent = $business['accent'] ?? '#D4AF37'; $bg = $business['bg'] ?? '#ffffff'; $text = $business['text'] ?? '#0F172A';
         return $this->render_list($reviews, $accent, $bg, $text, $business['navy'] ?? '#0B1F44');
     }
     public function shortcode_ticker($atts=[]) {
+        $this->ensure_frontend_assets();
         list($business, $reviews) = $this->get_business_and_reviews();
         $ticker = get_option(self::OPT_TICKER, self::defaults_ticker());
         $args = shortcode_atts([
