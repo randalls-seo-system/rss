@@ -1,0 +1,7 @@
+/* Admin styles */
+.tvln-wrap .tvln-grid { display:grid; grid-template-columns: 1fr 1fr 1fr 120px; gap:12px; align-items:end; }
+@media (max-width: 1080px){ .tvln-wrap .tvln-grid { grid-template-columns: 1fr 1fr; } }
+.tvln-review-row { background:#fff; border:1px solid #e5e7eb; padding:12px; border-radius:8px; margin-bottom:12px; }
+.tvln-review-row__header { display:flex; align-items:center; justify-content:space-between; margin-bottom:8px; }
+.tvln-review-row__header .button-link-delete { color:#d63638; }
+.tvln-wrap .description { color:#6b7280; }
