@@ -301,15 +301,45 @@ Exactly 3 items.
 
 ---
 
-## 8. BOTTOM LINE UP FRONT (BLUF) — OPTIONAL
+## 7.5 EXPLORE-RESOURCES HUB BOX (cluster link box)
+
+When the article belongs to a topic cluster with ≥3 sibling pages, include an
+Explore-Resources hub box between the ATF section and the main body. This box
+links the reader to related cluster articles and strengthens internal linking.
+
+### 7.5.1 Format
+```html
+<aside class="rl-cluster-box">
+  <h2>Explore {Topic} Resources</h2>
+  <p>{1-2 sentence description of the cluster}</p>
+  <ul>
+    <li><a href="{url}">{Page title}</a> — {6-12 word description}</li>
+    ...
+  </ul>
+</aside>
+```
+
+### 7.5.2 Rules
+- 7.5.2.1 Include 5-7 links to sibling/child pages in the same cluster.
+- 7.5.2.2 Links are sourced from the site's anchor pool cluster data. If cluster
+  data is unavailable (new site, no cluster map), omit the hub box entirely.
+- 7.5.2.3 Do NOT duplicate links that already appear in the body — the hub box
+  is for cluster navigation, body links are for contextual reading.
+- 7.5.2.4 The hub box is OPTIONAL. It is omitted when fewer than 3 cluster
+  siblings exist or when cluster data is not yet populated.
+
+---
+
+## 8. BOTTOM LINE UP FRONT (BLUF)
 
 ### 8.1 When to include
-INCLUDE when:
-- Intent is `cost` (always)
-- Intent is `decision` AND the decision involves money or risk (default yes)
-- Intent is `process` AND the process has a high-friction failure mode (judgment call)
-- Intent is `definition` (default no)
-- Intent is `comparison` (default no)
+INCLUDE for all intents. Every article benefits from a BLUF that sets the
+reader's expectations. Overlay `bluf_default` controls per-intent behavior:
+- Intent is `cost` → always include
+- Intent is `decision` → always include
+- Intent is `process` → always include
+- Intent is `definition` → always include
+- Intent is `comparison` → always include
 
 ### 8.2 Format
 ```html
@@ -359,8 +389,10 @@ Each body H2 section has:
 
 ### 9.4 Default structural element by intent
 - `cost` and `decision`: tables-dominant. Half or more sections use tables.
+  **Minimum 3 tables per article** for cost/decision intent. The gold-standard
+  funding-fee page uses 4-5 tables.
 - `process` and `definition`: bullets-dominant.
-- `comparison`: tables-dominant.
+- `comparison`: tables-dominant. **Minimum 3 tables per article.**
 - Override: any section can use any structural element. Defaults are starting points.
 
 ### 9.5 Word count
@@ -424,7 +456,9 @@ Each type gets a distinct color treatment via CSS variables:
 - `--rl-callout-scenario-border`: teal family
 
 ### 10.4 Callout density
-- 10.4.1 Per article: 2-4 callouts total.
+- 10.4.1 Per article: 3-6 callouts total. The gold-standard funding-fee page uses
+  6 callouts across 14 body H2s. For articles with ≥10 body H2s, target 5-6.
+  For articles with 6-9 body H2s, target 3-4.
 - 10.4.2 Per H2 section: at most 1 callout.
 - 10.4.3 Callouts cluster in high-stakes sections (cost, exemptions, qualification gates).
 
@@ -486,6 +520,11 @@ This is enforceable: the linking module maintains a sitewide list of "internal a
 - 11.4.4 Closing Bottom Line: 0 internal links.
 - 11.4.5 ATF lede: 0 internal links.
 - 11.4.6 Inside cards, inside ATF FAQs, inside BTF FAQs: 0 internal links.
+- 11.4.7 **Article-level target** (enforced by link injector, not by section builders):
+  Under 1,000 body words: 3-6 internal links.
+  1,000-1,800 body words: 5-10 internal links.
+  Over 1,800 body words: 8-15 internal links.
+  The gold-standard funding-fee page (1,800+ words) has 7+ unique internal links.
 
 ### 11.5 Link injection bucketing
 The linking module receives the article and the target topic. For each potential link injection point:

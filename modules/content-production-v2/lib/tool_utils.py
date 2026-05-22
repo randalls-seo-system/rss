@@ -11,6 +11,10 @@ from pathlib import Path
 MODULE_DIR = Path(__file__).resolve().parent.parent
 REPO_ROOT = MODULE_DIR.parent.parent
 PROMPTS_DIR = MODULE_DIR / "prompts"
+ARTICLE_SPEC_PATH = REPO_ROOT / "docs" / "article-spec.md"
+
+# Cached article spec text (loaded once per process)
+_article_spec_cache: str | None = None
 
 
 def eprint(*args, **kwargs):
@@ -32,11 +36,57 @@ def extract_html(text: str) -> str:
     return text.strip()
 
 
-def render_prompt(template: str, variables: dict) -> str:
-    """Substitute {{VARIABLE}} placeholders in a prompt template."""
+def load_article_spec() -> str:
+    """Load docs/article-spec.md, cached for the process lifetime.
+
+    Returns the full spec text, or empty string if the file is missing.
+    """
+    global _article_spec_cache
+    if _article_spec_cache is not None:
+        return _article_spec_cache
+
+    if ARTICLE_SPEC_PATH.exists():
+        _article_spec_cache = ARTICLE_SPEC_PATH.read_text()
+        eprint(f"  [spec] Loaded article spec ({len(_article_spec_cache)} chars)")
+    else:
+        eprint(f"  [spec] Warning: article spec not found at {ARTICLE_SPEC_PATH}")
+        _article_spec_cache = ""
+
+    return _article_spec_cache
+
+
+_SPEC_PREAMBLE = """
+=== ARTICLE SPEC (BINDING — this is the authoritative structure layer) ===
+
+The following is the master Article Spec. It defines the required structure,
+section order, content rules, and validation criteria for every article.
+
+RULE: If the per-section template instructions below conflict with this spec,
+the SPEC WINS. The template provides framing; the spec provides law.
+
+{spec_text}
+
+=== END ARTICLE SPEC ===
+
+"""
+
+
+def render_prompt(template: str, variables: dict, inject_spec: bool = True) -> str:
+    """Substitute {{VARIABLE}} placeholders in a prompt template.
+
+    When inject_spec is True (the default for all content-generation calls),
+    the full article spec is prepended to the rendered prompt so the LLM
+    always sees the canonical structure rules.
+    """
     result = template
     for key, value in variables.items():
         result = result.replace("{{" + key + "}}", str(value))
+
+    if inject_spec:
+        spec_text = load_article_spec()
+        if spec_text:
+            result = _SPEC_PREAMBLE.format(spec_text=spec_text) + result
+
     return result
 
 
