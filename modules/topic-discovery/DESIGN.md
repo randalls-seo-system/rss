@@ -55,10 +55,13 @@ CREATE TABLE IF NOT EXISTS topics (
     keyword         TEXT    NOT NULL,
     keyword_normal  TEXT    NOT NULL,  -- lowercase, stripped, for dedup
     intent          TEXT,              -- definition|process|decision|cost|comparison
-    est_volume      INTEGER DEFAULT 0,
+    est_volume      REAL    DEFAULT 0.0,
+    volume_source   TEXT    DEFAULT 'serp_proxy'
+                    CHECK(volume_source IN ('serp_proxy','ahrefs','manual')),
     competition_score REAL  DEFAULT 0.0,  -- 0.0-1.0, higher = harder
     we_have_it      INTEGER DEFAULT 0,    -- boolean: site already covers this
     existing_url    TEXT,              -- URL if we_have_it = 1
+    match_method    TEXT,              -- slug_exact|title_fuzzy (how existing match was found)
     competitors_with_it INTEGER DEFAULT 0,
     competitor_urls TEXT,              -- JSON array of competitor URLs covering this
     priority_score  REAL    DEFAULT 0.0,
@@ -81,6 +84,11 @@ CREATE INDEX IF NOT EXISTS idx_topics_keyword_normal ON topics(keyword_normal);
 
 ### Schema: `competitor_pages` Table
 
+Records EVERY competitor URL encountered — both from declared competitors in
+site config AND from undeclared domains discovered during SERP crawls. This
+allows coverage scoring to become richer over time as the system learns which
+domains compete in each niche.
+
 ```sql
 CREATE TABLE IF NOT EXISTS competitor_pages (
     id          INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -89,6 +97,7 @@ CREATE TABLE IF NOT EXISTS competitor_pages (
     url         TEXT    NOT NULL,
     title       TEXT,
     h1          TEXT,
+    declared    INTEGER DEFAULT 0, -- 1 = in site config competitors list, 0 = discovered via SERP
     crawled_at  TEXT    NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%S','now')),
 
     UNIQUE(site_slug, url)
@@ -266,9 +275,14 @@ Method:
 Method:
 1. Fetch the site's own `sitemap.xml` (or use WP REST API
    `/wp-json/wp/v2/posts?per_page=100&page=N` to get all post slugs/titles).
-2. For each candidate keyword, check if a site URL's slug or title
-   contains the normalized keyword (fuzzy match on slug tokens).
-3. Set `we_have_it = 1` and `existing_url` for matches.
+2. For each candidate keyword, try two matching passes in order:
+   a. **Slug exact match** — normalize both candidate keyword and URL slug
+      to the same canonical form and check for exact equality.
+      Set `match_method = 'slug_exact'` on hit.
+   b. **Title fuzzy match** — Levenshtein distance between candidate keyword
+      and page title, threshold TBD in Session 2.
+      Set `match_method = 'title_fuzzy'` on hit.
+3. Set `we_have_it = 1`, `existing_url`, and `match_method` for matches.
 
 ### Stage 5: SERP Fetch for Top Candidates
 
@@ -288,9 +302,12 @@ Method:
    - `always`: SERP all candidates where `we_have_it = 0`.
    - `money_pages_only`: SERP only cost/decision/comparison intent candidates.
    - `never`: skip entirely (Stage 6 uses defaults).
-2. For each candidate, query Serper for top 10 organic results.
-3. Cache results to `~/.cache/rss-serp/{site_slug}/{keyword_hash}.json`.
-4. Rate limit: 1 request per second, back off to 5s on 429.
+2. For each candidate, check cache at `~/.cache/rss-serp/{site_slug}/{keyword_hash}.json`.
+   Skip if cached file exists and is less than 30 days old (default TTL).
+   The `--force-refresh` flag on `discover_topics.py` bypasses the cache entirely.
+3. If not cached (or stale/forced), query Serper for top 10 organic results.
+4. Write results to cache with timestamp for TTL checks.
+5. Rate limit: 1 request per second, back off to 5s on 429.
 
 ### Stage 6: Intent Classification + Priority Scoring
 
@@ -417,39 +434,61 @@ Beyond what content-production-v2 already uses (`requests`, `openai`,
 | Package | Purpose | Already in use? |
 |---|---|---|
 | `lxml` | Fast XML sitemap parsing | No — install needed |
+| `rapidfuzz` | Levenshtein distance for title fuzzy matching (Stage 4) | No — install needed |
 | `sqlite3` | Database | Yes (stdlib) |
 | `requests` | HTTP for sitemaps/SERP | Yes |
 | `openai` | LLM classification calls | Yes |
 
-Only **`lxml`** is a new dependency. Install: `pip install lxml`.
+New dependencies: **`lxml`** and **`rapidfuzz`**. Install: `pip install lxml rapidfuzz`.
 
 ---
 
-## Open Questions (Resolve Before Session 2)
+## Design Decisions (Locked)
 
-1. **SERP result caching duration.** Should we cache SERP results for a fixed
-   period (e.g., 7 days, 30 days) and skip re-fetching within that window?
-   Longer cache saves quota but risks stale competition data. What's the right
-   TTL?
+1. **SERP cache TTL: 30 days.** Cached SERP results at
+   `~/.cache/rss-serp/{site_slug}/{keyword_hash}.json` are valid for 30 days.
+   After 30 days, Stage 5 re-fetches automatically. The `--force-refresh` flag
+   on `discover_topics.py` bypasses the cache entirely for cases where the
+   competition landscape has changed significantly.
 
-2. **Existing-content matching strategy.** How do we decide that the site
-   "already covers" a topic? Options: (a) slug-token overlap (fast, misses
-   semantic matches), (b) title substring match (catches more, some false
-   positives), (c) content embedding similarity (accurate, requires embedding
-   API calls and storage). Which level of accuracy is worth the cost?
+2. **Existing-content matching: slug first, title fuzzy second.** Stage 4 runs
+   two passes in order: (a) exact match on normalized slug (canonical keyword
+   vs URL path slug), then (b) Levenshtein-based fuzzy match on page title
+   (threshold TBD in Session 2). No embeddings. The `match_method` column in
+   the `topics` table records which pass produced the hit (`slug_exact` or
+   `title_fuzzy`) so we can audit match quality.
 
-3. **Minimum volume threshold.** Should candidates below a certain estimated
-   search volume (e.g., <50 monthly searches) be auto-rejected before scoring,
-   or should they still score and let the human reviewer decide? Low-volume
-   long-tail terms can be high-conversion for VA lending.
+3. **No minimum volume filtering at scoring time.** All candidates are scored
+   regardless of estimated volume — the full table is always available.
+   Filtering happens at the output stage: `dump_queue.py` accepts a
+   `--min-volume` flag (default 100) to exclude low-volume candidates from the
+   CSV export. This preserves high-conversion long-tail terms in the database
+   while keeping the export focused.
 
-4. **Volume estimation source.** Serper does not return search volume natively.
-   Options: (a) use a third-party API like Keywords Everywhere or DataForSEO
-   ($), (b) estimate volume from SERP competition signals as a rough proxy
-   (free but imprecise), (c) leave `est_volume = 0` and let the user manually
-   populate volume for top candidates. Which approach?
+4. **Volume estimation: SERP proxy in v1, swappable.** The `est_volume` column
+   is `REAL` (not INTEGER) and paired with a `volume_source` column
+   (`serp_proxy|ahrefs|manual`). V1 uses a free SERP-based proxy estimation
+   (rough but zero cost). The schema supports swapping to Ahrefs or manual
+   entry without migration — just change the estimator function and set
+   `volume_source` accordingly.
 
-5. **Competitor crawl depth.** Should we only parse `sitemap.xml`, or also
-   crawl key category/hub pages (e.g., veteransunited.com/va-loans/) and
-   extract linked article URLs that might not be in the sitemap? Deeper crawl
-   catches more pages but adds complexity and request volume.
+5. **Competitor crawl: sitemap-only by default, category-page fallback.**
+   Stage 2 fetches `sitemap.xml` for each competitor. If a competitor has no
+   public sitemap (404 or malformed), `sitemap_parser.py` falls back to
+   crawling top-level category pages and extracting linked article URLs. The
+   fallback path logs a warning. This keeps the default path fast and
+   well-behaved while still handling competitors with poor sitemap hygiene.
+
+---
+
+## Open Questions (Remaining)
+
+1. **Scoring formula calibration.** Current weights (competitor 0.35, volume
+   0.25, intent 0.25, competition 0.15) were chosen blind. Competitor coverage
+   is a lumpy categorical variable (4 buckets for 3 declared competitors)
+   while volume and competition are continuous. After Session 4's first real
+   VALN run, examine the score distribution — if competitor coverage dominates,
+   rebalance weight toward volume. Note: the `competitor_pages` table records
+   EVERY competitor URL encountered during SERP crawls (not just the 3 declared
+   in config), so coverage scoring can become richer over time as the system
+   discovers undeclared competitors in each niche.
