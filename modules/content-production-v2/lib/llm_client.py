@@ -20,15 +20,15 @@ CACHE_DIR = Path.home() / ".cache" / "rss-llm"
 # Approximate pricing per million tokens (input, output).
 # Claude CLI is subscription-covered so cost is informational only.
 PRICING: dict[str, tuple[float, float]] = {
-    "opus":       (15.00, 75.00),
-    "sonnet":     (3.00,  15.00),
-    "gpt-5-mini": (0.75,  4.50),
-    "gpt-5":      (5.00,  30.00),
+    "opus":         (15.00, 75.00),
+    "sonnet":       (3.00,  15.00),
+    "gpt-5.4-mini": (0.75,  4.50),
+    "gpt-5.4":      (2.50,  20.00),
 }
 
 DEFAULT_MODELS: dict[str, str] = {
     "claude_cli": "opus",
-    "openai":     "gpt-5-mini",
+    "openai":     "gpt-5.4-mini",
 }
 
 MAX_RETRIES = 2

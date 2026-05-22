@@ -36,6 +36,20 @@ MODULE_DIR = TOOLS_DIR.parent
 REPO_ROOT = MODULE_DIR.parent.parent
 sys.path.insert(0, str(MODULE_DIR))
 
+# Load .env from repo root so subprocesses inherit SERP keys
+_env_file = REPO_ROOT / ".env"
+if _env_file.exists():
+    try:
+        from dotenv import load_dotenv
+        load_dotenv(_env_file)
+    except ImportError:
+        with open(_env_file) as f:
+            for line in f:
+                line = line.strip()
+                if line and not line.startswith("#") and "=" in line:
+                    key, _, val = line.partition("=")
+                    os.environ.setdefault(key.strip(), val.strip())
+
 from bs4 import BeautifulSoup
 
 from lib.anchor_pool import AnchorPool
@@ -61,6 +75,10 @@ from lib.tool_utils import (
 
 PYTHON = sys.executable
 LLM_CALL_TIMEOUT = 300  # 5 minutes per LLM call
+
+# Mechanical tasks (H2 normalize, polish) use OpenAI to save Opus for content.
+MECHANICAL_PROVIDER = "openai"
+MECHANICAL_MODEL = "gpt-5.4-mini"
 
 # Intent detection keywords (spec Section 1 table)
 _INTENT_TRIGGERS: dict[str, list[str]] = {
@@ -120,7 +138,6 @@ class PipelineState:
     closing_html: str = ""
     btf_faqs_html: str = ""
     resources_html: str = ""
-    toc_html: str = ""
 
     # Phase H
     assembled_html: str = ""
@@ -248,7 +265,8 @@ def phase_b(state: PipelineState, allow_no_serp: bool = False) -> None:
             try:
                 _run_tool(str(analyze_serp), [
                     "--keyword", state.target_keyword,
-                    "--output", str(serp_path),
+                    "--output-json", str(serp_path),
+                    "--site", state.site_slug,
                 ], "B.6")
             except RuntimeError as e:
                 if allow_no_serp:
@@ -282,10 +300,15 @@ def phase_b(state: PipelineState, allow_no_serp: bool = False) -> None:
         if gaps_tool.exists():
             eprint("  [B.8] Extracting subtopic gaps")
             try:
-                gaps_json = _run_tool(str(gaps_tool), [
+                gaps_output_path = state.output_dir / f"{state.post_id}-subtopic-gaps.json"
+                _run_tool(str(gaps_tool), [
                     "--serp-json", str(state.serp_json_path),
+                    "--output", str(gaps_output_path),
                 ], "B.8")
-                state.subtopic_gaps = json.loads(gaps_json) if gaps_json.strip() else {}
+                if gaps_output_path.exists():
+                    state.subtopic_gaps = json.loads(gaps_output_path.read_text())
+                else:
+                    state.subtopic_gaps = {}
             except (RuntimeError, json.JSONDecodeError) as e:
                 eprint(f"  [B.8] Subtopic gap extraction failed, using defaults: {e}")
     else:
@@ -308,6 +331,22 @@ def phase_b(state: PipelineState, allow_no_serp: bool = False) -> None:
         state.target_wc = {"target": 2100, "min": 1800, "max": 2400, "source": "fallback"}
         eprint(f"  [B.9] Using fallback word count: {state.target_wc['target']}")
 
+    # If SERP unavailable, write a minimal valid SERP JSON for downstream tools
+    if state.serp_json_path is None:
+        empty_serp_path = state.output_dir / f"{state.post_id}-empty-serp.json"
+        empty_serp_path.write_text(json.dumps({
+            "keyword": state.target_keyword,
+            "providers_used": [],
+            "queried_at": "",
+            "intent_signals": {},
+            "top_results": [],
+            "paa": [],
+            "related_searches": [],
+            "ai_overview": None,
+        }))
+        state.serp_json_path = empty_serp_path
+        eprint(f"  [B.10] Wrote empty SERP fallback: {empty_serp_path}")
+
     state.phases_completed.append("B")
 
 
@@ -323,7 +362,13 @@ def phase_c(state: PipelineState) -> None:
     eprint("  [C.10] Building H2 inventory")
     h2s = _build_h2_inventory(state)
     state.h2_inventory = h2s
-    eprint(f"  [C.10] H2 inventory: {len(h2s)} sections")
+    eprint(f"  [C.10] Raw H2 inventory: {len(h2s)} sections")
+
+    # Step 10b: Natural-language H2 normalization via LLM
+    eprint("  [C.10b] Normalizing H2 titles via LLM")
+    h2s = _normalize_h2_titles(state, h2s)
+    state.h2_inventory = h2s
+    eprint(f"  [C.10b] Normalized H2 inventory: {len(h2s)} sections")
     for h in h2s:
         eprint(f"    - {h['title']} [{h['structural_element']}]")
 
@@ -336,6 +381,54 @@ def phase_c(state: PipelineState) -> None:
     state.jump_nav_html = _build_jump_nav(state)
 
     state.phases_completed.append("C")
+
+
+def _generate_fallback_h2s(state: PipelineState, existing: list[str], needed: int) -> list[str]:
+    """Generate natural-language fallback H2 titles via LLM when SERP gaps are insufficient."""
+    kw = state.target_keyword
+    existing_str = "\n".join(f"- {t}" for t in existing) if existing else "(none yet)"
+
+    prompt = f"""Generate {needed} section headings for an article about "{kw}".
+Intent: {state.intent}.
+
+Existing headings already chosen:
+{existing_str}
+
+Generate {needed} MORE headings that complement the existing ones. RULES:
+- NEVER use "What Is {kw}", "How {kw} Works", "Who Qualifies For {kw}" patterns.
+- Each heading should be natural, specific, and 5-12 words.
+- Mix questions (ending in ?) and statements.
+- Cover different angles: costs, timelines, eligibility, comparisons, practical tips.
+- Do NOT repeat topics already covered in the existing headings.
+
+Return a JSON array of {needed} strings. No commentary."""
+
+    client = LLMClient(provider=state.provider, model=state.model)
+    import hashlib
+    h = hashlib.md5(f"{kw}|{state.intent}|{needed}|{existing_str}".encode()).hexdigest()[:12]
+    cache_key = f"{state.site_slug}|{kw}|fallback-h2s|{h}"
+    response = client.call(prompt, cache_key=cache_key)
+    state.llm_calls += 1
+    state.llm_cost += response.cost_estimate
+
+    try:
+        titles = json.loads(extract_html(response.text))
+        if isinstance(titles, list):
+            return [str(t) for t in titles[:needed]]
+    except (json.JSONDecodeError, ValueError):
+        pass
+
+    # Hard fallback if LLM fails (should be rare)
+    eprint("  [C.10] Warning: LLM fallback H2 generation failed, using minimal defaults")
+    generic = [
+        f"What to Expect with {kw.title()}",
+        f"Common Mistakes to Avoid",
+        f"How to Get Started",
+        f"Costs and Timeline Breakdown",
+        f"Frequently Overlooked Details",
+        f"Next Steps After Reading This",
+    ]
+    return generic[:needed]
 
 
 def _build_h2_inventory(state: PipelineState) -> list[dict]:
@@ -358,18 +451,24 @@ def _build_h2_inventory(state: PipelineState) -> list[dict]:
     low_cov = state.subtopic_gaps.get("low_coverage_gaps", [])
 
     # Build H2 titles from gaps
+    def _extract_gap_title(item):
+        if isinstance(item, str):
+            return item
+        # Gap items may use "heading", "subtopic", or "topic" as key
+        for key in ("heading", "subtopic", "topic", "title"):
+            if key in item and isinstance(item[key], str):
+                return item[key]
+        return str(item)
+
     for item in high_cov[:6]:
-        title = item if isinstance(item, str) else item.get("heading", str(item))
-        h2s.append({"title": title, "role": "high_coverage", "source": "serp"})
+        h2s.append({"title": _extract_gap_title(item), "role": "high_coverage", "source": "serp"})
 
     for item in med_cov[:4]:
-        title = item if isinstance(item, str) else item.get("heading", str(item))
-        h2s.append({"title": title, "role": "medium_coverage", "source": "serp"})
+        h2s.append({"title": _extract_gap_title(item), "role": "medium_coverage", "source": "serp"})
 
     # Add 1-2 competitive moat subtopics from low-coverage gaps
     for item in low_cov[:2]:
-        title = item if isinstance(item, str) else item.get("heading", str(item))
-        h2s.append({"title": title, "role": "competitive_moat", "source": "gap"})
+        h2s.append({"title": _extract_gap_title(item), "role": "competitive_moat", "source": "gap"})
 
     # If SERP gave us fewer than 6, pad from PAA questions
     if len(h2s) < 6 and state.serp:
@@ -380,22 +479,15 @@ def _build_h2_inventory(state: PipelineState) -> list[dict]:
             if not any(h["title"].lower() == q.lower() for h in h2s):
                 h2s.append({"title": q, "role": "paa_derived", "source": "paa"})
 
-    # Fallback: if still too few, generate from keyword
+    # Fallback: if still too few, generate natural H2s via LLM
     if len(h2s) < 6:
-        kw = state.target_keyword
-        fallbacks = [
-            f"What Is {kw.title()}",
-            f"How {kw.title()} Works",
-            f"Who Qualifies for {kw.title()}",
-            f"Key Benefits of {kw.title()}",
-            f"{kw.title()} Requirements",
-            f"Common Questions About {kw.title()}",
-        ]
-        for fb in fallbacks:
+        needed = 6 - len(h2s)
+        existing_titles = [h["title"] for h in h2s]
+        fallback_h2s = _generate_fallback_h2s(state, existing_titles, needed)
+        for fb in fallback_h2s:
             if len(h2s) >= 6:
                 break
-            if not any(h["title"].lower() == fb.lower() for h in h2s):
-                h2s.append({"title": fb, "role": "fallback", "source": "generated"})
+            h2s.append({"title": fb, "role": "fallback", "source": "llm_fallback"})
 
     # Trim to max 15
     h2s = h2s[:15]
@@ -416,41 +508,145 @@ def _build_h2_inventory(state: PipelineState) -> list[dict]:
     return h2s
 
 
+def _normalize_h2_titles(state: PipelineState, h2s: list[dict]) -> list[dict]:
+    """Rewrite raw H2 titles to natural language via a single LLM call."""
+    if not h2s:
+        return h2s
+
+    raw_list = "\n".join(f"{i+1}. {h['title']}" for i, h in enumerate(h2s))
+    import hashlib
+    raw_hash = hashlib.md5(raw_list.encode()).hexdigest()[:12]
+
+    kw = state.target_keyword
+    prompt = f"""You are titling H2 sections for an article about "{kw}".
+Intent: {state.intent}.
+
+Raw H2 inventory (from SERP gap analysis):
+{raw_list}
+
+Rewrite each H2 as a natural-language section heading. RULES:
+- FORBIDDEN PATTERNS (never use these):
+  "What Is {kw}" → rewrite to a specific question or statement
+  "How {kw} Works" → rewrite to describe the mechanism specifically
+  "Who Qualifies For {kw}" → rewrite as "Are You Eligible?" or similar
+  "Key Benefits of {kw}" → rewrite to name the specific benefit
+  "{kw} Requirements" → rewrite to name what's actually required
+  "Common Questions About {kw}" → remove entirely, FAQs handle this
+  "How Does {kw}" → rewrite to a concrete question
+- EXAMPLES OF GOOD REWRITES:
+  "What Is VA Funding Fee" → "The Fee Most Veterans Pay at Closing"
+  "How VA Loan Limits Work" → "Can You Buy Above the Conforming Limit?"
+  "Key Benefits of First-Time Homebuyer Programs" → "Grants That Don't Require Repayment"
+  "Who Qualifies For Down Payment Assistance" → "Income and Credit Thresholds"
+- The full target keyword "{kw}" may appear in at most 2 of the H2s. Not all.
+- Mix question-form H2s (ending in ?) and statement-form H2s. At least 2 questions, at least 2 statements.
+- H2s should sound like a knowledgeable human writer, not a keyword tool.
+- Keep H2s 5-12 words each.
+- Preserve topical coverage of the original. Don't drop subtopics.
+
+Return a JSON array of strings, one H2 per array element, same order as input. No commentary, no markdown fences, just the JSON."""
+
+    client = LLMClient(provider=MECHANICAL_PROVIDER, model=MECHANICAL_MODEL)
+    cache_key = f"{state.site_slug}|{kw}|h2-normalize-v2|{raw_hash}"
+    response = client.call(prompt, cache_key=cache_key)
+    state.llm_calls += 1
+    state.llm_cost += response.cost_estimate
+
+    # Try parsing JSON from response — try raw first, then extract_html
+    raw_text = response.text.strip()
+    titles = None
+    for attempt_text in [raw_text, extract_html(raw_text)]:
+        try:
+            # Find JSON array in the text (may have preamble)
+            start = attempt_text.find("[")
+            end = attempt_text.rfind("]")
+            if start >= 0 and end > start:
+                parsed = json.loads(attempt_text[start:end + 1])
+                if isinstance(parsed, list) and len(parsed) == len(h2s):
+                    titles = parsed
+                    break
+        except (json.JSONDecodeError, ValueError):
+            continue
+
+    if titles:
+        for i, title in enumerate(titles):
+            h2s[i]["title"] = str(title)
+    else:
+        eprint(f"  [C.10b] Warning: Failed to parse H2 normalization JSON. Keeping raw titles.")
+
+    # Post-normalization validation: catch any remaining forbidden patterns
+    forbidden_re = re.compile(
+        r"^(What Is|How Does|How Is|How .+ Works?|Who Qualifies For|Key Benefits Of|Common Questions About|Why Choose|When To)\s",
+        re.IGNORECASE,
+    )
+    kw_lower = kw.lower()
+    kw_count = sum(1 for h in h2s if kw_lower in h["title"].lower())
+    has_forbidden = any(forbidden_re.match(h["title"]) for h in h2s)
+
+    if has_forbidden or kw_count > 2:
+        eprint(f"  [C.10b] Post-validation: {kw_count} H2s contain full keyword, "
+               f"forbidden patterns: {has_forbidden}. Re-normalizing...")
+        cache_key2 = f"{state.site_slug}|{kw}|h2-normalize-v2-retry|{raw_hash}"
+        retry_list = "\n".join(f"{i+1}. {h['title']}" for i, h in enumerate(h2s))
+        retry_prompt = (
+            f"These H2 titles still contain SEO-spammy patterns. Fix them.\n\n"
+            f"Current titles:\n{retry_list}\n\n"
+            f"Target keyword: \"{kw}\"\n\n"
+            f"RULES: No title may start with 'What Is', 'How Does', 'Who Qualifies For', "
+            f"'Key Benefits Of', or 'Common Questions About'. "
+            f"The full keyword '{kw}' may appear in at most 2 titles. "
+            f"Rewrite every violating title to sound natural and specific.\n\n"
+            f"Return a JSON array of strings. No commentary."
+        )
+        resp2 = client.call(retry_prompt, cache_key=cache_key2)
+        state.llm_calls += 1
+        state.llm_cost += resp2.cost_estimate
+        raw2 = resp2.text.strip()
+        parsed2 = None
+        for t2 in [raw2, extract_html(raw2)]:
+            try:
+                s2 = t2.find("[")
+                e2 = t2.rfind("]")
+                if s2 >= 0 and e2 > s2:
+                    p2 = json.loads(t2[s2:e2 + 1])
+                    if isinstance(p2, list) and len(p2) == len(h2s):
+                        parsed2 = p2
+                        break
+            except (json.JSONDecodeError, ValueError):
+                continue
+        if parsed2:
+            for i, title in enumerate(parsed2):
+                h2s[i]["title"] = str(title)
+            eprint("  [C.10b] Re-normalization succeeded.")
+        else:
+            eprint("  [C.10b] Re-normalization parse failed. Keeping first-pass titles.")
+
+    return h2s
+
+
 def _build_header_prelude(state: PipelineState) -> str:
-    """Build deterministic header HTML (H1, eyebrow, byline, primary sources)."""
+    """Build deterministic header HTML (H1 + eyebrow only).
+
+    Byline/Updated date removed — RSS Meta Header plugin renders these
+    at WordPress level. Primary sources removed — handled by Resources section.
+    """
     config = state.config
     kw = state.target_keyword
-    site_domain = config.get("SITE_DOMAIN", "")
-    byline = config.get("BYLINE", "")
     cta_url = config.get("CTA_URL", "/compare-loan-offers/")
-    year = datetime.now().year
+    cta_text = config.get("CTA_TEXT", "Get Your Rate")
 
-    # Primary sources from SERP
-    primary_sources = ""
-    if state.serp:
-        refs = state.serp.ai_overview_references[:3]
-        if refs:
-            sources = []
-            for ref in refs:
-                title = ref.title if hasattr(ref, "title") else str(ref)
-                link = ref.link if hasattr(ref, "link") else ""
-                source = ref.source if hasattr(ref, "source") else ""
-                if link:
-                    sources.append(f'<a href="{link}">{source or title}</a>')
-            if sources:
-                primary_sources = (
-                    '<div class="rl-primary-sources">Primary Sources: '
-                    + ", ".join(sources)
-                    + "</div>"
-                )
+    # Append ?ref=<post-slug> for lead attribution
+    post_slug = re.sub(r"[^a-z0-9]+", "-", kw.lower()).strip("-")
+    if "?" not in cta_url:
+        cta_url_with_ref = f"{cta_url}?ref={post_slug}"
+    else:
+        cta_url_with_ref = f"{cta_url}&ref={post_slug}"
 
     header = (
         f'<header class="rl-hero">\n'
-        f'  <div class="rl-eyebrow">{state.intent.title()} Guide</div>\n'
+        f'  <div class="rl-eyebrow">{state.intent.title()} &middot; Guide</div>\n'
         f'  <h1>{kw.title()}</h1>\n'
-        f'  <div class="rl-byline">{byline} | Updated {year}</div>\n'
-        f'  {primary_sources}\n'
-        f'  <a href="{cta_url}" class="rl-cta-primary">Get Your Rate →</a>\n'
+        f'  <a href="{cta_url_with_ref}" class="rl-cta-primary">{cta_text} →</a>\n'
         f'</header>\n'
     )
     return header
@@ -487,24 +683,34 @@ def phase_d(state: PipelineState) -> None:
     eprint("  [D.13] Building ATF lede")
     state.atf_lede_html = _build_atf_lede(state, client)
 
-    # Step 14: Build 4 ATF cards (sequential)
+    # Step 14: Build 4 ATF cards (sequential, with synthesis diversity)
     eprint("  [D.14] Building 4 ATF cards")
     state.card_htmls = []
+    prior_cards_synthesis: list[str] = []
     for i, slot in enumerate(state.overlay.card_slots):
         eprint(f"  [D.14.{i+1}] Card: {slot.role}")
         card_tool = TOOLS_DIR / "build-card.py"
         output_path = state.output_dir / f"{state.post_id}-card-{slot.role}.html"
+        card_args = [
+            "--site", state.site_slug,
+            "--target-keyword", state.target_keyword,
+            "--intent", state.intent,
+            "--card-slot", slot.role,
+            "--serp-json", serp_json,
+            "--output", str(output_path),
+        ]
+        if prior_cards_synthesis:
+            card_args += ["--prior-cards-synthesis", json.dumps(prior_cards_synthesis)]
         try:
-            _run_tool(str(card_tool), [
-                "--site", state.site_slug,
-                "--target-keyword", state.target_keyword,
-                "--intent", state.intent,
-                "--card-slot", slot.role,
-                "--serp-json", serp_json or "/dev/null",
-                "--output", str(output_path),
-            ], f"D.14.{i+1}")
-            state.card_htmls.append(output_path.read_text())
+            _run_tool(str(card_tool), card_args, f"D.14.{i+1}")
+            card_html = output_path.read_text()
+            state.card_htmls.append(card_html)
             state.llm_calls += 1
+            # Extract synthesis bullet (last <li>) for diversity tracking
+            card_soup = BeautifulSoup(card_html, "html.parser")
+            bullets = card_soup.find_all("li")
+            if bullets:
+                prior_cards_synthesis.append(bullets[-1].get_text(strip=True))
         except RuntimeError as e:
             raise RuntimeError(
                 f"Phase D step 14 (ATF cards) failed for card_slot={slot.role}.\n"
@@ -521,7 +727,7 @@ def phase_d(state: PipelineState) -> None:
             "--site", state.site_slug,
             "--target-keyword", state.target_keyword,
             "--mode", "atf",
-            "--serp-json", serp_json or "/dev/null",
+            "--serp-json", serp_json,
             "--output", str(atf_faq_path),
         ], "D.15")
         state.atf_faqs_html = atf_faq_path.read_text()
@@ -622,6 +828,7 @@ def phase_f(state: PipelineState) -> None:
     section_tool = TOOLS_DIR / "build-h2-section.py"
     serp_json = str(state.serp_json_path) if state.serp_json_path else "/dev/null"
     state.body_section_htmls = []
+    prior_sections_summary = ""
 
     for i, h2 in enumerate(state.h2_inventory):
         eprint(f"  [F.18.{i+1}] Building H2: {h2['title'][:50]}")
@@ -641,11 +848,25 @@ def phase_f(state: PipelineState) -> None:
             args_list += ["--callout-key", h2["callout_key"]]
         if h2.get("callout_label"):
             args_list += ["--callout-label", h2["callout_label"]]
+        if prior_sections_summary:
+            args_list += ["--prior-sections-summary", prior_sections_summary]
 
         try:
             _run_tool(str(section_tool), args_list, f"F.18.{i+1}")
-            state.body_section_htmls.append(section_path.read_text())
+            section_html = section_path.read_text()
+            state.body_section_htmls.append(section_html)
             state.llm_calls += 1
+
+            # Build running summary for cross-section context (Fix 5)
+            sec_soup = BeautifulSoup(section_html, "html.parser")
+            sec_p = sec_soup.find("p")
+            if sec_p:
+                sec_summary = f"[{h2['title']}]: {sec_p.get_text(strip=True)[:150]}"
+                prior_sections_summary += sec_summary + "\n"
+                # Cap at ~500 words to prevent prompt bloat
+                words = prior_sections_summary.split()
+                if len(words) > 500:
+                    prior_sections_summary = " ".join(words[-400:]) + "\n"
         except RuntimeError as e:
             raise RuntimeError(
                 f"Phase F step 18 (body H2) failed for section #{i+1}: "
@@ -655,10 +876,13 @@ def phase_f(state: PipelineState) -> None:
 
     # Step 19: Mid-article CTA pill after 2nd or 3rd H2
     cta_url = state.config.get("CTA_URL", "/compare-loan-offers/")
+    cta_text = state.config.get("CTA_TEXT", "Get Your Rate")
+    post_slug = re.sub(r"[^a-z0-9]+", "-", state.target_keyword.lower()).strip("-")
+    cta_url_ref = f"{cta_url}?ref={post_slug}" if "?" not in cta_url else f"{cta_url}&ref={post_slug}"
     cta_position = min(2, len(state.body_section_htmls) - 1)
     state.mid_cta_html = (
         f'<div class="rl-cta-mid">'
-        f'<a href="{cta_url}" class="rl-cta-pill">Get Your Rate →</a>'
+        f'<a href="{cta_url_ref}" class="rl-cta-pill">{cta_text} →</a>'
         f'</div>\n'
     )
 
@@ -729,9 +953,7 @@ def phase_g(state: PipelineState) -> None:
     except RuntimeError as e:
         raise RuntimeError(f"Phase G step 22 (Resources) failed.\nReason: {e}")
 
-    # Step 23: TOC
-    eprint("  [G.23] Generating TOC")
-    state.toc_html = _build_toc(state)
+    # Step 23: TOC — REMOVED. RSS TOC Manager renders TOC at WordPress level.
 
     state.phases_completed.append("G")
 
@@ -763,21 +985,6 @@ def _build_closing(state: PipelineState, client: LLMClient) -> str:
     return extract_html(response.text)
 
 
-def _build_toc(state: PipelineState) -> str:
-    """Auto-generate In This Article TOC from H2 inventory."""
-    items = []
-    for h2 in state.h2_inventory:
-        slug = re.sub(r"[^a-z0-9]+", "-", h2["title"].lower()).strip("-")
-        items.append(f'  <li><a href="#{slug}">{h2["title"]}</a></li>')
-
-    return (
-        '<nav class="rl-toc" aria-label="In this article">\n'
-        "  <h2>In This Article</h2>\n"
-        "  <ol>\n" + "\n".join(items) + "\n  </ol>\n"
-        "</nav>\n"
-    )
-
-
 # ---------------------------------------------------------------------------
 # Phase H: Assembly
 # ---------------------------------------------------------------------------
@@ -802,7 +1009,6 @@ def phase_h(state: PipelineState) -> None:
         state.closing_html,
         state.btf_faqs_html,
         state.resources_html,
-        state.toc_html,
     ])
 
     assembled = "\n\n".join(p for p in parts if p.strip())
@@ -821,6 +1027,7 @@ def phase_h(state: PipelineState) -> None:
             "--html-input", str(assembled_path),
             "--html-output", str(linked_path),
             "--pending-links-output", str(pending_path),
+            "--exclude-post-id", str(state.post_id),
         ], "H.25")
         state.assembled_html = linked_path.read_text()
         if pending_path.exists():
@@ -830,33 +1037,113 @@ def phase_h(state: PipelineState) -> None:
         state.assembled_html = assembled
         linked_path.write_text(assembled)
 
-    # Step 26: Validate
+    # Step 26: Validate and route output
     eprint("  [H.26] Running validation")
     validator = TOOLS_DIR / "validate-article-v2.py"
     validation_report_path = state.output_dir / f"{state.post_id}-validation-report.md"
 
+    hard_passed = 0
+    hard_total = 30
     if validator.exists():
-        # Check if validator is still a stub
         validator_content = validator.read_text()
         if "NotImplementedError" in validator_content:
             eprint("  [H.26] Validator is still a stub — skipping validation")
         else:
             try:
-                report = _run_tool(str(validator), [
+                # Run validator in JSON mode to parse scores
+                json_report = _run_tool(str(validator), [
                     "--html-file", str(linked_path),
                     "--intent", state.intent,
-                    "--serp-json", str(state.serp_json_path or "/dev/null"),
+                    "--serp-json", str(state.serp_json_path),
                     "--site", state.site_slug,
-                    "--output-format", "markdown",
+                    "--output-format", "json",
                 ], "H.26")
-                validation_report_path.write_text(report)
-                eprint(f"  [H.26] Validation report written: {validation_report_path}")
+                vdata = json.loads(json_report)
+                hard_passed = vdata.get("summary", {}).get("hard_passed", 0)
+                hard_total = vdata.get("summary", {}).get("hard_total", 30)
+                # Write markdown report too
+                validation_report_path.write_text(json_report)
+                eprint(f"  [H.26] Validator: {hard_passed}/{hard_total} hard passed")
             except RuntimeError as e:
-                eprint(f"  [H.26] Validation failed (non-fatal): {e}")
+                # Validator exits 1 on hard failures — parse from stderr
+                err_str = str(e)
+                import re as _re
+                score_match = _re.search(r"(\d+)/(\d+) hard passed", err_str)
+                if score_match:
+                    hard_passed = int(score_match.group(1))
+                    hard_total = int(score_match.group(2))
+                eprint(f"  [H.26] Validator: {hard_passed}/{hard_total} hard passed")
     else:
         eprint("  [H.26] Validator not found — skipping validation")
 
+    # Route output: 25+ = ready, <25 = needs review
+    if hard_passed < 25 and hard_total > 0:
+        review_path = state.output_dir / f"{state.post_id}-article.review.html"
+        import shutil
+        shutil.copy2(str(linked_path), str(review_path))
+        eprint(f"  [H.26] Below threshold ({hard_passed}/{hard_total} < 25/30) → saved as .review.html")
+
     state.phases_completed.append("H")
+
+
+# ---------------------------------------------------------------------------
+# Phase H2: Polish Pass
+# ---------------------------------------------------------------------------
+
+def phase_polish(state: PipelineState, skip: bool = False) -> None:
+    """Final prose polish via LLM — fixes awkward phrasing, em dashes, filler."""
+    if skip:
+        eprint("  [Polish] --skip-polish: skipping prose polish")
+        return
+
+    eprint("  [Polish] Running final prose polish pass")
+    article_path = state.output_dir / f"{state.post_id}-article.html"
+    if not article_path.exists():
+        eprint("  [Polish] No article file found — skipping")
+        return
+
+    html = article_path.read_text()
+
+    # Save pre-polish version
+    pre_polish_path = state.output_dir / f"{state.post_id}-article.pre-polish.html"
+    pre_polish_path.write_text(html)
+
+    prompt = f"""You are a senior SEO editor reviewing a finished article before publication. Read the article and fix ONLY these issues:
+
+1. Awkward phrasing or sentences that don't flow
+2. Repeated phrases within close proximity (within 200 words)
+3. Generic transitions ("In conclusion", "It's important to note", "When it comes to") — cut or rewrite
+4. Em dashes anywhere — replace with commas, periods, or parentheses
+5. Capitalization: Veteran/Veterans/Military must be capitalized, 'va' must be 'VA'
+6. Numbers as words where digits are more scannable ("five percent" → "5%", "twenty-six" → "26")
+7. Sentences over 35 words — split into two
+8. Passive voice where active would be tighter
+9. Filler adverbs ("very", "really", "extremely", "quite") — remove
+
+Do NOT change facts, statistics, structure, H2/H3 headings, links, or HTML tags. Do NOT add new content or remove sections. Only fix surface-level prose.
+
+Return the COMPLETE article HTML, ready to publish. No markdown fences.
+
+ARTICLE:
+{html}"""
+
+    client = LLMClient(provider=MECHANICAL_PROVIDER, model=MECHANICAL_MODEL)
+    cache_key = f"{state.site_slug}|{state.target_keyword}|polish"
+    response = client.call(prompt, cache_key=cache_key, max_tokens=8192)
+    state.llm_calls += 1
+    state.llm_cost += response.cost_estimate
+
+    polished = extract_html(response.text)
+
+    # Basic sanity: polished should be within 20% length of original
+    if polished and 0.8 < len(polished) / max(len(html), 1) < 1.2:
+        article_path.write_text(polished)
+        state.assembled_html = polished
+        eprint(f"  [Polish] Polished: {len(html)} → {len(polished)} chars "
+               f"({len(polished) - len(html):+d})")
+    else:
+        eprint(f"  [Polish] Warning: polished output size mismatch "
+               f"({len(html)} → {len(polished)}). Keeping original.")
 
 
 # ---------------------------------------------------------------------------
@@ -985,6 +1272,7 @@ def main():
     parser.add_argument("--skip-deploy", action="store_true", help="Don't push to WordPress")
     parser.add_argument("--allow-no-serp", action="store_true", help="Skip SERP research")
     parser.add_argument("--force", action="store_true", help="Overwrite existing outputs")
+    parser.add_argument("--skip-polish", action="store_true", help="Skip final prose polish LLM pass")
     args = parser.parse_args()
 
     # Initialize state
@@ -1028,6 +1316,7 @@ def main():
         phase_f(state)
         phase_g(state)
         phase_h(state)
+        phase_polish(state, skip=args.skip_polish)
         phase_i(state, skip_deploy=args.skip_deploy)
     except RuntimeError as e:
         eprint(f"\nPIPELINE FAILED")
