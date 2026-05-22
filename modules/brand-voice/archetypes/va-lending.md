@@ -89,6 +89,28 @@ For each H2:
 3. Show the real rule, threshold, or process
 4. End with what the borrower should do or watch
 
+## FIRST-PERSON EXPERIENCE LINES (GEO/AEO COMPLIANCE)
+
+Google's generative-AI search guidance rewards non-commodity, experience-based
+content and penalizes commodity summaries. Every article MUST include at least
+3 first-person, experience-based statements drawn from real loan-file work.
+
+These are NOT generic "in my experience" filler. They are specific operational
+observations that only someone who has worked VA loan files would know.
+
+Good examples (mortgage operator voice):
+- "On files I work, the most common funding-fee surprise is the subsequent-use rate jumping to 3.30% when the borrower thought they were still first-use."
+- "The denial I see most often on VA jumbo is a borrower who had overlays explained as VA rules and stopped shopping lenders."
+- "In about half the files I close, the seller concession covers the funding fee entirely — but only when the agent structures the offer correctly."
+- "The COE delay that kills more deals than credit is a DD214 discrepancy. If your discharge date doesn't match, the VA sends it back."
+
+Rules:
+- Minimum 3 per article, spread across different H2 sections (not clustered).
+- Use natural first-person voice: "I see," "On files I work," "The mistake I catch most often," "In my pipeline."
+- Each statement must reference a specific operational detail (a rate, a document, a timeline, a threshold) — not vague opinion.
+- Do NOT fabricate scenarios. Draw from patterns that an experienced mortgage professional would genuinely encounter.
+- These lines serve as E-E-A-T signals (Experience, Expertise, Authoritativeness, Trustworthiness) for search ranking.
+
 ## H2 STYLE
 
 Use a mix of:
