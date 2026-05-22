@@ -27,6 +27,8 @@ def extract_html(text: str) -> str:
         text = text[3:]
     if text.endswith("```"):
         text = text[:-3]
+    # Fix literal \n (two chars: backslash + n) that LLMs sometimes emit in HTML
+    text = text.replace("\\n", "\n")
     return text.strip()
 
 

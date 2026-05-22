@@ -3,7 +3,7 @@ display_name: "Comparison Article"
 spec_reference: "docs/article-spec.md Section 1, Section 6.6"
 
 # When to include BLUF (Section 8.1)
-bluf_default: omit
+bluf_default: include
 
 # Body structural element preference (Section 9.4)
 body_default: tables_dominant
