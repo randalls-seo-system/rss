@@ -84,7 +84,25 @@ def _max_links_for_word_count(wc: int) -> int:
     return 14
 
 
-MIN_WORD_GAP = 30  # Gate 2: minimum words between any two injected links
+MAX_LINKS_PER_PARAGRAPH = 1  # Gate 2: one internal link per paragraph max (spec §11.4.1-2)
+
+# Stopwords for subphrase quality filter
+_STOPWORDS = frozenset({
+    "a", "an", "the", "is", "are", "was", "were", "be", "been", "being",
+    "in", "on", "at", "to", "for", "of", "with", "by", "from", "as",
+    "and", "or", "but", "not", "no", "if", "it", "its", "do", "does",
+    "did", "has", "have", "had", "can", "could", "will", "would", "shall",
+    "should", "may", "might", "must", "that", "this", "these", "those",
+    "what", "which", "who", "whom", "how", "when", "where", "why",
+    "you", "your", "i", "my", "we", "our", "they", "their", "up",
+})
+
+
+def _has_content_words(phrase: str, min_count: int = 2) -> bool:
+    """Return True if the phrase has at least min_count non-stopword content words."""
+    words = phrase.lower().split()
+    content_words = [w for w in words if w not in _STOPWORDS]
+    return len(content_words) >= min_count
 
 
 # ---------------------------------------------------------------------------
@@ -139,49 +157,87 @@ def _find_matching_candidates(
 ) -> list[dict]:
     """Find anchor pool candidates whose anchor text appears in the text.
 
-    Applies the competition rule: if anchor_text is in internal_keywords
-    but has no matching anchor pool entry, skip it (let the linking
-    strategy own that keyword).
+    Two-pass matching:
+    1. Try the pool-returned anchor phrase (verbatim word-boundary match).
+    2. Fallback: try the destination's primary_keyword (shorter, more
+       likely to appear naturally — e.g., "residual income", "VA disability").
 
     Returns list of {anchor_text, url, score} sorted by score descending.
     """
-    candidates = pool.candidates_for_topic(topic, max=15, exclude_post_id=exclude_post_id)
+    candidates = pool.candidates_for_topic(topic, max=20, exclude_post_id=exclude_post_id)
     if not candidates:
         return []
 
-    text_lower = text.lower()
+    # Build URL → primary_keyword lookup from pool destinations
+    url_to_primary_kw: dict[str, str] = {}
+    for dest in pool._destinations:
+        normalized = pool._normalize_url(dest.get("url", ""))
+        url_to_primary_kw[normalized] = dest.get("primary_keyword", "")
+
     matches = []
 
     for cand in candidates:
         if cand.url in used_urls:
             continue
 
+        # Try pool anchor first, then fall back to primary_keyword
+        anchor_options = []
+
+        # Option 1: pool-returned anchor phrase
         anchor = cand.anchor_text
-        anchor_lower = anchor.lower()
+        wc = len(anchor.split())
+        if 2 <= wc <= 5:
+            anchor_options.append(anchor)
 
-        # Word count check per spec: internal anchors must be 2-5 words
-        word_count = len(anchor.split())
-        if word_count < 2 or word_count > 5:
+        # Option 2: primary_keyword from the destination (full phrase)
+        primary_kw = url_to_primary_kw.get(cand.url, "")
+        if primary_kw:
+            pkw_wc = len(primary_kw.split())
+            if 2 <= pkw_wc <= 5 and primary_kw.lower() != anchor.lower():
+                anchor_options.append(primary_kw)
+
+        # Option 3: 2-3 word subphrases from primary_keyword
+        # (e.g., "VA Loan Residual Income Chart" → "Residual Income", "VA Loan")
+        if primary_kw and len(primary_kw.split()) > 3:
+            pkw_words = primary_kw.split()
+            seen_subs = {opt.lower() for opt in anchor_options}
+            for length in [3, 2]:
+                for start in range(len(pkw_words) - length + 1):
+                    sub = " ".join(pkw_words[start : start + length])
+                    if sub.lower() in seen_subs:
+                        continue
+                    # Quality filter: require at least 2 content words (non-stopwords)
+                    if not _has_content_words(sub, min_count=2):
+                        continue
+                    anchor_options.append(sub)
+                    seen_subs.add(sub.lower())
+
+        if not anchor_options:
             continue
 
-        # Anchor text diversity: same text at most once per article
-        if used_anchors_global and anchor_lower in used_anchors_global:
-            continue
+        # Find the BEST anchor that appears in the text (prefer longer/more specific)
+        matching_options = []
+        for opt in anchor_options:
+            # Quality filter: require at least 2 content words
+            if not _has_content_words(opt, min_count=2):
+                continue
+            # Anchor text diversity: same text at most once per article
+            if used_anchors_global and opt.lower() in used_anchors_global:
+                continue
+            pattern = re.compile(r"\b" + re.escape(opt) + r"\b", re.IGNORECASE)
+            if pattern.search(text):
+                content_count = len([w for w in opt.lower().split() if w not in _STOPWORDS])
+                matching_options.append((content_count, len(opt), opt))
 
-        # Check if anchor text appears naturally in the paragraph
-        pattern = re.compile(r"\b" + re.escape(anchor_lower) + r"\b", re.IGNORECASE)
-        if not pattern.search(text):
-            continue
+        # Sort by content word count desc, then total length desc (most specific wins)
+        matching_options.sort(reverse=True)
+        matched_anchor = matching_options[0][2] if matching_options else None
 
-        # Competition rule: if this phrase is claimed by a DIFFERENT internal
-        # keyword (i.e., it's in internal_keywords_set), allow it only if
-        # the anchor pool DID return this candidate (which it did — we're
-        # iterating candidates). The competition rule blocks phrases that are
-        # in internal_keywords but have NO anchor pool match for this topic.
-        # Since we only iterate pool candidates here, competition is satisfied.
+        if not matched_anchor:
+            continue
 
         matches.append({
-            "anchor_text": anchor,
+            "anchor_text": matched_anchor,
             "url": cand.url,
             "score": cand.topic_match_score,
         })
@@ -256,6 +312,7 @@ def main():
     parser.add_argument("--html-input", required=True, help="Path to assembled article HTML")
     parser.add_argument("--html-output", required=True, help="Path to write linked HTML")
     parser.add_argument("--pending-links-output", required=True, help="Path to write pending-links JSON")
+    parser.add_argument("--target-keyword", default="", help="Article target keyword (broadens candidate matching)")
     parser.add_argument("--article-url", default="", help="Article URL for pending-links context")
     parser.add_argument("--exclude-post-id", type=int, default=None, help="Exclude this post ID from anchor pool (self-link prevention)")
     args = parser.parse_args()
@@ -302,22 +359,13 @@ def main():
     used_urls_global: set[str] = set()
     used_anchors_global: set[str] = set()
     article_context = args.article_url
+    target_keyword = args.target_keyword
     exclude_post_id = args.exclude_post_id
 
     # Gate 1: compute article word count and cap
     article_wc = len(soup.get_text(separator=" ").split())
     max_links = _max_links_for_word_count(article_wc)
     eprint(f"[inject-links] Article word count: {article_wc}, link cap: {max_links}")
-
-    # Gate 2: track word position of last injection for spacing
-    last_link_word_pos: int | None = None
-
-    # Compute cumulative word offsets per section for spacing checks
-    _section_word_offsets: dict[int, int] = {}
-    _running_wc = 0
-    for sec in soup.find_all("section"):
-        _section_word_offsets[id(sec)] = _running_wc
-        _running_wc += len(sec.get_text(separator=" ").split())
 
     # Process each body H2 section
     sections = soup.find_all("section")
@@ -333,81 +381,74 @@ def main():
         h2 = section.find("h2")
         h2_text = h2.get_text(strip=True) if h2 else ""
 
-        # Find the intro paragraph (first <p> in section)
-        intro_p = section.find("p")
-        if not intro_p:
+        # Find ALL paragraphs in section (not just the first)
+        paragraphs = section.find_all("p")
+        if not paragraphs:
             eprint(f"[inject-links] Skipping section (no <p>): {h2_text[:50]}")
             continue
 
-        paragraph_text = intro_p.get_text()
-        paragraph_html = str(intro_p)
-
-        # Gate 1: limit candidates to remaining budget
-        remaining_budget = max_links - total_injected
-        candidates_limit = min(2, remaining_budget)
-
-        # Find matching candidates
-        used_urls_section: set[str] = set()
-        matches = _find_matching_candidates(
-            paragraph_text, pool, h2_text,
-            used_urls_global | used_urls_section,
-            internal_keywords,
-            max_candidates=candidates_limit,
-            exclude_post_id=exclude_post_id,
-            used_anchors_global=used_anchors_global,
-        )
-
-        # Gate 2: filter candidates by word spacing
-        section_offset = _section_word_offsets.get(id(section), 0)
-        para_words = paragraph_text.split()
-        spaced_matches = []
-        local_last_pos = last_link_word_pos
-        for m in matches:
-            # Find approximate word position of anchor in paragraph
-            anchor_lower = m["anchor_text"].lower()
-            para_lower = paragraph_text.lower()
-            char_pos = para_lower.find(anchor_lower)
-            if char_pos < 0:
-                spaced_matches.append(m)
-                continue
-            word_pos_in_para = len(paragraph_text[:char_pos].split())
-            global_word_pos = section_offset + word_pos_in_para
-
-            if local_last_pos is not None and (global_word_pos - local_last_pos) < MIN_WORD_GAP:
-                eprint(f"[inject-links]   Spacing skip: '{m['anchor_text']}' only {global_word_pos - local_last_pos}w from prev link")
-                continue
-            spaced_matches.append(m)
-            local_last_pos = global_word_pos + len(m["anchor_text"].split())
-        matches = spaced_matches
-
-        # Inject links into the paragraph HTML
         section_injected = 0
-        modified_html = paragraph_html
-        for m in matches:
-            new_html, was_injected = _inject_link_in_html(
-                modified_html, m["anchor_text"], m["url"]
-            )
-            if was_injected:
-                modified_html = new_html
-                used_urls_section.add(m["url"])
-                section_injected += 1
-                eprint(f"[inject-links]   {h2_text[:40]}: injected '{m['anchor_text']}' → {m['url']}")
+        used_urls_section: set[str] = set()
 
-        # Replace the paragraph in the soup if we injected anything
+        for para in paragraphs:
+            # Gate 1: stop if cap reached
+            if total_injected >= max_links:
+                break
+
+            paragraph_text = para.get_text()
+            paragraph_html = str(para)
+
+            # Skip very short paragraphs (likely captions or stubs)
+            if len(paragraph_text.split()) < 10:
+                continue
+
+            # Gate 1: limit candidates to remaining budget
+            remaining_budget = max_links - total_injected
+            # Gate 2: max 1 link per paragraph (spec §11.4.1-2)
+            candidates_limit = min(MAX_LINKS_PER_PARAGRAPH, remaining_budget)
+
+            # Find matching candidates (combine article keyword + section topic for broader pool query)
+            combined_topic = f"{target_keyword} {h2_text}" if target_keyword else h2_text
+            matches = _find_matching_candidates(
+                paragraph_text, pool, combined_topic,
+                used_urls_global | used_urls_section,
+                internal_keywords,
+                max_candidates=candidates_limit,
+                exclude_post_id=exclude_post_id,
+                used_anchors_global=used_anchors_global,
+            )
+
+            # Inject links into the paragraph HTML
+            para_injected = 0
+            modified_html = paragraph_html
+            for m in matches:
+                new_html, was_injected = _inject_link_in_html(
+                    modified_html, m["anchor_text"], m["url"]
+                )
+                if was_injected:
+                    modified_html = new_html
+                    used_urls_section.add(m["url"])
+                    para_injected += 1
+                    eprint(f"[inject-links]   {h2_text[:40]}: injected '{m['anchor_text']}' → {m['url']}")
+
+            # Replace the paragraph in the soup if we injected anything
+            if para_injected > 0:
+                new_p = BeautifulSoup(modified_html, "html.parser")
+                para.replace_with(new_p)
+                section_injected += para_injected
+                # Track used anchor texts for article-wide diversity
+                for m in matches[:para_injected]:
+                    used_anchors_global.add(m["anchor_text"].lower())
+
+        # Update globals after processing all paragraphs in section
         if section_injected > 0:
-            new_p = BeautifulSoup(modified_html, "html.parser")
-            intro_p.replace_with(new_p)
             used_urls_global |= used_urls_section
-            # Track used anchor texts for article-wide diversity
-            for m in matches[:section_injected]:
-                used_anchors_global.add(m["anchor_text"].lower())
             total_injected += section_injected
-            # Gate 2: update last link position
-            last_link_word_pos = local_last_pos
 
         # Detect pending links for this section
+        all_para_text = " ".join(p.get_text() for p in section.find_all("p"))
         pending = _detect_pending_links(
-            h2_text, paragraph_text, pool,
+            h2_text, all_para_text, pool,
             internal_keywords, section_injected, article_context,
         )
         all_pending.extend(pending)

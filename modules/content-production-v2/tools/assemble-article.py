@@ -1078,6 +1078,7 @@ def phase_h(state: PipelineState) -> None:
     try:
         _run_tool(str(inject_tool), [
             "--site", state.site_slug,
+            "--target-keyword", state.target_keyword,
             "--html-input", str(assembled_path),
             "--html-output", str(linked_path),
             "--pending-links-output", str(pending_path),
@@ -1249,8 +1250,9 @@ def _write_manifest(state: PipelineState) -> dict:
     soup = BeautifulSoup(state.assembled_html, "html.parser")
     internal_links = len([
         a for a in soup.find_all("a", href=True)
-        if not a["href"].startswith(("http://", "https://", "//"))
-        or state.config.get("SITE_DOMAIN", "") in a["href"]
+        if (not a["href"].startswith(("http://", "https://", "//"))
+            or state.config.get("SITE_DOMAIN", "") in a["href"])
+        and "rl-cta" not in " ".join(a.get("class", []))
     ])
     external_links = len([
         a for a in soup.find_all("a", href=True)
