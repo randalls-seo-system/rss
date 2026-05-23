@@ -269,21 +269,9 @@ def _restructure_header(soup: BeautifulSoup, slug: str, title_id: str,
         pill_span.append(new_link)
         cta_link.replace_with(pill_span)
 
-    # Also convert lede CTA if it exists as a <p class="vlnHeroLead"> with CTA
-    if lede_p:
-        lede_cta = soup.new_tag("p", attrs={"class": "vlnHeroLead"})
-        pill_span2 = soup.new_tag("span", attrs={"class": "vlnNextPill"})
-        label2 = soup.new_tag("span", attrs={"class": "vlnNextLabel"})
-        label2.string = "Next step:"
-        link2 = soup.new_tag("a", attrs={
-            "class": "vlnNextLink",
-            "href": "https://valoannetwork.com/compare-loan-offers/",
-        })
-        link2.string = "Check Your VA Loan Eligibility"
-        pill_span2.append(label2)
-        pill_span2.append(link2)
-        lede_cta.append(pill_span2)
-        lede_p.insert_after(lede_cta)
+    # Note: no additional CTA insertion here. The pipeline emits an rl-cta-primary
+    # which was already renamed to vlnNextLink and converted to vlnNextPill structure
+    # in the loop above. Inserting a second CTA would duplicate it.
 
 
 # ---------------------------------------------------------------------------

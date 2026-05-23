@@ -115,12 +115,21 @@ def push_single_post(ssh, post_id, html_file, status, verify_greps,
     php_script = f"""<?php
 $content = file_get_contents('{remote_html}');
 if(!$content){{ echo 'ERROR=Could not read content file|'; exit(1); }}
-$result = wp_update_post(['ID'=>{post_id},'post_content'=>$content,'post_status'=>'{status}'],true);
+$now_local = current_time('mysql');
+$now_gmt = current_time('mysql', true);
+$result = wp_update_post([
+    'ID'=>{post_id},
+    'post_content'=>$content,
+    'post_status'=>'{status}',
+    'post_modified'=>$now_local,
+    'post_modified_gmt'=>$now_gmt,
+],true);
 if(is_wp_error($result)){{ echo 'ERROR='.$result->get_error_message().'|'; exit(1); }}
 $after = get_post({post_id});
 echo 'STATUS='.$after->post_status.'|';
 echo 'LEN='.strlen($after->post_content).'|';
 echo 'MODIFIED='.$after->post_modified.'|';
+echo 'MODIFIED_GMT='.$after->post_modified_gmt.'|';
 {verify_block}{forbid_block}echo 'OK=1|';
 @unlink('{remote_html}');
 """
