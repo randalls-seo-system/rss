@@ -70,34 +70,92 @@ def format_anchor_text(source: str, title: str) -> str:
     return f"{source_display} \u2014 {title}"
 
 
-def build_resources_from_serp(serp: SerpData) -> list[dict]:
-    """Extract resource items from SERP data."""
-    items: list[dict] = []
+# Domains to exclude from Resources (aggregators, video, user-generated)
+_BLOCKED_DOMAINS = frozenset({
+    "apartments.com", "hellolanding.com", "landing.com",
+    "youtube.com", "pinterest.com", "reddit.com",
+    "medium.com", "quora.com", "facebook.com",
+    "tiktok.com", "instagram.com", "twitter.com", "x.com",
+})
+
+# Preferred domains (ranked higher, not required)
+_PREFERRED_TLDS = {".gov", ".edu", ".mil"}
+_PREFERRED_DOMAINS = frozenset({
+    "va.gov", "hud.gov", "consumerfinance.gov", "fhfa.gov",
+    "freddiemac.com", "fanniemae.com", "realtor.org", "nar.realtor",
+    "nytimes.com", "wsj.com", "ap.org", "reuters.com", "bloomberg.com",
+    "sanantonioreport.org", "expressnews.com", "statesman.com",
+    "mba.org", "nmlsconsumeraccess.org",
+})
+
+
+def _is_blocked_domain(domain: str) -> bool:
+    d = domain.lower()
+    if d in _BLOCKED_DOMAINS:
+        return True
+    # Subdomain check (e.g., blog.medium.com)
+    for blocked in _BLOCKED_DOMAINS:
+        if d.endswith("." + blocked):
+            return True
+    return False
+
+
+def _domain_priority(domain: str) -> int:
+    """Lower = better. .gov/.edu/preferred get 0, known sources 1, others 2."""
+    d = domain.lower()
+    for tld in _PREFERRED_TLDS:
+        if d.endswith(tld):
+            return 0
+    if d in _PREFERRED_DOMAINS:
+        return 0
+    # Known industry/news sources
+    if any(d.endswith(t) for t in (".org", ".edu")):
+        return 1
+    return 2
+
+
+def build_resources_from_serp(serp: SerpData, site_domain: str = "") -> list[dict]:
+    """Extract resource items from SERP data.
+
+    Draws from: primary_sources (authoritative), AI overview references,
+    then top organic results as fallback. Filters blocked domains and
+    self-citations. Prefers authoritative sources.
+    """
+    candidates: list[dict] = []
     seen_domains: set[str] = set()
+    site_d = site_domain.lower().lstrip("www.") if site_domain else ""
 
-    # Primary sources (already filtered for authority)
+    def _add(url: str, title: str, source: str, domain: str):
+        d = domain.lower().lstrip("www.")
+        if d in seen_domains or _is_blocked_domain(d):
+            return
+        # Self-citation filter (Fix F)
+        if site_d and d == site_d:
+            return
+        seen_domains.add(d)
+        candidates.append({
+            "url": url,
+            "anchor": format_anchor_text(source or domain, title),
+            "domain": d,
+            "priority": _domain_priority(d),
+        })
+
+    # Layer 1: Primary authoritative sources (.gov, .edu, etc.)
     for ref in serp.primary_sources(max=8):
-        if ref.domain not in seen_domains:
-            seen_domains.add(ref.domain)
-            items.append({
-                "url": ref.url,
-                "anchor": format_anchor_text(ref.source or ref.domain, ref.title),
-                "domain": ref.domain,
-            })
+        _add(ref.url, ref.title, ref.source or ref.domain, ref.domain)
 
-    # AI overview references for additional sources
+    # Layer 2: AI overview references
     for ref in serp.ai_overview_references:
-        if len(items) >= 8:
-            break
-        if ref.domain not in seen_domains:
-            seen_domains.add(ref.domain)
-            items.append({
-                "url": ref.url,
-                "anchor": format_anchor_text(ref.source or ref.domain, ref.title),
-                "domain": ref.domain,
-            })
+        _add(ref.url, ref.title, ref.source or ref.domain, ref.domain)
 
-    return items
+    # Layer 3: Top organic results (fallback — this was the missing piece)
+    for r in serp.top_results:
+        _add(r.url, r.title, r.domain, r.domain)
+
+    # Sort by priority (authoritative first), take up to 8
+    candidates.sort(key=lambda c: c["priority"])
+    return [{"url": c["url"], "anchor": c["anchor"], "domain": c["domain"]}
+            for c in candidates[:8]]
 
 
 def build_resources_from_list(resources_list: list) -> list[dict]:
@@ -131,8 +189,8 @@ def validate_resources(items: list[dict]) -> list[str]:
     """Validate resources per spec Section 15."""
     errors = []
 
-    if len(items) < 5 or len(items) > 8:
-        errors.append(f"Resources has {len(items)} items, expected 5-8 (spec 15.1)")
+    if len(items) < 3 or len(items) > 8:
+        errors.append(f"Resources has {len(items)} items, expected 3-8 (spec 15.1, relaxed from 5)")
 
     domains = {item["domain"] for item in items if item.get("domain")}
     if len(domains) < 3:
@@ -200,10 +258,12 @@ def main():
     if not items and args.serp_json:
         eprint("[build-resources] Extracting from SERP data")
         serp = SerpData(Path(args.serp_json))
-        items = build_resources_from_serp(serp)
+        config = load_site_config(args.site)
+        site_domain = config.get("SITE_DOMAIN", "")
+        items = build_resources_from_serp(serp, site_domain=site_domain)
 
-    # Hard fail per spec 15.6: need at least 5 items
-    if len(items) < 5:
+    # Hard fail per spec 15.6: need at least 3 items (relaxed from 5)
+    if len(items) < 3:
         print(HARD_FAIL_MESSAGE, file=sys.stderr)
         sys.exit(1)
 

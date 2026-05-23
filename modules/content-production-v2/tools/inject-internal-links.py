@@ -68,6 +68,26 @@ def _is_body_h2_section(section) -> bool:
 
 
 # ---------------------------------------------------------------------------
+# Gate 1: Global per-article link cap
+# ---------------------------------------------------------------------------
+
+def _max_links_for_word_count(wc: int) -> int:
+    """Cap total injected links by article word count."""
+    if wc < 400:
+        return 3
+    if wc < 800:
+        return 5
+    if wc < 1500:
+        return 8
+    if wc < 2500:
+        return 11
+    return 14
+
+
+MIN_WORD_GAP = 30  # Gate 2: minimum words between any two injected links
+
+
+# ---------------------------------------------------------------------------
 # HTML-safe link injection
 # ---------------------------------------------------------------------------
 
@@ -113,7 +133,9 @@ def _find_matching_candidates(
     topic: str,
     used_urls: set[str],
     internal_keywords: set[str],
-    max_candidates: int = 3,
+    max_candidates: int = 2,
+    exclude_post_id: int | None = None,
+    used_anchors_global: set[str] | None = None,
 ) -> list[dict]:
     """Find anchor pool candidates whose anchor text appears in the text.
 
@@ -123,7 +145,7 @@ def _find_matching_candidates(
 
     Returns list of {anchor_text, url, score} sorted by score descending.
     """
-    candidates = pool.candidates_for_topic(topic, max=15)
+    candidates = pool.candidates_for_topic(topic, max=15, exclude_post_id=exclude_post_id)
     if not candidates:
         return []
 
@@ -137,9 +159,13 @@ def _find_matching_candidates(
         anchor = cand.anchor_text
         anchor_lower = anchor.lower()
 
-        # Word count check per spec: internal anchors must be 1-5 words
+        # Word count check per spec: internal anchors must be 2-5 words
         word_count = len(anchor.split())
-        if word_count < 1 or word_count > 5:
+        if word_count < 2 or word_count > 5:
+            continue
+
+        # Anchor text diversity: same text at most once per article
+        if used_anchors_global and anchor_lower in used_anchors_global:
             continue
 
         # Check if anchor text appears naturally in the paragraph
@@ -231,6 +257,7 @@ def main():
     parser.add_argument("--html-output", required=True, help="Path to write linked HTML")
     parser.add_argument("--pending-links-output", required=True, help="Path to write pending-links JSON")
     parser.add_argument("--article-url", default="", help="Article URL for pending-links context")
+    parser.add_argument("--exclude-post-id", type=int, default=None, help="Exclude this post ID from anchor pool (self-link prevention)")
     args = parser.parse_args()
 
     # Load input HTML
@@ -273,7 +300,24 @@ def main():
     all_pending: list[dict] = []
     total_injected = 0
     used_urls_global: set[str] = set()
+    used_anchors_global: set[str] = set()
     article_context = args.article_url
+    exclude_post_id = args.exclude_post_id
+
+    # Gate 1: compute article word count and cap
+    article_wc = len(soup.get_text(separator=" ").split())
+    max_links = _max_links_for_word_count(article_wc)
+    eprint(f"[inject-links] Article word count: {article_wc}, link cap: {max_links}")
+
+    # Gate 2: track word position of last injection for spacing
+    last_link_word_pos: int | None = None
+
+    # Compute cumulative word offsets per section for spacing checks
+    _section_word_offsets: dict[int, int] = {}
+    _running_wc = 0
+    for sec in soup.find_all("section"):
+        _section_word_offsets[id(sec)] = _running_wc
+        _running_wc += len(sec.get_text(separator=" ").split())
 
     # Process each body H2 section
     sections = soup.find_all("section")
@@ -281,6 +325,11 @@ def main():
     eprint(f"[inject-links] Found {len(body_sections)} body H2 sections to process")
 
     for section in body_sections:
+        # Gate 1: stop if cap reached
+        if total_injected >= max_links:
+            eprint(f"[inject-links] Link cap ({max_links}) reached, stopping")
+            break
+
         h2 = section.find("h2")
         h2_text = h2.get_text(strip=True) if h2 else ""
 
@@ -293,14 +342,43 @@ def main():
         paragraph_text = intro_p.get_text()
         paragraph_html = str(intro_p)
 
+        # Gate 1: limit candidates to remaining budget
+        remaining_budget = max_links - total_injected
+        candidates_limit = min(2, remaining_budget)
+
         # Find matching candidates
         used_urls_section: set[str] = set()
         matches = _find_matching_candidates(
             paragraph_text, pool, h2_text,
             used_urls_global | used_urls_section,
             internal_keywords,
-            max_candidates=3,
+            max_candidates=candidates_limit,
+            exclude_post_id=exclude_post_id,
+            used_anchors_global=used_anchors_global,
         )
+
+        # Gate 2: filter candidates by word spacing
+        section_offset = _section_word_offsets.get(id(section), 0)
+        para_words = paragraph_text.split()
+        spaced_matches = []
+        local_last_pos = last_link_word_pos
+        for m in matches:
+            # Find approximate word position of anchor in paragraph
+            anchor_lower = m["anchor_text"].lower()
+            para_lower = paragraph_text.lower()
+            char_pos = para_lower.find(anchor_lower)
+            if char_pos < 0:
+                spaced_matches.append(m)
+                continue
+            word_pos_in_para = len(paragraph_text[:char_pos].split())
+            global_word_pos = section_offset + word_pos_in_para
+
+            if local_last_pos is not None and (global_word_pos - local_last_pos) < MIN_WORD_GAP:
+                eprint(f"[inject-links]   Spacing skip: '{m['anchor_text']}' only {global_word_pos - local_last_pos}w from prev link")
+                continue
+            spaced_matches.append(m)
+            local_last_pos = global_word_pos + len(m["anchor_text"].split())
+        matches = spaced_matches
 
         # Inject links into the paragraph HTML
         section_injected = 0
@@ -320,7 +398,12 @@ def main():
             new_p = BeautifulSoup(modified_html, "html.parser")
             intro_p.replace_with(new_p)
             used_urls_global |= used_urls_section
+            # Track used anchor texts for article-wide diversity
+            for m in matches[:section_injected]:
+                used_anchors_global.add(m["anchor_text"].lower())
             total_injected += section_injected
+            # Gate 2: update last link position
+            last_link_word_pos = local_last_pos
 
         # Detect pending links for this section
         pending = _detect_pending_links(

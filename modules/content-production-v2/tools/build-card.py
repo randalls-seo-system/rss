@@ -84,6 +84,7 @@ def main():
     )
     parser.add_argument("--card-slot", required=True, help="Card slot role from overlay")
     parser.add_argument("--serp-json", required=True, help="Path to SERP JSON")
+    parser.add_argument("--prior-cards-synthesis", default="", help="JSON array of prior card synthesis bullets")
     parser.add_argument("--output", help="Output file path (default: stdout)")
     args = parser.parse_args()
 
@@ -121,6 +122,17 @@ def main():
     # Load brand voice
     brand_voice = load_brand_voice(archetype) if archetype else ""
 
+    # Parse prior card synthesis bullets for diversity
+    prior_synthesis = ""
+    if args.prior_cards_synthesis:
+        try:
+            import json as _json
+            bullets = _json.loads(args.prior_cards_synthesis)
+            if bullets:
+                prior_synthesis = "\n".join(f"- {b}" for b in bullets)
+        except Exception:
+            pass
+
     # Load and render prompt
     template = load_prompt_template("atf-card.md")
     prompt = render_prompt(template, {
@@ -129,6 +141,7 @@ def main():
         "H3_PATTERN": slot.h3_pattern,
         "BULLET_LABEL_HINTS": ", ".join(slot.bullet_label_hints),
         "TOPIC_CONTEXT": topic_context,
+        "PRIOR_CARDS_SYNTHESIS": prior_synthesis or "(none — this is the first card)",
         "INJECT_BRAND_VOICE": brand_voice,
     })
 

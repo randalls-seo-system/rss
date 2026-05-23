@@ -9,9 +9,6 @@ You are writing the Bottom Line Up Front section for an article about **{{TARGET
 - **Target keyword:** {{TARGET_KEYWORD}}
 - **Topic context:** {{TOPIC_CONTEXT}}
 - **Friction point:** {{FRICTION_POINT}}
-- **Anchor pool candidates (for inline links):**
-{{ANCHOR_POOL_CANDIDATES}}
-
 ## Output
 
 Produce exactly this HTML structure:
@@ -37,7 +34,7 @@ Produce exactly this HTML structure:
 - **Body paragraph:** 70-100 words. NOT bolded. Provides concrete numbers, edge cases, and named exceptions that support the lead's claim.
 - **Exactly 5 capstone bullets.** Not 4, not 6. Each bullet is 12-20 words.
 - **Capstone bullets** distill the article's key takeaways into scannable points. Each bullet stands alone as a fact.
-- **Inline links:** The lead and body paragraphs MAY include 1-3 inline `<a>` links using ONLY the URLs and anchor text from {{ANCHOR_POOL_CANDIDATES}}. Format: `<a href="{url}">{anchor text}</a>`. If no candidates are provided or none fit naturally, omit links entirely.
+- **Do NOT include any links in the BLUF HTML.** No `<a>` tags. Internal linking is handled by a separate post-processing step.
 - **Capstone bullets have ZERO inline links.** No `<a>` tags in the `<li>` elements.
 - Do NOT repeat the heading "The Bottom Line Up Front" in the body text.
 - The BLUF sets up what the article will prove. It is forward-looking, not a recap.

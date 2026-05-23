@@ -11,6 +11,7 @@ You are writing ONE quick-card for an article about **{{TARGET_KEYWORD}}**.
 - **Bullet label hints:** {{BULLET_LABEL_HINTS}}
 - **Target keyword:** {{TARGET_KEYWORD}}
 - **Topic context for this card's subtopic:** {{TOPIC_CONTEXT}}
+- **Synthesis bullets from prior cards (avoid repeating):** {{PRIOR_CARDS_SYNTHESIS}}
 
 ## Output
 
@@ -35,6 +36,7 @@ Produce exactly this HTML structure:
 - **Bullet labels** are 1-4 words each, end in a colon, wrapped in `<strong>`. Each label describes the bullet's specific content.
 - **Bullets 1-3:** 14-30 words each.
 - **Bullet 4 is the synthesis bullet:** 18-35 words. Usually contains a concrete number, threshold, break-even point, or consequence-rule that ties the card together. Use synthesis-flavored labels like "Bottom line:", "Break-even:", "Worth noting:", "Main takeaway:".
+- **Synthesis diversity:** If PRIOR_CARDS_SYNTHESIS is non-empty, your synthesis bullet (bullet 4) must NOT repeat a fact, statistic, or threshold already used in a prior card. Use a different angle: different number, different threshold, different consequence, different audience segment.
 - **Bullet labels** are unique within the card. No two labels should be identical or near-identical.
 - Use the {{BULLET_LABEL_HINTS}} as starting points, but adapt them to the actual content. The hints are suggestions, not mandatory text.
 - ZERO inline links. No `<a>` tags anywhere in the output.
