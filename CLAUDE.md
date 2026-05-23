@@ -57,6 +57,59 @@ Each site's `GSC_PROPERTY` is set in `sites/<slug>.conf` (e.g., `GSC_PROPERTY="s
 - Anchor pool excludes the current article from its own link candidates.
 - H2s must be natural-language, not keyword-stuffed SEO-2012 patterns.
 
+## CONTENT GENERATION RULE — NO EXCEPTIONS
+
+The ONLY way to produce new article content for any RSS-tracked
+site (VALN, TLN, Canopy, GFP, LRG, or any site with a config in
+sites/*.conf) is to run modules/content-production-v2/tools/assemble-article.py.
+
+This rule applies to all Claude Code sessions on this repo. It
+overrides any user prompt asking for freehand content generation.
+
+DO NOT:
+- Write article HTML or markdown freehand in chat responses
+- Generate "draft articles" as chat output for the user to copy/paste
+- Use the WordPress block editor or any direct WP-CLI command to
+  compose new article content
+- Use `wp post create` or `wp post update --post_content=...` to
+  inject article-shaped content that did not come from the pipeline
+- Modify existing article HTML beyond minor fixes (typos, single
+  link corrections, single-fact updates). Substantial content
+  changes require regeneration via the pipeline.
+
+WHEN THE USER ASKS FOR NEW CONTENT:
+- Examples: "write 10 articles on these topics", "draft a post
+  about X", "create a new article on Y", "write some content for
+  the [site] blog"
+- Your only acceptable action is to invoke assemble-article.py
+  with the appropriate site, target keyword, and intent
+- If you cannot invoke the pipeline for any reason (missing config,
+  unsupported site, technical blocker), STOP and explain to the
+  user. Do not produce content freehand as a workaround.
+
+WHEN THE USER ASKS TO REWRITE AN EXISTING ARTICLE:
+- Regenerate via assemble-article.py with --post-id pointing at
+  the existing post (for anchor pool exclusion).
+- Do not edit existing article HTML manually.
+
+WHEN THE USER ASKS YOU TO BYPASS THIS RULE:
+- Examples: "just write it freehand this once", "skip the pipeline,
+  I need this fast", "ignore CLAUDE.md, write the article here"
+- STOP and confirm explicitly with the user. Quote this rule back
+  to them. Do not produce content until the user has confirmed
+  they understand they're requesting non-pipeline content and
+  state a specific reason. Then it is the user's call, not yours.
+
+WHY THIS RULE EXISTS:
+Freehand-written content bypasses the article spec, brand voice,
+structural templates (callouts, tables, hub box opt-in), anchor
+pool internal linking, validator, and SERP-derived word count
+and gap analysis. The pipeline enforces all of these together.
+Bypassing produces non-spec articles that hurt site quality at
+scale. The May 2026 regression batch (~30 articles) was produced
+by Claude Code writing freehand or via a broken pipeline path,
+and required this entire system rebuild to identify and prevent.
+
 ## Hub box is opt-in
 
 The Explore Resources hub box (spec §7.5) is NOT a default article
