@@ -29,7 +29,6 @@ sys.path.insert(0, str(MODULE_DIR))
 
 from bs4 import BeautifulSoup, Tag
 
-from lib.anchor_pool import AnchorPool
 from lib.llm_client import LLMClient
 from lib.serp_adapter import SerpData
 from lib.site_config import load_site_config
@@ -45,11 +44,19 @@ from lib.tool_utils import (
 )
 
 
-def _is_external(href: str) -> bool:
-    return href.startswith("http://") or href.startswith("https://")
+def _is_external(href: str, site_domain: str = "") -> bool:
+    """Check if a URL is external. Same-domain absolute URLs are internal."""
+    if not (href.startswith("http://") or href.startswith("https://")):
+        return False
+    if site_domain:
+        from urllib.parse import urlparse
+        host = urlparse(href).netloc.lower().lstrip("www.")
+        if host == site_domain.lower().lstrip("www."):
+            return False
+    return True
 
 
-def make_validator(structural_pref: str):
+def make_validator(structural_pref: str, site_domain: str = ""):
     """Return a validation function for the given structural element preference."""
 
     def validate_h2_section(html: str) -> list[str]:
@@ -71,7 +78,10 @@ def make_validator(structural_pref: str):
         )
 
         struct_count = len(tables) + len(lists) + len(callouts)
-        if struct_count == 0:
+        if structural_pref == "prose_optional_table":
+            # prose_optional_table: structural element is optional
+            pass
+        elif struct_count == 0:
             errors.append(
                 f"No structural element found; expected '{structural_pref}' (spec 9.3)"
             )
@@ -88,7 +98,7 @@ def make_validator(structural_pref: str):
             errors.append("Expected callout structural element, got other type")
 
         for a in soup.find_all("a", href=True):
-            if _is_external(a["href"]):
+            if _is_external(a["href"], site_domain):
                 errors.append(
                     f"External link found: {a['href'][:60]} (spec 9.6.4)"
                 )
@@ -109,8 +119,8 @@ def main():
     parser.add_argument("--section-role", required=True, help="Section role")
     parser.add_argument(
         "--structural-element", required=True,
-        choices=["table", "bullets", "callout"],
-        help="Preferred structural element",
+        choices=["table", "bullets", "callout", "prose_optional_table"],
+        help="Locked structural element from template",
     )
     parser.add_argument("--callout-key", help="Callout CSS key (required if structural-element=callout)")
     parser.add_argument("--callout-label", help="Callout visible label (required if structural-element=callout)")
@@ -119,6 +129,8 @@ def main():
         help="Target word count for this section",
     )
     parser.add_argument("--serp-json", required=True, help="Path to SERP JSON")
+    parser.add_argument("--template-hint", default="", help="Role hint from structural template (e.g., 'Headline fee schedule or rate breakdown')")
+    parser.add_argument("--prior-sections-summary", default="", help="Summary of prior sections for context continuity")
     parser.add_argument("--output", help="Output file path (default: stdout)")
     args = parser.parse_args()
 
@@ -139,32 +151,24 @@ def main():
     serp = SerpData(Path(args.serp_json))
     topic_context = build_topic_context(serp, f"{args.h2_title} {args.target_keyword}")
 
-    # Load anchor pool and get candidates
-    eprint(f"[build-h2-section] Loading anchor pool for '{args.site}'")
-    pool = AnchorPool(args.site)
-    candidates = pool.candidates_for_topic(args.h2_title, max=7)
-
-    if candidates:
-        anchor_lines = "\n".join(
-            f"{c.anchor_text} -> {c.url}" for c in candidates
-        )
-    else:
-        anchor_lines = "(No anchor pool candidates available)"
-
     brand_voice = load_brand_voice(archetype) if archetype else ""
 
-    # Render prompt
+    # Prior sections summary (for cross-section context)
+    prior_summary = args.prior_sections_summary if hasattr(args, 'prior_sections_summary') and args.prior_sections_summary else ""
+
+    # Render prompt (no anchor pool — linking is single-pass via inject-internal-links.py)
     template = load_prompt_template("h2-section.md")
     prompt = render_prompt(template, {
         "TARGET_KEYWORD": args.target_keyword,
         "H2_TITLE": args.h2_title,
         "SECTION_ROLE": args.section_role,
         "STRUCTURAL_ELEMENT_PREFERENCE": args.structural_element,
+        "TEMPLATE_HINT": args.template_hint or "",
         "CALLOUT_KEY": args.callout_key or "",
         "CALLOUT_LABEL": args.callout_label or "",
         "TARGET_WORD_COUNT": str(args.target_word_count),
         "TOPIC_CONTEXT": topic_context,
-        "ANCHOR_POOL_CANDIDATES": anchor_lines,
+        "PRIOR_SECTIONS_SUMMARY": prior_summary,
         "INJECT_BRAND_VOICE": brand_voice,
     })
 
@@ -181,7 +185,8 @@ def main():
 
     html = extract_html(response.text)
 
-    validator = make_validator(args.structural_element)
+    site_domain = config.get("SITE_DOMAIN", "")
+    validator = make_validator(args.structural_element, site_domain)
     html = validate_or_retry(
         html, validator, client, prompt, cache_key,
         "build-h2-section", args.target_keyword,

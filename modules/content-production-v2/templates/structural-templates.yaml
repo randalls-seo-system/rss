@@ -1,0 +1,65 @@
+# Structural Templates — assigns table/callout/bullets/prose to each
+# H2 section, deterministically, based on article intent.
+# Section 1 is the BLUF/intro (handled by Phase E, not here).
+# Sections beyond what's listed inherit type: prose_optional_table.
+# Every template guarantees ≥2 tables and ≥2 callouts per article.
+
+cost:
+  description: "How much does X cost / fee schedule / pricing articles"
+  sections:
+    - {index: 2, type: table,    role: primary_cost,     hint: "Headline fee schedule or rate breakdown"}
+    - {index: 3, type: callout,  role: cost_surprise,    hint: "Common cost surprise borrowers miss"}
+    - {index: 4, type: table,    role: secondary_cost,   hint: "Cost variations, exemptions, or edge cases"}
+    - {index: 5, type: bullets,  role: qualifying,       hint: "Qualifying conditions or cost factors"}
+    - {index: 6, type: callout,  role: operator_note,    hint: "Matt-forward operator note from real files"}
+    - {index: 7, type: prose_optional_table, role: deep_dive}
+
+comparison:
+  description: "X vs Y / option A vs option B"
+  sections:
+    - {index: 2, type: table,    role: side_by_side,     hint: "Side-by-side comparison of the two options"}
+    - {index: 3, type: callout,  role: when_each_wins,   hint: "When each option is the right choice"}
+    - {index: 4, type: bullets,  role: pros_option_a,    hint: "Concrete advantages of option A"}
+    - {index: 5, type: bullets,  role: pros_option_b,    hint: "Concrete advantages of option B"}
+    - {index: 6, type: callout,  role: operator_note,    hint: "Which one wins in real files and why"}
+    - {index: 7, type: table,    role: decision_matrix,  hint: "If X then A, if Y then B"}
+
+decision:
+  description: "Should I do X / is X right for me"
+  sections:
+    - {index: 2, type: table,    role: decision_matrix,  hint: "Scenarios mapped to recommendation"}
+    - {index: 3, type: callout,  role: common_mistake,   hint: "The mistake most people make"}
+    - {index: 4, type: bullets,  role: green_lights,     hint: "Criteria that mean yes, do it"}
+    - {index: 5, type: bullets,  role: red_flags,        hint: "Criteria that mean wait or don't"}
+    - {index: 6, type: callout,  role: operator_note,    hint: "Real-file pattern matt-forward voice"}
+    - {index: 7, type: table,    role: timing_cost,      hint: "Cost or timing of acting vs waiting"}
+
+definition:
+  description: "What is X / X explained"
+  sections:
+    - {index: 2, type: callout,  role: clear_definition, hint: "One-sentence definition + key distinction"}
+    - {index: 3, type: bullets,  role: core_components,  hint: "Core components or requirements of X"}
+    - {index: 4, type: table,    role: rule_reference,   hint: "Eligibility breakdown or rule reference — required"}
+    - {index: 5, type: callout,  role: common_confusion, hint: "What people commonly get wrong about X"}
+    - {index: 6, type: bullets,  role: process_steps,    hint: "Process or steps related to X"}
+    - {index: 7, type: table,    role: timing_or_docs,   hint: "Timing, fees, or document requirements"}
+
+eligibility:
+  description: "Who qualifies / requirements / credit and underwriting articles"
+  sections:
+    - {index: 2, type: table,    role: requirements,     hint: "Eligibility thresholds and requirements"}
+    - {index: 3, type: callout,  role: disqualifier,     hint: "What disqualifies borrowers most often"}
+    - {index: 4, type: bullets,  role: documentation,    hint: "Documentation needed"}
+    - {index: 5, type: table,    role: exceptions,       hint: "Exception scenarios or overlays"}
+    - {index: 6, type: callout,  role: operator_note,    hint: "Operator note on borderline cases"}
+    - {index: 7, type: bullets,  role: next_steps,       hint: "Next steps for borrowers"}
+
+default:
+  description: "Fallback template for intents not in this file"
+  sections:
+    - {index: 2, type: table,    role: primary_data,     hint: "Headline data or facts for this topic"}
+    - {index: 3, type: callout,  role: key_insight,      hint: "The most important thing to know"}
+    - {index: 4, type: bullets,  role: components,       hint: "Core components or factors"}
+    - {index: 5, type: table,    role: secondary_data,   hint: "Supporting data, breakdowns, or comparisons"}
+    - {index: 6, type: callout,  role: operator_note,    hint: "Real-world operator note in archetype voice"}
+    - {index: 7, type: prose_optional_table, role: deep_dive}

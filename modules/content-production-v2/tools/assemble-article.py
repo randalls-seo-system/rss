@@ -63,6 +63,7 @@ from lib.tool_utils import (
     extract_html,
     load_brand_voice,
     load_prompt_template,
+    load_structural_template,
     render_prompt,
     validate_or_retry,
     write_output,
@@ -437,13 +438,12 @@ def _build_h2_inventory(state: PipelineState) -> list[dict]:
     overlay = state.overlay
     body_default = overlay.body_default
 
-    # Structural element rotation based on body_default
-    if body_default == "tables_dominant":
-        element_cycle = ["table", "table", "bullets", "table", "bullets", "table"]
-    elif body_default == "bullets_dominant":
-        element_cycle = ["bullets", "bullets", "table", "bullets", "table", "bullets"]
-    else:
-        element_cycle = ["bullets", "table", "bullets", "table", "bullets", "table"]
+    # Load structural template for this intent (deterministic assignment)
+    struct_template = load_structural_template(state.intent)
+    template_sections = struct_template.get("sections", []) if struct_template else []
+    # Build a lookup from 0-based body index → template section
+    # Template uses 1-based index where 1 = BLUF, so body section i maps to index i+2
+    template_by_index = {s["index"]: s for s in template_sections}
 
     # Start from SERP gap analysis: high-coverage subtopics
     high_cov = state.subtopic_gaps.get("high_coverage", [])
@@ -492,15 +492,46 @@ def _build_h2_inventory(state: PipelineState) -> list[dict]:
     # Trim to max 15
     h2s = h2s[:15]
 
-    # Assign structural elements and callout preferences
+    # Assign structural elements from template (deterministic)
     callout_prefs = overlay.callout_preferences
+    # Map template roles to archetype callout keys/labels
+    _CALLOUT_DEFAULTS = {
+        "cost_surprise": ("deal_math", "Deal Math"),
+        "operator_note": ("file_guidance", "File Guidance"),
+        "when_each_wins": ("deal_saver", "Deal Saver"),
+        "common_mistake": ("approval_watchpoint", "Approval Watchpoint"),
+        "clear_definition": ("file_guidance", "File Guidance"),
+        "common_confusion": ("approval_watchpoint", "Approval Watchpoint"),
+        "disqualifier": ("approval_watchpoint", "Approval Watchpoint"),
+        "key_insight": ("file_guidance", "File Guidance"),
+    }
+
     for i, h2 in enumerate(h2s):
-        h2["structural_element"] = element_cycle[i % len(element_cycle)]
-        # Assign callout if available for this role
-        role = h2.get("role", "")
-        if role in callout_prefs and callout_prefs[role]:
-            h2["callout_key"] = callout_prefs[role][0]
-            h2["callout_label"] = callout_prefs[role][0].replace("_", " ").title()
+        template_idx = i + 2  # body sections start at template index 2
+        tmpl = template_by_index.get(template_idx)
+
+        if tmpl:
+            stype = tmpl["type"]
+            # Map prose_optional_table to bullets for CLI compatibility
+            if stype == "prose_optional_table":
+                stype = "bullets"
+            h2["structural_element"] = stype
+            h2["template_role"] = tmpl.get("role", "")
+            h2["template_hint"] = tmpl.get("hint", "")
+        else:
+            # Sections beyond template range get prose_optional_table → bullets
+            h2["structural_element"] = "bullets"
+            h2["template_role"] = "overflow"
+            h2["template_hint"] = ""
+
+        # Assign callout key/label for callout-type sections
+        if h2["structural_element"] == "callout":
+            tmpl_role = h2.get("template_role", "")
+            default_key, default_label = _CALLOUT_DEFAULTS.get(
+                tmpl_role, ("file_guidance", "File Guidance")
+            )
+            h2["callout_key"] = default_key
+            h2["callout_label"] = default_label
         else:
             h2["callout_key"] = ""
             h2["callout_label"] = ""
@@ -848,6 +879,8 @@ def phase_f(state: PipelineState) -> None:
             args_list += ["--callout-key", h2["callout_key"]]
         if h2.get("callout_label"):
             args_list += ["--callout-label", h2["callout_label"]]
+        if h2.get("template_hint"):
+            args_list += ["--template-hint", h2["template_hint"]]
         if prior_sections_summary:
             args_list += ["--prior-sections-summary", prior_sections_summary]
 

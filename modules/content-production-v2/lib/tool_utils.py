@@ -8,13 +8,20 @@ import re
 import sys
 from pathlib import Path
 
+import yaml
+
 MODULE_DIR = Path(__file__).resolve().parent.parent
 REPO_ROOT = MODULE_DIR.parent.parent
 PROMPTS_DIR = MODULE_DIR / "prompts"
+TEMPLATES_DIR = MODULE_DIR / "templates"
 ARTICLE_SPEC_PATH = REPO_ROOT / "docs" / "article-spec.md"
+STRUCTURAL_TEMPLATES_PATH = TEMPLATES_DIR / "structural-templates.yaml"
 
 # Cached article spec text (loaded once per process)
 _article_spec_cache: str | None = None
+
+# Cached structural templates (loaded once per process)
+_structural_templates_cache: dict | None = None
 
 
 def eprint(*args, **kwargs):
@@ -53,6 +60,34 @@ def load_article_spec() -> str:
         _article_spec_cache = ""
 
     return _article_spec_cache
+
+
+def load_structural_template(intent: str) -> dict:
+    """Load the structural template for a given intent, cached per process.
+
+    Returns the template dict (with 'sections' list) for the intent.
+    Falls back to 'default' if intent not found. Returns empty dict
+    and logs a warning if the YAML file is missing.
+    """
+    global _structural_templates_cache
+    if _structural_templates_cache is None:
+        if STRUCTURAL_TEMPLATES_PATH.exists():
+            _structural_templates_cache = yaml.safe_load(
+                STRUCTURAL_TEMPLATES_PATH.read_text()
+            )
+            eprint(f"  [templates] Loaded structural templates ({len(_structural_templates_cache)} intents)")
+        else:
+            eprint(f"  [templates] Warning: structural templates not found at {STRUCTURAL_TEMPLATES_PATH}")
+            _structural_templates_cache = {}
+
+    if not _structural_templates_cache:
+        return {}
+
+    if intent in _structural_templates_cache:
+        return _structural_templates_cache[intent]
+
+    eprint(f"  [templates] Intent '{intent}' not in templates, using 'default'")
+    return _structural_templates_cache.get("default", {})
 
 
 _SPEC_PREAMBLE = """
