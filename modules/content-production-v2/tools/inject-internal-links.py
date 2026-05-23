@@ -208,10 +208,15 @@ def _find_matching_candidates(
         if best_match is None:
             continue
 
+        # Boost score if matched anchor is the destination's primary_keyword
+        # (canonical destination for this anchor should win over secondary matches)
+        is_primary = best_match[2].lower() == primary_kw.lower()
+        score = best_match[0] + (10 if is_primary else 0)
+
         matches.append({
             "anchor_text": best_match[2],
             "url": url,
-            "score": best_match[0],  # score by content word count
+            "score": score,
         })
 
     # Sort by content-word specificity desc, then anchor length desc
