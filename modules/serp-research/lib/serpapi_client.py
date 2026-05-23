@@ -17,23 +17,29 @@ class SerpAPIClient(SerpProvider):
     Supports all SERP features including AI Overview.
     Higher cost per query than SerpDev — use as fallback for
     features SerpDev doesn't support.
+
+    Key resolution order:
+        SERPAPI_KEY_PRIMARY → SERPAPI_KEY (backward compat)
+    Fallback key:
+        SERPAPI_KEY_FALLBACK (retried on quota/rate-limit errors only)
     """
 
     name = "serpapi"
 
     def __init__(self, api_key: str = None):
-        self.api_key = api_key or os.environ.get("SERPAPI_KEY", "")
+        self.api_key = api_key or os.environ.get("SERPAPI_KEY_PRIMARY") or os.environ.get("SERPAPI_KEY", "")
         if not self.api_key:
-            raise ValueError("SERPAPI_KEY not set")
+            raise ValueError("SERPAPI_KEY_PRIMARY not set")
+        self._fallback_key = os.environ.get("SERPAPI_KEY_FALLBACK", "")
+        self._active_key_name = "SERPAPI_KEY_PRIMARY"
         self.endpoint = "https://serpapi.com/search.json"
         self.rate_limiter = RateLimiter(min_interval=2.0)
 
-    def search(self, keyword: str, location: str = "United States",
-               device: str = "desktop") -> dict:
-        self.rate_limiter.wait()
+    def _do_request(self, keyword: str, location: str, device: str, api_key: str) -> dict:
+        """Execute a single API request with the given key."""
         params = {
             "q": keyword,
-            "api_key": self.api_key,
+            "api_key": api_key,
             "location": location,
             "device": device,
             "hl": "en",
@@ -44,6 +50,24 @@ class SerpAPIClient(SerpProvider):
         response = requests.get(self.endpoint, params=params, timeout=30)
         response.raise_for_status()
         return response.json()
+
+    def search(self, keyword: str, location: str = "United States",
+               device: str = "desktop") -> dict:
+        self.rate_limiter.wait()
+        try:
+            result = self._do_request(keyword, location, device, self.api_key)
+            self._active_key_name = "SERPAPI_KEY_PRIMARY"
+            return result
+        except requests.HTTPError as e:
+            if e.response is not None and e.response.status_code in (429, 402) and self._fallback_key:
+                import sys
+                print(f"[serpapi] Primary key hit quota ({e.response.status_code}), "
+                      f"retrying with SERPAPI_KEY_FALLBACK", file=sys.stderr)
+                self.rate_limiter.wait()
+                result = self._do_request(keyword, location, device, self._fallback_key)
+                self._active_key_name = "SERPAPI_KEY_FALLBACK"
+                return result
+            raise
 
     def get_top_results(self, response: dict, top_n: int = 10) -> list[dict]:
         organic = response.get("organic_results", [])

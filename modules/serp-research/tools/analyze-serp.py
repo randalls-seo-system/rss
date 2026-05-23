@@ -14,6 +14,23 @@ import os
 import re
 import sys
 from datetime import datetime
+from pathlib import Path
+
+# Load .env from repo root
+_repo_root = Path(__file__).resolve().parent.parent.parent
+_env_file = _repo_root / ".env"
+if _env_file.exists():
+    try:
+        from dotenv import load_dotenv
+        load_dotenv(_env_file)
+    except ImportError:
+        # Manual fallback if python-dotenv not installed
+        with open(_env_file) as f:
+            for line in f:
+                line = line.strip()
+                if line and not line.startswith("#") and "=" in line:
+                    key, _, val = line.partition("=")
+                    os.environ.setdefault(key.strip(), val.strip())
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "lib"))
 from cache import SerpCache

@@ -25,21 +25,38 @@ except ImportError:
 class SerperDevClient(SerpProvider):
     """Serper.dev provider — default for organic results and related searches.
 
-    Setup:
-        export SERPDEV_API_KEY="your-serper-dev-key"
+    Key resolution order:
+        SERPER_API_KEY → SERPDEV_API_KEY (backward compat)
+    Fallback key:
+        SERPER_API_KEY_FALLBACK (retried on quota/rate-limit errors only)
     """
 
     name = "serper"
 
     def __init__(self, api_key: str = None):
-        self.api_key = api_key or os.environ.get("SERPDEV_API_KEY", "")
+        self.api_key = api_key or os.environ.get("SERPER_API_KEY") or os.environ.get("SERPDEV_API_KEY", "")
         if not self.api_key:
             raise ValueError(
-                "SERPDEV_API_KEY not set. "
+                "SERPER_API_KEY not set. "
                 "Get your key at https://serper.dev/dashboard"
             )
+        self._fallback_key = os.environ.get("SERPER_API_KEY_FALLBACK", "")
+        self._active_key_name = "SERPER_API_KEY"
         self.endpoint = "https://google.serper.dev/search"
         self.rate_limiter = RateLimiter(min_interval=2.0)
+
+    def _do_request(self, payload: dict, api_key: str) -> dict:
+        """Execute a single API request with the given key."""
+        headers = {
+            "X-API-KEY": api_key,
+            "Content-Type": "application/json",
+        }
+        response = requests.post(
+            self.endpoint, headers=headers,
+            data=json_module.dumps(payload), timeout=30,
+        )
+        response.raise_for_status()
+        return response.json()
 
     def search(self, keyword: str, location: str = "United States",
                device: str = "desktop") -> dict:
@@ -51,16 +68,20 @@ class SerperDevClient(SerpProvider):
             "hl": "en",
             "num": 10,
         }
-        headers = {
-            "X-API-KEY": self.api_key,
-            "Content-Type": "application/json",
-        }
-        response = requests.post(
-            self.endpoint, headers=headers,
-            data=json_module.dumps(payload), timeout=30,
-        )
-        response.raise_for_status()
-        return response.json()
+        try:
+            result = self._do_request(payload, self.api_key)
+            self._active_key_name = "SERPER_API_KEY"
+            return result
+        except requests.HTTPError as e:
+            if e.response is not None and e.response.status_code in (429, 402) and self._fallback_key:
+                import sys
+                print(f"[serper] Primary key hit quota ({e.response.status_code}), "
+                      f"retrying with SERPER_API_KEY_FALLBACK", file=sys.stderr)
+                self.rate_limiter.wait()
+                result = self._do_request(payload, self._fallback_key)
+                self._active_key_name = "SERPER_API_KEY_FALLBACK"
+                return result
+            raise
 
     def get_top_results(self, response: dict, top_n: int = 10) -> list[dict]:
         organic = response.get("organic", [])
