@@ -43,6 +43,7 @@ import json
 import re
 from dataclasses import dataclass
 from pathlib import Path
+from urllib.parse import urlparse
 
 REPO_ROOT = Path(__file__).resolve().parent.parent.parent.parent
 
@@ -66,8 +67,29 @@ class AnchorPool:
         self.site_slug = site_slug
         self._destinations: list[dict] = []
         self._internal_keywords: set[str] | None = None
+        self._site_domain: str = ""
         self._loaded = False
+        self._load_site_domain()
         self._load_pool()
+
+    def _load_site_domain(self) -> None:
+        """Load SITE_DOMAIN from site config for URL normalization."""
+        try:
+            from lib.site_config import load_site_config
+            config = load_site_config(self.site_slug)
+            self._site_domain = config.get("SITE_DOMAIN", "")
+        except (FileNotFoundError, Exception):
+            pass
+
+    def _normalize_url(self, url: str) -> str:
+        """Convert same-domain absolute URLs to relative paths."""
+        if not self._site_domain or not url:
+            return url
+        parsed = urlparse(url)
+        host = parsed.netloc.lower().lstrip("www.")
+        if host == self._site_domain.lower().lstrip("www."):
+            return parsed.path or "/"
+        return url
 
     def _load_pool(self) -> None:
         """Load the anchor pool JSON. Gracefully handles missing file."""
@@ -84,7 +106,7 @@ class AnchorPool:
         except (json.JSONDecodeError, KeyError):
             self._loaded = True
 
-    def candidates_for_topic(self, topic: str, max: int = 5) -> list[AnchorCandidate]:
+    def candidates_for_topic(self, topic: str, max: int = 5, exclude_post_id: int | None = None) -> list[AnchorCandidate]:
         """Find internal link candidates matching a topic.
 
         Uses keyword overlap between the topic and each destination's
@@ -94,6 +116,8 @@ class AnchorPool:
         Args:
             topic: The subtopic to find links for (e.g., "VA funding fee exemptions").
             max: Maximum candidates to return.
+            exclude_post_id: If set, skip destinations matching this post ID
+                (prevents an article from linking to itself).
 
         Returns:
             List of AnchorCandidate, empty if pool not loaded/seeded.
@@ -106,6 +130,10 @@ class AnchorPool:
 
         scored: list[AnchorCandidate] = []
         for dest in self._destinations:
+            # Self-link prevention
+            if exclude_post_id is not None and dest.get("id") == exclude_post_id:
+                continue
+
             primary_kw = dest.get("primary_keyword", "").lower()
             anchors = dest.get("anchors", [])
             url = dest.get("url", "")
@@ -133,7 +161,7 @@ class AnchorPool:
                     best_anchor_score = anchor_score
 
             scored.append(AnchorCandidate(
-                url=url,
+                url=self._normalize_url(url),
                 anchor_text=best_anchor,
                 topic_match_score=round(min(best_anchor_score, 1.0), 3),
                 usage_count_sitewide=0,  # not tracked yet
