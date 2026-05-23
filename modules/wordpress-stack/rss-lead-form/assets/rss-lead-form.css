@@ -1,0 +1,856 @@
+.rss-lf-root {
+  --navy: #0b1b3a;
+  --navy-deep: #08142b;
+  --navy-mid: #1a2c52;
+  --red: #b91c1c;
+  --red-deep: #991b1b;
+  --red-soft: rgba(185, 28, 28, 0.06);
+  --ink: #0f172a;
+  --muted: #64748b;
+  --muted-soft: #94a3b8;
+  --paper: #fafaf7;
+  --card: #ffffff;
+  --border: rgba(15, 23, 42, 0.08);
+  --border-strong: rgba(15, 23, 42, 0.16);
+  --shadow-sm: 0 1px 2px rgba(15, 23, 42, 0.04);
+  --shadow: 0 8px 28px rgba(15, 23, 42, 0.06);
+  --shadow-lg: 0 24px 64px rgba(15, 23, 42, 0.10);
+  --radius: 14px;
+  --ease: cubic-bezier(0.32, 0.72, 0, 1);
+}
+
+.rss-lf-root {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  font-family: 'Inter', sans-serif;
+  background: var(--paper);
+  color: var(--ink);
+  font-size: 16px;
+  font-feature-settings: 'ss01', 'cv11';
+}
+
+.rss-lf-root, .rss-lf-root * {
+  box-sizing: border-box;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* body styles removed — scoped plugin */
+
+/* ============ HEADER ============ */
+.rss-lf-root .header {
+  height: 64px;
+  flex-shrink: 0;
+  background: rgba(250, 250, 247, 0.85);
+  backdrop-filter: blur(18px) saturate(140%);
+  -webkit-backdrop-filter: blur(18px) saturate(140%);
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  padding: 0 32px;
+  position: relative;
+  z-index: 50;
+}
+
+.rss-lf-root .header-inner {
+  width: 100%;
+  max-width: 1200px;
+  margin: 0 auto;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.rss-lf-root .logo {
+  height: 32px;
+  width: auto;
+}
+
+.rss-lf-root .exit {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--muted);
+  text-decoration: none;
+  letter-spacing: -0.005em;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  transition: color 0.15s ease;
+}
+
+.rss-lf-root .exit:hover { color: var(--ink); }
+.rss-lf-root .exit svg { width: 14px; height: 14px; }
+
+/* ============ PROGRESS BAR ============ */
+.rss-lf-root .progress-bar {
+  height: 3px;
+  background: rgba(15, 23, 42, 0.06);
+  flex-shrink: 0;
+  position: relative;
+  z-index: 49;
+}
+
+.rss-lf-root .progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--navy) 0%, var(--red) 100%);
+  width: 0%;
+  transition: width 0.5s var(--ease);
+}
+
+/* ============ MAIN STAGE ============ */
+.rss-lf-root .stage {
+  flex: 1;
+  position: relative;
+  min-height: calc(100vh - 68px);
+  overflow: hidden;
+  background: var(--paper);
+  background-image:
+    radial-gradient(ellipse 800px 600px at 100% 0%, rgba(185, 28, 28, 0.04) 0%, transparent 60%),
+    radial-gradient(ellipse 600px 400px at 0% 100%, rgba(11, 27, 58, 0.03) 0%, transparent 60%);
+}
+
+.rss-lf-root .screen {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+  align-items: center;
+  padding: 80px 32px 60px;
+  overflow-y: auto;
+  opacity: 0;
+  visibility: hidden;
+  transform: translateY(8px);
+  transition: opacity 0.25s var(--ease), transform 0.25s var(--ease), visibility 0s linear 0.25s;
+  pointer-events: none;
+}
+
+/* Intro screen still centers nicely because content fills more vertical space */
+.rss-lf-root .screen[data-screen="intro"] {
+  justify-content: center;
+  padding-top: 40px;
+}
+
+/* Confirmation gets center treatment too */
+.rss-lf-root .screen[data-screen="confirmation"] {
+  justify-content: center;
+}
+
+.rss-lf-root .screen.active {
+  opacity: 1;
+  visibility: visible;
+  transform: translateY(0);
+  pointer-events: auto;
+  transition: opacity 0.3s var(--ease), transform 0.3s var(--ease), visibility 0s linear 0s;
+}
+
+.rss-lf-root .screen-inner {
+  width: 100%;
+  max-width: 640px;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+}
+
+/* ============ INTRO SCREEN ============ */
+.rss-lf-root .intro-inner {
+  text-align: center;
+  align-items: center;
+}
+
+.rss-lf-root .intro-eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 14px;
+  background: rgba(185, 28, 28, 0.08);
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--red-deep);
+  margin-bottom: 28px;
+}
+
+.rss-lf-root .intro-eyebrow .dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--red);
+  animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; box-shadow: 0 0 0 0 rgba(185, 28, 28, 0.4); }
+  50% { opacity: 0.85; box-shadow: 0 0 0 6px rgba(185, 28, 28, 0); }
+}
+
+/* ============ TYPOGRAPHY ============ */
+.rss-lf-root .q-label {
+  font-family: 'Inter', sans-serif;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--muted);
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  margin-bottom: 14px;
+}
+
+.rss-lf-root .q-label .num {
+  color: var(--red);
+  margin-right: 4px;
+}
+
+.rss-lf-root .q-title {
+  font-family: 'Fraunces', serif;
+  font-weight: 400;
+  font-size: clamp(32px, 4.4vw, 52px);
+  line-height: 1.08;
+  letter-spacing: -0.025em;
+  color: var(--navy);
+  margin-bottom: 12px;
+  font-variation-settings: 'opsz' 144;
+}
+
+.rss-lf-root .intro-inner .q-title {
+  font-size: clamp(40px, 6vw, 68px);
+  margin-bottom: 18px;
+}
+
+.rss-lf-root .q-title em {
+  font-style: italic;
+  color: var(--red);
+  font-weight: 400;
+}
+
+.rss-lf-root .q-help {
+  font-size: 16px;
+  color: var(--muted);
+  line-height: 1.55;
+  margin-bottom: 36px;
+  max-width: 520px;
+  letter-spacing: -0.005em;
+}
+
+.rss-lf-root .intro-inner .q-help {
+  margin: 0 auto 40px;
+  text-align: center;
+  font-size: 18px;
+  max-width: 540px;
+}
+
+/* ============ ANSWER CARDS (radios) ============ */
+.rss-lf-root .answers {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.rss-lf-root .ans {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 18px 20px;
+  border: 1.5px solid var(--border-strong);
+  border-radius: 12px;
+  background: var(--card);
+  cursor: pointer;
+  transition: all 0.18s ease;
+  text-align: left;
+  font-family: inherit;
+  width: 100%;
+  position: relative;
+}
+
+.rss-lf-root .ans:hover {
+  border-color: var(--navy);
+  transform: translateX(2px);
+}
+
+.rss-lf-root .ans.selected {
+  border-color: var(--red);
+  background: var(--red-soft);
+  transform: translateX(2px);
+}
+
+.rss-lf-root .ans-key {
+  width: 26px;
+  height: 26px;
+  border-radius: 6px;
+  background: rgba(15, 23, 42, 0.06);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: 'Inter', sans-serif;
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--muted);
+  flex-shrink: 0;
+  transition: all 0.18s ease;
+  letter-spacing: 0;
+}
+
+.rss-lf-root .ans:hover .ans-key {
+  background: var(--navy);
+  color: white;
+}
+
+.rss-lf-root .ans.selected .ans-key {
+  background: var(--red);
+  color: white;
+}
+
+.rss-lf-root .ans-content {
+  flex: 1;
+}
+
+.rss-lf-root .ans-title {
+  font-size: 15.5px;
+  font-weight: 600;
+  color: var(--navy);
+  letter-spacing: -0.01em;
+  margin-bottom: 2px;
+}
+
+.rss-lf-root .ans-desc {
+  font-size: 13px;
+  color: var(--muted);
+  line-height: 1.4;
+}
+
+/* ============ TWO-COLUMN PATH GRID (intro picker) ============ */
+.rss-lf-root .paths-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 10px;
+}
+
+.rss-lf-root .path {
+  background: var(--card);
+  border: 1.5px solid var(--border-strong);
+  border-radius: 12px;
+  padding: 22px 22px;
+  cursor: pointer;
+  transition: all 0.2s var(--ease);
+  text-align: left;
+  font-family: inherit;
+  width: 100%;
+  position: relative;
+  overflow: hidden;
+}
+
+.rss-lf-root .path::after {
+  content: '→';
+  position: absolute;
+  top: 22px;
+  right: 22px;
+  color: var(--muted-soft);
+  font-size: 18px;
+  transition: all 0.2s ease;
+  font-family: 'Inter', sans-serif;
+}
+
+.rss-lf-root .path:hover {
+  border-color: var(--navy);
+  transform: translateY(-2px);
+  box-shadow: var(--shadow);
+}
+
+.rss-lf-root .path:hover::after {
+  color: var(--red);
+  transform: translateX(4px);
+}
+
+.rss-lf-root .path-title {
+  font-family: 'Fraunces', serif;
+  font-size: 19px;
+  font-weight: 600;
+  color: var(--navy);
+  margin-bottom: 4px;
+  letter-spacing: -0.01em;
+  font-variation-settings: 'opsz' 144;
+}
+
+.rss-lf-root .path-desc {
+  font-size: 13px;
+  color: var(--muted);
+  line-height: 1.5;
+  letter-spacing: -0.005em;
+}
+
+/* ============ TEXT INPUTS ============ */
+.rss-lf-root .input-group {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.rss-lf-root .input-wrap {
+  position: relative;
+}
+
+/* === Input fields (high specificity to beat Divi) === */
+.rss-lf-root input[type="text"],
+.rss-lf-root input[type="email"],
+.rss-lf-root input[type="tel"],
+.rss-lf-root input[type="number"],
+.rss-lf-root .input,
+.rss-lf-root .textarea,
+.rss-lf-root .select {
+  width: 100% !important;
+  min-height: 56px;
+  padding: 16px 18px !important;
+  border: 1.5px solid var(--border-strong, rgba(15, 23, 42, 0.16)) !important;
+  border-radius: 10px !important;
+  background-color: #ffffff !important;
+  background-image: none !important;
+  box-shadow: none !important;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif !important;
+  font-size: 16px !important;
+  font-weight: 500;
+  line-height: 1.4;
+  color: var(--ink, #0f172a) !important;
+  letter-spacing: -0.005em;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+  -webkit-appearance: none !important;
+  appearance: none !important;
+  outline: none !important;
+  box-sizing: border-box !important;
+  margin: 0 !important;
+}
+
+.rss-lf-root input[type="text"]:hover,
+.rss-lf-root input[type="email"]:hover,
+.rss-lf-root input[type="tel"]:hover,
+.rss-lf-root .input:hover,
+.rss-lf-root .textarea:hover {
+  border-color: rgba(15, 23, 42, 0.24) !important;
+}
+
+.rss-lf-root input[type="text"]:focus,
+.rss-lf-root input[type="email"]:focus,
+.rss-lf-root input[type="tel"]:focus,
+.rss-lf-root .input:focus,
+.rss-lf-root .textarea:focus,
+.rss-lf-root .select:focus {
+  outline: none !important;
+  border-color: var(--navy, #0b1b3a) !important;
+  box-shadow: 0 0 0 4px rgba(11, 27, 58, 0.08) !important;
+}
+
+.rss-lf-root input::placeholder,
+.rss-lf-root .input::placeholder,
+.rss-lf-root .textarea::placeholder {
+  color: rgba(15, 23, 42, 0.42) !important;
+  font-weight: 400;
+}
+
+.rss-lf-root .textarea {
+  min-height: 120px;
+  resize: vertical;
+  line-height: 1.5;
+}
+
+/* === Form field with label === */
+.rss-lf-root .form-field {
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 6px !important;
+  margin-bottom: 18px !important;
+}
+
+.rss-lf-root .form-field label {
+  display: block !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif !important;
+  font-size: 13px !important;
+  font-weight: 500 !important;
+  color: rgba(15, 23, 42, 0.72) !important;
+  letter-spacing: 0.02em;
+  text-transform: none !important;
+  margin: 0 0 2px 0 !important;
+  padding: 0 !important;
+  line-height: 1.4 !important;
+  height: auto !important;
+  width: auto !important;
+  position: static !important;
+  overflow: visible !important;
+  clip: auto !important;
+}
+
+/* === Two-up grid (first/last name) === */
+.rss-lf-root .form-row-two-up {
+  display: grid !important;
+  grid-template-columns: 1fr 1fr !important;
+  gap: 14px !important;
+  margin-bottom: 0 !important;
+}
+
+.rss-lf-root .form-row-two-up .form-field {
+  margin-bottom: 0 !important;
+}
+
+@media (max-width: 600px) {
+  .rss-lf-root .form-row-two-up {
+    grid-template-columns: 1fr !important;
+  }
+}
+
+.rss-lf-root .input-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.rss-lf-root .field-help {
+  font-size: 13px;
+  color: var(--muted);
+  margin-top: 8px;
+  line-height: 1.4;
+  letter-spacing: -0.005em;
+}
+
+/* ============ MULTI-SELECT CHIPS ============ */
+.rss-lf-root .chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.rss-lf-root .chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 11px 16px;
+  border: 1.5px solid var(--border-strong);
+  border-radius: 999px;
+  background: var(--card);
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--ink);
+  cursor: pointer;
+  transition: all 0.15s ease;
+  letter-spacing: -0.005em;
+}
+
+.rss-lf-root .chip:hover {
+  border-color: var(--navy);
+  background: rgba(11, 27, 58, 0.02);
+}
+
+.rss-lf-root .chip.selected {
+  border-color: var(--red);
+  background: var(--red-soft);
+  color: var(--red-deep);
+  font-weight: 600;
+}
+
+.rss-lf-root .chip.selected::before {
+  content: '✓';
+  margin-right: 2px;
+  font-weight: 700;
+}
+
+/* ============ INLINE NAV (replaces fixed footer) ============ */
+.rss-lf-root .foot {
+  margin-top: 32px;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 12px;
+}
+
+.rss-lf-root .foot-primary {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.rss-lf-root .foot-secondary {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 12px;
+  margin-top: 4px;
+}
+
+.rss-lf-root .foot-meta {
+  font-size: 12px;
+  color: var(--muted-soft);
+  letter-spacing: -0.005em;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  justify-content: center;
+}
+
+.rss-lf-root .foot-meta kbd {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 22px;
+  height: 22px;
+  padding: 0 6px;
+  background: var(--card);
+  border: 1px solid var(--border-strong);
+  border-radius: 5px;
+  box-shadow: 0 1.5px 0 rgba(15, 23, 42, 0.05);
+  font-family: 'Inter', sans-serif;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--ink);
+  letter-spacing: 0;
+}
+
+/* ============ BUTTONS ============ */
+.rss-lf-root .btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 12px 22px;
+  border-radius: 999px;
+  border: 1.5px solid transparent;
+  font-family: 'Inter', sans-serif;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.18s ease;
+  text-decoration: none;
+  background: transparent;
+  letter-spacing: -0.005em;
+  white-space: nowrap;
+}
+
+.rss-lf-root .btn-primary {
+  background: var(--navy);
+  color: white;
+  border-color: var(--navy);
+  padding: 16px 36px;
+  font-size: 15px;
+  min-width: 220px;
+}
+
+.rss-lf-root .btn-primary:hover:not(:disabled) {
+  background: var(--navy-deep);
+  border-color: var(--navy-deep);
+  transform: translateY(-1px);
+  box-shadow: 0 8px 20px rgba(11, 27, 58, 0.18);
+}
+
+.rss-lf-root .btn-primary:disabled {
+  background: rgba(15, 23, 42, 0.12);
+  border-color: transparent;
+  color: var(--muted-soft);
+  cursor: not-allowed;
+}
+
+.rss-lf-root .btn-back {
+  color: var(--muted);
+  font-size: 13px;
+  padding: 8px 12px;
+}
+
+.rss-lf-root .btn-back:hover {
+  color: var(--ink);
+}
+
+.rss-lf-root .btn-back svg { width: 14px; height: 14px; }
+
+/* ============ CONFIRMATION ============ */
+.rss-lf-root .confirm {
+  text-align: center;
+  align-items: center;
+}
+
+.rss-lf-root .confirm-icon {
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  background: var(--red);
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 28px;
+  box-shadow: 0 12px 28px rgba(185, 28, 28, 0.25);
+  animation: pop 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+}
+
+@keyframes pop {
+  0% { transform: scale(0); opacity: 0; }
+  60% { transform: scale(1.1); }
+  100% { transform: scale(1); opacity: 1; }
+}
+
+.rss-lf-root .confirm-icon svg {
+  width: 30px;
+  height: 30px;
+  stroke-width: 2.5;
+}
+
+.rss-lf-root .confirm h2 {
+  font-family: 'Fraunces', serif;
+  font-size: clamp(36px, 5vw, 52px);
+  font-weight: 400;
+  letter-spacing: -0.025em;
+  color: var(--navy);
+  margin-bottom: 12px;
+  font-variation-settings: 'opsz' 144;
+}
+
+.rss-lf-root .confirm h2 em {
+  font-style: italic;
+  color: var(--red);
+}
+
+.rss-lf-root .confirm-msg {
+  font-size: 17px;
+  color: var(--muted);
+  line-height: 1.55;
+  margin-bottom: 32px;
+  max-width: 480px;
+  letter-spacing: -0.005em;
+}
+
+.rss-lf-root .confirm-card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 18px 22px;
+  margin: 0 auto 28px;
+  max-width: 460px;
+  text-align: left;
+}
+
+.rss-lf-root .confirm-card-label {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--red);
+  margin-bottom: 8px;
+}
+
+.rss-lf-root .confirm-card-text {
+  font-family: 'Fraunces', serif;
+  font-size: 15.5px;
+  color: var(--navy);
+  line-height: 1.5;
+  letter-spacing: -0.01em;
+}
+
+/* ============ STRATEGY DRAWER (for Levi) ============ */
+.rss-lf-root .note {
+  position: fixed;
+  bottom: 16px;
+  right: 16px;
+  width: 320px;
+  background: var(--navy);
+  color: white;
+  border-radius: 12px;
+  padding: 18px 20px;
+  box-shadow: 0 16px 40px rgba(11, 27, 58, 0.30);
+  font-size: 12.5px;
+  line-height: 1.55;
+  z-index: 100;
+  transition: transform 0.3s var(--ease);
+  letter-spacing: -0.005em;
+  transform: translateX(290px); /* collapsed by default */
+}
+
+.rss-lf-root .note.expanded {
+  transform: translateX(0);
+}
+
+.rss-lf-root .note-toggle {
+  position: absolute;
+  left: -10px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  background: var(--red);
+  color: white;
+  border: 0;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  font-weight: 700;
+  box-shadow: 0 4px 12px rgba(185, 28, 28, 0.35);
+}
+
+.rss-lf-root .note-label {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.55);
+  margin-bottom: 6px;
+}
+
+.rss-lf-root .note-title {
+  font-family: 'Fraunces', serif;
+  font-size: 16px;
+  font-weight: 500;
+  margin-bottom: 8px;
+  letter-spacing: -0.01em;
+}
+
+.rss-lf-root .note-title em { color: #ff8a8a; font-style: italic; }
+
+.rss-lf-root .note p {
+  color: rgba(255, 255, 255, 0.78);
+  font-size: 12.5px;
+  line-height: 1.55;
+}
+
+/* ============ RESPONSIVE ============ */
+@media (max-width: 720px) {
+  .rss-lf-root .header { padding: 0 20px; height: 56px; }
+  .rss-lf-root .logo { height: 28px; }
+  .rss-lf-root .screen { padding: 24px 20px 40px; }
+  .rss-lf-root .paths-grid { grid-template-columns: 1fr; }
+  .rss-lf-root .input-row { grid-template-columns: 1fr; gap: 8px; }
+  .rss-lf-root .form-row-two-up { grid-template-columns: 1fr; gap: 10px; }
+  .rss-lf-root .ans { padding: 16px 16px; }
+  .rss-lf-root .ans-key { width: 24px; height: 24px; }
+  .rss-lf-root .ans-title { font-size: 14.5px; }
+  .rss-lf-root .ans-desc { font-size: 12.5px; }
+  .rss-lf-root .note { display: none; }
+  .rss-lf-root .foot-meta { font-size: 11px; }
+}
+
+/* === RSS Lead Form: anti-spam honeypot === */
+.rss-lf-root .rss-lf-honeypot {
+  position: absolute;
+  left: -10000px;
+  top: -10000px;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  opacity: 0;
+}
+
+/* === RSS Lead Form: error message === */
+.rss-lf-root .rss-lf-error {
+  background: #fef2f2;
+  border: 1px solid #fca5a5;
+  border-radius: 10px;
+  padding: 12px 16px;
+  margin: 12px 0 0;
+  color: #991b1b;
+  font-size: 14px;
+  line-height: 1.5;
+  display: none;
+}
+.rss-lf-root .rss-lf-error.visible {
+  display: block;
+}

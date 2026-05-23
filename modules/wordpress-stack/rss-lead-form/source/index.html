@@ -1,0 +1,1443 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Talk to LRG Realty</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,300;9..144,400;9..144,500;9..144,600;9..144,700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --navy: #0b1b3a;
+  --navy-deep: #08142b;
+  --navy-mid: #1a2c52;
+  --red: #b91c1c;
+  --red-deep: #991b1b;
+  --red-soft: rgba(185, 28, 28, 0.06);
+  --ink: #0f172a;
+  --muted: #64748b;
+  --muted-soft: #94a3b8;
+  --paper: #fafaf7;
+  --card: #ffffff;
+  --border: rgba(15, 23, 42, 0.08);
+  --border-strong: rgba(15, 23, 42, 0.16);
+  --shadow-sm: 0 1px 2px rgba(15, 23, 42, 0.04);
+  --shadow: 0 8px 28px rgba(15, 23, 42, 0.06);
+  --shadow-lg: 0 24px 64px rgba(15, 23, 42, 0.10);
+  --radius: 14px;
+  --ease: cubic-bezier(0.32, 0.72, 0, 1);
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+html, body {
+  height: 100%;
+  overflow: hidden;
+}
+
+body {
+  font-family: 'Inter', sans-serif;
+  background: var(--paper);
+  color: var(--ink);
+  font-size: 16px;
+  font-feature-settings: 'ss01', 'cv11';
+  display: flex;
+  flex-direction: column;
+}
+
+/* ============ HEADER ============ */
+.header {
+  height: 64px;
+  flex-shrink: 0;
+  background: rgba(250, 250, 247, 0.85);
+  backdrop-filter: blur(18px) saturate(140%);
+  -webkit-backdrop-filter: blur(18px) saturate(140%);
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  padding: 0 32px;
+  position: relative;
+  z-index: 50;
+}
+
+.header-inner {
+  width: 100%;
+  max-width: 1200px;
+  margin: 0 auto;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.logo {
+  height: 32px;
+  width: auto;
+}
+
+.exit {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--muted);
+  text-decoration: none;
+  letter-spacing: -0.005em;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  transition: color 0.15s ease;
+}
+
+.exit:hover { color: var(--ink); }
+.exit svg { width: 14px; height: 14px; }
+
+/* ============ PROGRESS BAR ============ */
+.progress-bar {
+  height: 3px;
+  background: rgba(15, 23, 42, 0.06);
+  flex-shrink: 0;
+  position: relative;
+  z-index: 49;
+}
+
+.progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--navy) 0%, var(--red) 100%);
+  width: 0%;
+  transition: width 0.5s var(--ease);
+}
+
+/* ============ MAIN STAGE ============ */
+.stage {
+  flex: 1;
+  position: relative;
+  overflow: hidden;
+  background: var(--paper);
+  background-image:
+    radial-gradient(ellipse 800px 600px at 100% 0%, rgba(185, 28, 28, 0.04) 0%, transparent 60%),
+    radial-gradient(ellipse 600px 400px at 0% 100%, rgba(11, 27, 58, 0.03) 0%, transparent 60%);
+}
+
+.screen {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+  align-items: center;
+  padding: 80px 32px 60px;
+  overflow-y: auto;
+  opacity: 0;
+  visibility: hidden;
+  transform: translateY(8px);
+  transition: opacity 0.25s var(--ease), transform 0.25s var(--ease), visibility 0s linear 0.25s;
+  pointer-events: none;
+}
+
+/* Intro screen still centers nicely because content fills more vertical space */
+.screen[data-screen="intro"] {
+  justify-content: center;
+  padding-top: 40px;
+}
+
+/* Confirmation gets center treatment too */
+.screen[data-screen="confirmation"] {
+  justify-content: center;
+}
+
+.screen.active {
+  opacity: 1;
+  visibility: visible;
+  transform: translateY(0);
+  pointer-events: auto;
+  transition: opacity 0.3s var(--ease), transform 0.3s var(--ease), visibility 0s linear 0s;
+}
+
+.screen-inner {
+  width: 100%;
+  max-width: 640px;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+}
+
+/* ============ INTRO SCREEN ============ */
+.intro-inner {
+  text-align: center;
+  align-items: center;
+}
+
+.intro-eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 14px;
+  background: rgba(185, 28, 28, 0.08);
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--red-deep);
+  margin-bottom: 28px;
+}
+
+.intro-eyebrow .dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--red);
+  animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; box-shadow: 0 0 0 0 rgba(185, 28, 28, 0.4); }
+  50% { opacity: 0.85; box-shadow: 0 0 0 6px rgba(185, 28, 28, 0); }
+}
+
+/* ============ TYPOGRAPHY ============ */
+.q-label {
+  font-family: 'Inter', sans-serif;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--muted);
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  margin-bottom: 14px;
+}
+
+.q-label .num {
+  color: var(--red);
+  margin-right: 4px;
+}
+
+.q-title {
+  font-family: 'Fraunces', serif;
+  font-weight: 400;
+  font-size: clamp(32px, 4.4vw, 52px);
+  line-height: 1.08;
+  letter-spacing: -0.025em;
+  color: var(--navy);
+  margin-bottom: 12px;
+  font-variation-settings: 'opsz' 144;
+}
+
+.intro-inner .q-title {
+  font-size: clamp(40px, 6vw, 68px);
+  margin-bottom: 18px;
+}
+
+.q-title em {
+  font-style: italic;
+  color: var(--red);
+  font-weight: 400;
+}
+
+.q-help {
+  font-size: 16px;
+  color: var(--muted);
+  line-height: 1.55;
+  margin-bottom: 36px;
+  max-width: 520px;
+  letter-spacing: -0.005em;
+}
+
+.intro-inner .q-help {
+  margin: 0 auto 40px;
+  text-align: center;
+  font-size: 18px;
+  max-width: 540px;
+}
+
+/* ============ ANSWER CARDS (radios) ============ */
+.answers {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.ans {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 18px 20px;
+  border: 1.5px solid var(--border-strong);
+  border-radius: 12px;
+  background: var(--card);
+  cursor: pointer;
+  transition: all 0.18s ease;
+  text-align: left;
+  font-family: inherit;
+  width: 100%;
+  position: relative;
+}
+
+.ans:hover {
+  border-color: var(--navy);
+  transform: translateX(2px);
+}
+
+.ans.selected {
+  border-color: var(--red);
+  background: var(--red-soft);
+  transform: translateX(2px);
+}
+
+.ans-key {
+  width: 26px;
+  height: 26px;
+  border-radius: 6px;
+  background: rgba(15, 23, 42, 0.06);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: 'Inter', sans-serif;
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--muted);
+  flex-shrink: 0;
+  transition: all 0.18s ease;
+  letter-spacing: 0;
+}
+
+.ans:hover .ans-key {
+  background: var(--navy);
+  color: white;
+}
+
+.ans.selected .ans-key {
+  background: var(--red);
+  color: white;
+}
+
+.ans-content {
+  flex: 1;
+}
+
+.ans-title {
+  font-size: 15.5px;
+  font-weight: 600;
+  color: var(--navy);
+  letter-spacing: -0.01em;
+  margin-bottom: 2px;
+}
+
+.ans-desc {
+  font-size: 13px;
+  color: var(--muted);
+  line-height: 1.4;
+}
+
+/* ============ TWO-COLUMN PATH GRID (intro picker) ============ */
+.paths-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 10px;
+}
+
+.path {
+  background: var(--card);
+  border: 1.5px solid var(--border-strong);
+  border-radius: 12px;
+  padding: 22px 22px;
+  cursor: pointer;
+  transition: all 0.2s var(--ease);
+  text-align: left;
+  font-family: inherit;
+  width: 100%;
+  position: relative;
+  overflow: hidden;
+}
+
+.path::after {
+  content: '→';
+  position: absolute;
+  top: 22px;
+  right: 22px;
+  color: var(--muted-soft);
+  font-size: 18px;
+  transition: all 0.2s ease;
+  font-family: 'Inter', sans-serif;
+}
+
+.path:hover {
+  border-color: var(--navy);
+  transform: translateY(-2px);
+  box-shadow: var(--shadow);
+}
+
+.path:hover::after {
+  color: var(--red);
+  transform: translateX(4px);
+}
+
+.path-title {
+  font-family: 'Fraunces', serif;
+  font-size: 19px;
+  font-weight: 600;
+  color: var(--navy);
+  margin-bottom: 4px;
+  letter-spacing: -0.01em;
+  font-variation-settings: 'opsz' 144;
+}
+
+.path-desc {
+  font-size: 13px;
+  color: var(--muted);
+  line-height: 1.5;
+  letter-spacing: -0.005em;
+}
+
+/* ============ TEXT INPUTS ============ */
+.input-group {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.input-wrap {
+  position: relative;
+}
+
+.input,
+.textarea,
+.select {
+  width: 100%;
+  padding: 18px 20px;
+  border: 1.5px solid var(--border-strong);
+  border-radius: 12px;
+  background: var(--card);
+  font-family: inherit;
+  font-size: 17px;
+  font-weight: 500;
+  color: var(--ink);
+  letter-spacing: -0.005em;
+  transition: all 0.18s ease;
+}
+
+.input::placeholder,
+.textarea::placeholder {
+  color: var(--muted-soft);
+  font-weight: 400;
+}
+
+.input:focus,
+.textarea:focus,
+.select:focus {
+  outline: none;
+  border-color: var(--navy);
+  box-shadow: 0 0 0 3px rgba(11, 27, 58, 0.08);
+}
+
+.textarea {
+  min-height: 120px;
+  resize: vertical;
+  line-height: 1.5;
+  font-size: 16px;
+}
+
+.input-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.field-help {
+  font-size: 13px;
+  color: var(--muted);
+  margin-top: 8px;
+  line-height: 1.4;
+  letter-spacing: -0.005em;
+}
+
+/* ============ MULTI-SELECT CHIPS ============ */
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 11px 16px;
+  border: 1.5px solid var(--border-strong);
+  border-radius: 999px;
+  background: var(--card);
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--ink);
+  cursor: pointer;
+  transition: all 0.15s ease;
+  letter-spacing: -0.005em;
+}
+
+.chip:hover {
+  border-color: var(--navy);
+  background: rgba(11, 27, 58, 0.02);
+}
+
+.chip.selected {
+  border-color: var(--red);
+  background: var(--red-soft);
+  color: var(--red-deep);
+  font-weight: 600;
+}
+
+.chip.selected::before {
+  content: '✓';
+  margin-right: 2px;
+  font-weight: 700;
+}
+
+/* ============ INLINE NAV (replaces fixed footer) ============ */
+.foot {
+  margin-top: 32px;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 12px;
+}
+
+.foot-primary {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.foot-secondary {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 12px;
+  margin-top: 4px;
+}
+
+.foot-meta {
+  font-size: 12px;
+  color: var(--muted-soft);
+  letter-spacing: -0.005em;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  justify-content: center;
+}
+
+.foot-meta kbd {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 22px;
+  height: 22px;
+  padding: 0 6px;
+  background: var(--card);
+  border: 1px solid var(--border-strong);
+  border-radius: 5px;
+  box-shadow: 0 1.5px 0 rgba(15, 23, 42, 0.05);
+  font-family: 'Inter', sans-serif;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--ink);
+  letter-spacing: 0;
+}
+
+/* ============ BUTTONS ============ */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 12px 22px;
+  border-radius: 999px;
+  border: 1.5px solid transparent;
+  font-family: 'Inter', sans-serif;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.18s ease;
+  text-decoration: none;
+  background: transparent;
+  letter-spacing: -0.005em;
+  white-space: nowrap;
+}
+
+.btn-primary {
+  background: var(--navy);
+  color: white;
+  border-color: var(--navy);
+  padding: 16px 36px;
+  font-size: 15px;
+  min-width: 220px;
+}
+
+.btn-primary:hover:not(:disabled) {
+  background: var(--navy-deep);
+  border-color: var(--navy-deep);
+  transform: translateY(-1px);
+  box-shadow: 0 8px 20px rgba(11, 27, 58, 0.18);
+}
+
+.btn-primary:disabled {
+  background: rgba(15, 23, 42, 0.12);
+  border-color: transparent;
+  color: var(--muted-soft);
+  cursor: not-allowed;
+}
+
+.btn-back {
+  color: var(--muted);
+  font-size: 13px;
+  padding: 8px 12px;
+}
+
+.btn-back:hover {
+  color: var(--ink);
+}
+
+.btn-back svg { width: 14px; height: 14px; }
+
+/* ============ CONFIRMATION ============ */
+.confirm {
+  text-align: center;
+  align-items: center;
+}
+
+.confirm-icon {
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  background: var(--red);
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 28px;
+  box-shadow: 0 12px 28px rgba(185, 28, 28, 0.25);
+  animation: pop 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+}
+
+@keyframes pop {
+  0% { transform: scale(0); opacity: 0; }
+  60% { transform: scale(1.1); }
+  100% { transform: scale(1); opacity: 1; }
+}
+
+.confirm-icon svg {
+  width: 30px;
+  height: 30px;
+  stroke-width: 2.5;
+}
+
+.confirm h2 {
+  font-family: 'Fraunces', serif;
+  font-size: clamp(36px, 5vw, 52px);
+  font-weight: 400;
+  letter-spacing: -0.025em;
+  color: var(--navy);
+  margin-bottom: 12px;
+  font-variation-settings: 'opsz' 144;
+}
+
+.confirm h2 em {
+  font-style: italic;
+  color: var(--red);
+}
+
+.confirm-msg {
+  font-size: 17px;
+  color: var(--muted);
+  line-height: 1.55;
+  margin-bottom: 32px;
+  max-width: 480px;
+  letter-spacing: -0.005em;
+}
+
+.confirm-card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 18px 22px;
+  margin: 0 auto 28px;
+  max-width: 460px;
+  text-align: left;
+}
+
+.confirm-card-label {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--red);
+  margin-bottom: 8px;
+}
+
+.confirm-card-text {
+  font-family: 'Fraunces', serif;
+  font-size: 15.5px;
+  color: var(--navy);
+  line-height: 1.5;
+  letter-spacing: -0.01em;
+}
+
+/* ============ STRATEGY DRAWER (for Levi) ============ */
+.note {
+  position: fixed;
+  bottom: 16px;
+  right: 16px;
+  width: 320px;
+  background: var(--navy);
+  color: white;
+  border-radius: 12px;
+  padding: 18px 20px;
+  box-shadow: 0 16px 40px rgba(11, 27, 58, 0.30);
+  font-size: 12.5px;
+  line-height: 1.55;
+  z-index: 100;
+  transition: transform 0.3s var(--ease);
+  letter-spacing: -0.005em;
+  transform: translateX(290px); /* collapsed by default */
+}
+
+.note.expanded {
+  transform: translateX(0);
+}
+
+.note-toggle {
+  position: absolute;
+  left: -10px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  background: var(--red);
+  color: white;
+  border: 0;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  font-weight: 700;
+  box-shadow: 0 4px 12px rgba(185, 28, 28, 0.35);
+}
+
+.note-label {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.55);
+  margin-bottom: 6px;
+}
+
+.note-title {
+  font-family: 'Fraunces', serif;
+  font-size: 16px;
+  font-weight: 500;
+  margin-bottom: 8px;
+  letter-spacing: -0.01em;
+}
+
+.note-title em { color: #ff8a8a; font-style: italic; }
+
+.note p {
+  color: rgba(255, 255, 255, 0.78);
+  font-size: 12.5px;
+  line-height: 1.55;
+}
+
+/* ============ RESPONSIVE ============ */
+@media (max-width: 720px) {
+  .header { padding: 0 20px; height: 56px; }
+  .logo { height: 28px; }
+  .screen { padding: 24px 20px 40px; }
+  .paths-grid { grid-template-columns: 1fr; }
+  .input-row { grid-template-columns: 1fr; gap: 8px; }
+  .ans { padding: 16px 16px; }
+  .ans-key { width: 24px; height: 24px; }
+  .ans-title { font-size: 14.5px; }
+  .ans-desc { font-size: 12.5px; }
+  .note { display: none; }
+  .foot-meta { font-size: 11px; }
+}
+</style>
+</head>
+<body>
+
+<!-- ============ HEADER ============ -->
+<header class="header">
+  <div class="header-inner">
+    <img src="data:image/webp;base64,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" alt="The Levi Rodgers Real Estate Group" class="logo">
+    <a href="https://lrgrealty.com" class="exit">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6L6 18M6 6l12 12" stroke-linecap="round"/></svg>
+      Exit
+    </a>
+  </div>
+</header>
+
+<!-- ============ PROGRESS ============ -->
+<div class="progress-bar"><div class="progress-fill" id="progress-fill"></div></div>
+
+<!-- ============ STAGE ============ -->
+<main class="stage" id="stage">
+
+  <!-- INTRO -->
+  <section class="screen active" data-screen="intro">
+    <div class="screen-inner intro-inner">
+      <div class="intro-eyebrow"><span class="dot"></span> Texas real estate · personalized</div>
+      <h1 class="q-title">Tell us what you're <em>looking for.</em></h1>
+      <p class="q-help">A few quick questions, then an LRG specialist reaches out with a plan built for your situation.</p>
+      <div class="paths-grid">
+        <button class="path" data-path="buyer">
+          <div class="path-title">I want to buy</div>
+          <div class="path-desc">First home, move-up, or investment in Central Texas.</div>
+        </button>
+        <button class="path" data-path="seller">
+          <div class="path-title">I want to sell</div>
+          <div class="path-desc">Free valuation and 2026 selling strategy.</div>
+        </button>
+        <button class="path" data-path="va">
+          <div class="path-title">VA loan / Veteran</div>
+          <div class="path-desc">Active duty, Veteran, PCS — we know the process.</div>
+        </button>
+        <button class="path" data-path="market">
+          <div class="path-title">Market updates</div>
+          <div class="path-desc">Free monthly Texas market reports.</div>
+        </button>
+        <button class="path" data-path="neighborhood">
+          <div class="path-title">Neighborhood alerts</div>
+          <div class="path-desc">Weekly listings from areas you care about.</div>
+        </button>
+        <button class="path" data-path="other">
+          <div class="path-title">Just have a question</div>
+          <div class="path-desc">Anything else — we'll route you.</div>
+        </button>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ BUYER PATH ============ -->
+  <section class="screen" data-screen="buyer-1" data-path="buyer">
+    <div class="screen-inner">
+      <div class="q-label"><span class="num">01</span> Timeline</div>
+      <h2 class="q-title">When are you <em>looking to buy?</em></h2>
+      <div class="answers">
+        <button class="ans" data-value="0-3" data-auto data-next="buyer-2">
+          <div class="ans-key">A</div>
+          <div class="ans-content">
+            <div class="ans-title">In the next 3 months</div>
+            <div class="ans-desc">Actively looking, pre-approved or close.</div>
+          </div>
+        </button>
+        <button class="ans" data-value="3-6" data-auto data-next="buyer-2">
+          <div class="ans-key">B</div>
+          <div class="ans-content">
+            <div class="ans-title">3–6 months out</div>
+            <div class="ans-desc">Getting serious. Need a plan.</div>
+          </div>
+        </button>
+        <button class="ans" data-value="6-12" data-auto data-next="buyer-2">
+          <div class="ans-key">C</div>
+          <div class="ans-content">
+            <div class="ans-title">6–12 months out</div>
+            <div class="ans-desc">Researching, want to be ready.</div>
+          </div>
+        </button>
+        <button class="ans" data-value="just-looking" data-auto data-next="buyer-2">
+          <div class="ans-key">D</div>
+          <div class="ans-content">
+            <div class="ans-title">Just looking</div>
+            <div class="ans-desc">No pressure — happy to learn.</div>
+          </div>
+        </button>
+      </div>
+      <div class="foot">
+        <div class="foot-meta">Pick one to continue — or press A, B, C, D</div>
+        <div class="foot-secondary">
+          <button class="btn btn-back" data-back>← Back</button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="screen" data-screen="buyer-2" data-path="buyer">
+    <div class="screen-inner">
+      <div class="q-label"><span class="num">02</span> Area</div>
+      <h2 class="q-title">Which area are you <em>considering?</em></h2>
+      <p class="q-help">Pick one or more.</p>
+      <div class="chips" data-multi="buyer-area">
+        <button class="chip" data-value="san-antonio">San Antonio</button>
+        <button class="chip" data-value="austin">Austin</button>
+        <button class="chip" data-value="killeen">Killeen / Fort Cavazos</button>
+        <button class="chip" data-value="round-rock">Round Rock / Pflugerville</button>
+        <button class="chip" data-value="new-braunfels">New Braunfels</button>
+        <button class="chip" data-value="not-sure">Not sure yet</button>
+      </div>
+      <div class="foot">
+        <div class="foot-primary">
+          <button class="btn btn-primary" data-next="contact" disabled>Continue →</button>
+        </div>
+        <div class="foot-secondary">
+          <button class="btn btn-back" data-back>← Back</button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ SELLER PATH ============ -->
+  <section class="screen" data-screen="seller-1" data-path="seller">
+    <div class="screen-inner">
+      <div class="q-label"><span class="num">01</span> Property</div>
+      <h2 class="q-title">What's your <em>property address?</em></h2>
+      <p class="q-help">We use this to send you a free professional valuation. We won't share it.</p>
+      <div class="input-group">
+        <input class="input" type="text" name="seller-address" placeholder="123 Main St, San Antonio, TX 78201" autocomplete="street-address">
+      </div>
+      <div class="foot">
+        <div class="foot-primary">
+          <button class="btn btn-primary" data-next="seller-2" data-require="seller-address" disabled>Continue →</button>
+        </div>
+        <div class="foot-meta">Press <kbd>Enter</kbd> to continue</div>
+        <div class="foot-secondary">
+          <button class="btn btn-back" data-back>← Back</button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="screen" data-screen="seller-2" data-path="seller">
+    <div class="screen-inner">
+      <div class="q-label"><span class="num">02</span> Timing</div>
+      <h2 class="q-title">When are you thinking of <em>selling?</em></h2>
+      <div class="answers">
+        <button class="ans" data-value="now" data-auto data-next="seller-3">
+          <div class="ans-key">A</div>
+          <div class="ans-content">
+            <div class="ans-title">Soon as possible</div>
+            <div class="ans-desc">Ready to list now or in the next few weeks.</div>
+          </div>
+        </button>
+        <button class="ans" data-value="3-6" data-auto data-next="seller-3">
+          <div class="ans-key">B</div>
+          <div class="ans-content">
+            <div class="ans-title">3–6 months</div>
+            <div class="ans-desc">Planning ahead. Want to get strategy right.</div>
+          </div>
+        </button>
+        <button class="ans" data-value="6-12" data-auto data-next="seller-3">
+          <div class="ans-key">C</div>
+          <div class="ans-content">
+            <div class="ans-title">6–12 months</div>
+            <div class="ans-desc">Just starting to think about it.</div>
+          </div>
+        </button>
+        <button class="ans" data-value="curious" data-auto data-next="seller-3">
+          <div class="ans-key">D</div>
+          <div class="ans-content">
+            <div class="ans-title">Just curious about value</div>
+            <div class="ans-desc">No timeline. Want to know what it's worth.</div>
+          </div>
+        </button>
+      </div>
+      <div class="foot">
+        <div class="foot-meta">Pick one to continue — or press A, B, C, D</div>
+        <div class="foot-secondary">
+          <button class="btn btn-back" data-back>← Back</button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="screen" data-screen="seller-3" data-path="seller">
+    <div class="screen-inner">
+      <div class="q-label"><span class="num">03</span> Buying too?</div>
+      <h2 class="q-title">Will you also be <em>buying?</em></h2>
+      <div class="answers">
+        <button class="ans" data-value="yes" data-auto data-next="contact">
+          <div class="ans-key">A</div>
+          <div class="ans-content">
+            <div class="ans-title">Yes, also buying</div>
+            <div class="ans-desc">Ask us about LRG's Move-Up Program.</div>
+          </div>
+        </button>
+        <button class="ans" data-value="no" data-auto data-next="contact">
+          <div class="ans-key">B</div>
+          <div class="ans-content">
+            <div class="ans-title">No, just selling</div>
+          </div>
+        </button>
+        <button class="ans" data-value="maybe" data-auto data-next="contact">
+          <div class="ans-key">C</div>
+          <div class="ans-content">
+            <div class="ans-title">Not sure yet</div>
+          </div>
+        </button>
+      </div>
+      <div class="foot">
+        <div class="foot-meta">Pick one to continue — or press A, B, C, D</div>
+        <div class="foot-secondary">
+          <button class="btn btn-back" data-back>← Back</button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ VA PATH ============ -->
+  <section class="screen" data-screen="va-1" data-path="va">
+    <div class="screen-inner">
+      <div class="q-label"><span class="num">01</span> Status</div>
+      <h2 class="q-title">What's your <em>situation?</em></h2>
+      <div class="answers">
+        <button class="ans" data-value="active-duty" data-auto data-next="va-2">
+          <div class="ans-key">A</div>
+          <div class="ans-content">
+            <div class="ans-title">Active duty</div>
+            <div class="ans-desc">Currently serving.</div>
+          </div>
+        </button>
+        <button class="ans" data-value="veteran" data-auto data-next="va-2">
+          <div class="ans-key">B</div>
+          <div class="ans-content">
+            <div class="ans-title">Veteran</div>
+            <div class="ans-desc">Separated or retired.</div>
+          </div>
+        </button>
+        <button class="ans" data-value="spouse" data-auto data-next="va-2">
+          <div class="ans-key">C</div>
+          <div class="ans-content">
+            <div class="ans-title">Military spouse / family</div>
+          </div>
+        </button>
+        <button class="ans" data-value="pcs" data-auto data-next="va-2">
+          <div class="ans-key">D</div>
+          <div class="ans-content">
+            <div class="ans-title">PCS relocation</div>
+            <div class="ans-desc">Time-sensitive. Moving on orders.</div>
+          </div>
+        </button>
+      </div>
+      <div class="foot">
+        <div class="foot-meta">Pick one to continue — or press A, B, C, D</div>
+        <div class="foot-secondary">
+          <button class="btn btn-back" data-back>← Back</button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="screen" data-screen="va-2" data-path="va">
+    <div class="screen-inner">
+      <div class="q-label"><span class="num">02</span> Need</div>
+      <h2 class="q-title">Buying, selling, or <em>both?</em></h2>
+      <div class="answers">
+        <button class="ans" data-value="buying" data-auto data-next="contact">
+          <div class="ans-key">A</div>
+          <div class="ans-content"><div class="ans-title">Buying</div></div>
+        </button>
+        <button class="ans" data-value="selling" data-auto data-next="contact">
+          <div class="ans-key">B</div>
+          <div class="ans-content"><div class="ans-title">Selling</div></div>
+        </button>
+        <button class="ans" data-value="both" data-auto data-next="contact">
+          <div class="ans-key">C</div>
+          <div class="ans-content">
+            <div class="ans-title">Both</div>
+            <div class="ans-desc">Need a Move-Up plan.</div>
+          </div>
+        </button>
+      </div>
+      <div class="foot">
+        <div class="foot-meta">Pick one to continue — or press A, B, C, D</div>
+        <div class="foot-secondary">
+          <button class="btn btn-back" data-back>← Back</button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ MARKET PATH (lowest friction) ============ -->
+  <section class="screen" data-screen="market-1" data-path="market">
+    <div class="screen-inner">
+      <div class="q-label"><span class="num">01</span> Email</div>
+      <h2 class="q-title">Where should we <em>send updates?</em></h2>
+      <p class="q-help">Just an email. No calls, no spam, unsubscribe anytime.</p>
+      <div class="input-group">
+        <input class="input" type="email" name="market-email" placeholder="you@email.com" autocomplete="email">
+      </div>
+      <div class="foot">
+        <div class="foot-primary">
+          <button class="btn btn-primary" data-next="market-2" data-require="market-email" disabled>Continue →</button>
+        </div>
+        <div class="foot-meta">Press <kbd>Enter</kbd> to continue</div>
+        <div class="foot-secondary">
+          <button class="btn btn-back" data-back>← Back</button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="screen" data-screen="market-2" data-path="market">
+    <div class="screen-inner">
+      <div class="q-label"><span class="num">02</span> Area</div>
+      <h2 class="q-title">Which Texas area do you <em>care about?</em></h2>
+      <p class="q-help">ZIP code or city — we'll send hyperlocal data.</p>
+      <div class="input-group">
+        <input class="input" type="text" name="market-zip" placeholder="78201 or 'Austin'" autocomplete="postal-code">
+      </div>
+      <div class="foot">
+        <div class="foot-primary">
+          <button class="btn btn-primary" data-submit="market" data-require="market-zip" disabled>Send me the report →</button>
+        </div>
+        <div class="foot-meta">Press <kbd>Enter</kbd> to continue</div>
+        <div class="foot-secondary">
+          <button class="btn btn-back" data-back>← Back</button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ NEIGHBORHOOD PATH ============ -->
+  <section class="screen" data-screen="hood-1" data-path="neighborhood">
+    <div class="screen-inner">
+      <div class="q-label"><span class="num">01</span> Areas</div>
+      <h2 class="q-title">Which neighborhoods are <em>on your list?</em></h2>
+      <p class="q-help">Pick one or more.</p>
+      <div class="chips" data-multi="hood-area">
+        <button class="chip" data-value="alamo-heights">Alamo Heights</button>
+        <button class="chip" data-value="stone-oak">Stone Oak</button>
+        <button class="chip" data-value="boerne">Boerne</button>
+        <button class="chip" data-value="helotes">Helotes</button>
+        <button class="chip" data-value="austin-central">Austin (central)</button>
+        <button class="chip" data-value="round-rock">Round Rock</button>
+        <button class="chip" data-value="pflugerville">Pflugerville</button>
+        <button class="chip" data-value="other">Other</button>
+      </div>
+      <div class="foot">
+        <div class="foot-primary">
+          <button class="btn btn-primary" data-next="contact" disabled>Continue →</button>
+        </div>
+        <div class="foot-secondary">
+          <button class="btn btn-back" data-back>← Back</button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ OTHER PATH ============ -->
+  <section class="screen" data-screen="other-1" data-path="other">
+    <div class="screen-inner">
+      <div class="q-label"><span class="num">01</span> Question</div>
+      <h2 class="q-title">What's <em>on your mind?</em></h2>
+      <p class="q-help">Tell us a bit and we'll route you to the right specialist.</p>
+      <div class="input-group">
+        <textarea class="textarea" name="other-message" placeholder="e.g., 'Relocating from California, need to understand Texas property taxes' or 'Looking to invest in rentals near Austin'..."></textarea>
+      </div>
+      <div class="foot">
+        <div class="foot-primary">
+          <button class="btn btn-primary" data-next="contact" data-require="other-message" disabled>Continue →</button>
+        </div>
+        <div class="foot-secondary">
+          <button class="btn btn-back" data-back>← Back</button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ CONTACT (universal) ============ -->
+  <section class="screen" data-screen="contact">
+    <div class="screen-inner">
+      <div class="q-label"><span class="num">▸</span> Almost done</div>
+      <h2 class="q-title">Where can we <em>reach you?</em></h2>
+      <p class="q-help">A specialist personally reviews your info — no auto-responder spam.</p>
+      <div class="input-group">
+        <div class="input-row">
+          <input class="input" type="text" name="firstname" placeholder="First name" autocomplete="given-name">
+          <input class="input" type="text" name="lastname" placeholder="Last name" autocomplete="family-name">
+        </div>
+        <input class="input" type="email" name="email" placeholder="Email" autocomplete="email">
+        <input class="input" type="tel" name="phone" placeholder="Phone" autocomplete="tel">
+      </div>
+      <div class="foot">
+        <div class="foot-primary">
+          <button class="btn btn-primary" data-submit="primary" data-require-all="firstname,lastname,email,phone" disabled id="contact-submit-btn">Send my request →</button>
+        </div>
+        <div class="foot-secondary">
+          <button class="btn btn-back" data-back>← Back</button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ CONFIRMATION ============ -->
+  <section class="screen" data-screen="confirmation">
+    <div class="screen-inner confirm">
+      <div class="confirm-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M5 13l4 4L19 7" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </div>
+      <h2 id="confirm-title">You're <em>all set.</em></h2>
+      <p class="confirm-msg" id="confirm-msg">Thanks — we got your info.</p>
+      <div class="confirm-card">
+        <div class="confirm-card-label">What happens next</div>
+        <div class="confirm-card-text" id="confirm-next">An LRG specialist will reach out within one business day.</div>
+      </div>
+      <a href="https://lrgrealty.com" class="btn btn-primary">Back to LRG Realty</a>
+    </div>
+  </section>
+
+</main>
+
+<!-- ============ STRATEGY NOTE FOR LEVI ============ -->
+<aside class="note" id="note">
+  <button class="note-toggle" id="note-toggle" title="Toggle note">i</button>
+  <div class="note-label">Note for Levi</div>
+  <div class="note-title">Built for <em>blog readers.</em></div>
+  <p>Each path captures different data and gets tagged in FUB by source so follow-up can route by intent. One question per page = higher completion rates than long forms.</p>
+</aside>
+
+<script>
+// ============ STATE ============
+let path = null;
+let history = ['intro'];
+let pathSteps = {
+  buyer: 3, // buyer-1, buyer-2, contact
+  seller: 4, // seller-1, seller-2, seller-3, contact
+  va: 3, // va-1, va-2, contact
+  market: 2, // market-1, market-2 (no contact step)
+  neighborhood: 2, // hood-1, contact
+  other: 2 // other-1, contact
+};
+
+// ============ NAVIGATION ============
+function getProgress(screenId) {
+  if (screenId === 'intro') return 0;
+  if (screenId === 'confirmation') return 100;
+  if (!path) return 0;
+
+  const total = pathSteps[path] || 3;
+  let current = 1;
+
+  // Map screen ID to step number
+  if (screenId.includes('-2')) current = 2;
+  else if (screenId.includes('-3')) current = 3;
+  else if (screenId === 'contact') current = total;
+
+  return Math.round((current / total) * 100);
+}
+
+function go(screenId, direction = 'forward') {
+  const current = document.querySelector('.screen.active');
+  const next = document.querySelector(`.screen[data-screen="${screenId}"]`);
+  if (!next) return;
+  if (current === next) return;
+
+  // Step 1: hide current (fades out + becomes invisible)
+  if (current) {
+    current.classList.remove('active');
+  }
+
+  // Step 2: wait for current to fully fade out + visibility to switch off, THEN show next
+  setTimeout(() => {
+    next.classList.add('active');
+    document.getElementById('progress-fill').style.width = getProgress(screenId) + '%';
+
+    // Update contact page submit button text based on path
+    if (screenId === 'contact') {
+      const submitBtn = document.getElementById('contact-submit-btn');
+      if (submitBtn) {
+        const submitLabels = {
+          buyer: 'Connect me with a buyer agent →',
+          seller: 'Get my free home valuation →',
+          va: 'Connect me with a VA specialist →',
+          neighborhood: 'Start sending alerts →',
+          other: 'Send my message →'
+        };
+        submitBtn.innerHTML = submitLabels[path] || 'Send my request →';
+      }
+    }
+
+    // Auto-focus first input if present
+    const input = next.querySelector('.input, .textarea');
+    if (input) setTimeout(() => input.focus(), 200);
+  }, current ? 280 : 0);
+}
+
+function goNext(screenId) {
+  history.push(screenId);
+  go(screenId, 'forward');
+}
+
+function goBack() {
+  if (history.length <= 1) return;
+  history.pop();
+  const prev = history[history.length - 1];
+  go(prev, 'back');
+}
+
+// ============ PATH PICKER ============
+document.querySelectorAll('.path').forEach(btn => {
+  btn.addEventListener('click', () => {
+    path = btn.dataset.path;
+    const firstScreen = path === 'buyer' ? 'buyer-1'
+      : path === 'seller' ? 'seller-1'
+      : path === 'va' ? 'va-1'
+      : path === 'market' ? 'market-1'
+      : path === 'neighborhood' ? 'hood-1'
+      : 'other-1';
+    goNext(firstScreen);
+  });
+});
+
+// ============ AUTO-ADVANCE ANSWERS ============
+document.querySelectorAll('.ans[data-auto]').forEach(btn => {
+  btn.addEventListener('click', () => {
+    // Visual selection
+    btn.parentElement.querySelectorAll('.ans').forEach(a => a.classList.remove('selected'));
+    btn.classList.add('selected');
+    // Slide forward after brief pause for feedback
+    setTimeout(() => {
+      goNext(btn.dataset.next);
+    }, 220);
+  });
+});
+
+// ============ MULTI-SELECT CHIPS ============
+document.querySelectorAll('.chips').forEach(group => {
+  group.addEventListener('click', (e) => {
+    const chip = e.target.closest('.chip');
+    if (!chip) return;
+    chip.classList.toggle('selected');
+
+    // Enable continue button when at least one selected
+    const screen = group.closest('.screen');
+    const continueBtn = screen.querySelector('[data-next], [data-submit]');
+    if (continueBtn) {
+      const anySelected = group.querySelectorAll('.chip.selected').length > 0;
+      continueBtn.disabled = !anySelected;
+    }
+  });
+});
+
+// ============ TEXT INPUT VALIDATION (enables continue button) ============
+document.querySelectorAll('.input, .textarea').forEach(input => {
+  input.addEventListener('input', () => {
+    const screen = input.closest('.screen');
+    const btn = screen.querySelector('[data-require]');
+    const btnAll = screen.querySelector('[data-require-all]');
+
+    if (btn) {
+      const fieldName = btn.dataset.require;
+      const field = screen.querySelector(`[name="${fieldName}"]`);
+      if (field) btn.disabled = !field.value.trim();
+    }
+    if (btnAll) {
+      const fields = btnAll.dataset.requireAll.split(',');
+      const allFilled = fields.every(name => {
+        const f = screen.querySelector(`[name="${name}"]`);
+        return f && f.value.trim();
+      });
+      btnAll.disabled = !allFilled;
+    }
+  });
+
+  // Enter key advances
+  input.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter' && input.tagName !== 'TEXTAREA') {
+      e.preventDefault();
+      const screen = input.closest('.screen');
+      const btn = screen.querySelector('[data-next]:not(:disabled), [data-submit]:not(:disabled)');
+      if (btn) btn.click();
+    }
+  });
+});
+
+// ============ NEXT BUTTON HANDLERS ============
+document.addEventListener('click', (e) => {
+  const next = e.target.closest('[data-next]');
+  if (next && !next.disabled) {
+    goNext(next.dataset.next);
+  }
+});
+
+// ============ BACK BUTTONS ============
+document.addEventListener('click', (e) => {
+  if (e.target.closest('[data-back]')) {
+    goBack();
+  }
+});
+
+// ============ SUBMIT ============
+document.addEventListener('click', (e) => {
+  const submit = e.target.closest('[data-submit]');
+  if (!submit || submit.disabled) return;
+
+  const messages = {
+    buyer: {
+      title: 'Talk soon, <em>future homeowner.</em>',
+      msg: 'A buyer specialist personally reviews your info and reaches out within one business day.',
+      next: 'Personal email or call from an LRG buyer specialist within one business day.'
+    },
+    seller: {
+      title: 'Your valuation is <em>on the way.</em>',
+      msg: 'Free professional valuation in your inbox within 24 hours, plus a 2026 selling strategy for your area.',
+      next: 'Free professional valuation within 24 hours. No high-pressure follow-up.'
+    },
+    va: {
+      title: 'Thank you for <em>your service.</em>',
+      msg: 'A VA-experienced LRG agent will reach out within one business day. PCS requests get priority.',
+      next: 'A Veteran-experienced agent will personally call or email within one business day.'
+    },
+    market: {
+      title: 'You\'re <em>signed up.</em>',
+      msg: 'First market report lands in your inbox within 24 hours. Monthly after that.',
+      next: 'First report in 24 hours. Unsubscribe or adjust areas anytime.'
+    },
+    neighborhood: {
+      title: 'Alerts <em>activated.</em>',
+      msg: 'First batch of listings and market signals arrives within 24 hours. Weekly after that.',
+      next: 'First neighborhood alert within 24 hours. Pause or change anytime.'
+    },
+    other: {
+      title: 'Got your <em>question.</em>',
+      msg: 'Routed to the right specialist on our team. We\'ll respond within one business day.',
+      next: 'Specialist response within one business day.'
+    }
+  };
+
+  const which = submit.dataset.submit === 'primary' ? path : submit.dataset.submit;
+  const config = messages[which] || messages.other;
+  document.getElementById('confirm-title').innerHTML = config.title;
+  document.getElementById('confirm-msg').textContent = config.msg;
+  document.getElementById('confirm-next').textContent = config.next;
+  goNext('confirmation');
+});
+
+// ============ NOTE TOGGLE ============
+document.getElementById('note-toggle').addEventListener('click', () => {
+  document.getElementById('note').classList.toggle('expanded');
+});
+
+// ============ KEYBOARD SHORTCUTS (A/B/C/D for answers) ============
+document.addEventListener('keydown', (e) => {
+  if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+  const screen = document.querySelector('.screen.active');
+  if (!screen) return;
+
+  const key = e.key.toUpperCase();
+  if (['A','B','C','D','E','F'].includes(key)) {
+    const answers = screen.querySelectorAll('.ans[data-auto]');
+    const idx = key.charCodeAt(0) - 65;
+    if (answers[idx]) answers[idx].click();
+  }
+});
+</script>
+
+</body>
+</html>
