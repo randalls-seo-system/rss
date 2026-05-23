@@ -39,10 +39,11 @@ from lib.tool_utils import eprint
 
 # Markers in section id, class, or H2 text that indicate non-body sections.
 _SKIP_MARKERS = frozenset({
-    "bluf", "bottom-line", "bottomline", "resources", "resources-used",
+    "bottom-line", "bottomline", "resources", "resources-used",
     "faq", "faqs", "in-this-article", "toc", "jump-nav", "closing",
     "rl-quick-card", "rl-atf-faq",
 })
+# Note: "bluf" removed — spec §11.4.3 allows 1-3 links in BLUF lead paragraph
 
 
 def _is_body_h2_section(section) -> bool:
@@ -60,8 +61,8 @@ def _is_body_h2_section(section) -> bool:
         if marker in haystack:
             return False
 
-    # Skip the closing "The Bottom Line" section
-    if "bottom line" in h2_text:
+    # Skip the closing "The Bottom Line" section but NOT the BLUF
+    if "bottom line" in h2_text and "up front" not in h2_text:
         return False
 
     return True
@@ -84,7 +85,7 @@ def _max_links_for_word_count(wc: int) -> int:
     return 14
 
 
-MAX_LINKS_PER_PARAGRAPH = 1  # Gate 2: one internal link per paragraph max (spec §11.4.1-2)
+MAX_LINKS_PER_PARAGRAPH = 2  # Gate 2: up to 2 links per paragraph (spec §11.4.1-2 allows 1-3)
 
 # Stopwords for subphrase quality filter
 _STOPWORDS = frozenset({
@@ -157,101 +158,77 @@ def _find_matching_candidates(
 ) -> list[dict]:
     """Find anchor pool candidates whose anchor text appears in the text.
 
-    Two-pass matching:
-    1. Try the pool-returned anchor phrase (verbatim word-boundary match).
-    2. Fallback: try the destination's primary_keyword (shorter, more
-       likely to appear naturally — e.g., "residual income", "VA disability").
+    Direct text-scan approach: check ALL pool destinations' anchors against
+    the paragraph text. This ensures short distinctive anchors like "funding fee"
+    or "residual income" are found regardless of topic-keyword overlap score.
 
-    Returns list of {anchor_text, url, score} sorted by score descending.
+    Returns list of {anchor_text, url, score} sorted by specificity descending.
     """
-    candidates = pool.candidates_for_topic(topic, max=20, exclude_post_id=exclude_post_id)
-    if not candidates:
-        return []
-
-    # Build URL → primary_keyword lookup from pool destinations
-    url_to_primary_kw: dict[str, str] = {}
-    for dest in pool._destinations:
-        normalized = pool._normalize_url(dest.get("url", ""))
-        url_to_primary_kw[normalized] = dest.get("primary_keyword", "")
-
     matches = []
 
-    for cand in candidates:
-        if cand.url in used_urls:
+    for dest in pool._destinations:
+        # Self-link prevention
+        if exclude_post_id is not None and dest.get("id") == exclude_post_id:
             continue
 
-        # Try pool anchor first, then fall back to primary_keyword
+        url = pool._normalize_url(dest.get("url", ""))
+        if url in used_urls:
+            continue
+
+        # Collect all anchor options for this destination
+        anchors = dest.get("anchors", [])
+        primary_kw = dest.get("primary_keyword", "")
+
         anchor_options = []
-
-        # Option 1: pool-returned anchor phrase
-        anchor = cand.anchor_text
-        wc = len(anchor.split())
-        if 2 <= wc <= 5:
-            anchor_options.append(anchor)
-
-        # Option 2: primary_keyword from the destination (full phrase)
-        primary_kw = url_to_primary_kw.get(cand.url, "")
-        if primary_kw:
-            pkw_wc = len(primary_kw.split())
-            if 2 <= pkw_wc <= 5 and primary_kw.lower() != anchor.lower():
-                anchor_options.append(primary_kw)
-
-        # Option 3: 2-3 word subphrases from primary_keyword
-        # (e.g., "VA Loan Residual Income Chart" → "Residual Income", "VA Loan")
-        if primary_kw and len(primary_kw.split()) > 3:
-            pkw_words = primary_kw.split()
-            seen_subs = {opt.lower() for opt in anchor_options}
-            for length in [3, 2]:
-                for start in range(len(pkw_words) - length + 1):
-                    sub = " ".join(pkw_words[start : start + length])
-                    if sub.lower() in seen_subs:
-                        continue
-                    # Quality filter: require at least 2 content words (non-stopwords)
-                    if not _has_content_words(sub, min_count=2):
-                        continue
-                    anchor_options.append(sub)
-                    seen_subs.add(sub.lower())
+        seen = set()
+        for a in anchors:
+            al = a.lower()
+            if al not in seen and 2 <= len(a.split()) <= 5:
+                anchor_options.append(a)
+                seen.add(al)
+        if primary_kw and primary_kw.lower() not in seen and 2 <= len(primary_kw.split()) <= 5:
+            anchor_options.append(primary_kw)
 
         if not anchor_options:
             continue
 
-        # Find the BEST anchor that appears in the text (prefer longer/more specific)
-        matching_options = []
+        # Find the best anchor that appears in the text
+        best_match = None
         for opt in anchor_options:
-            # Quality filter: require at least 2 content words
             if not _has_content_words(opt, min_count=2):
                 continue
-            # Anchor text diversity: same text at most once per article
             if used_anchors_global and opt.lower() in used_anchors_global:
                 continue
             pattern = re.compile(r"\b" + re.escape(opt) + r"\b", re.IGNORECASE)
             if pattern.search(text):
                 content_count = len([w for w in opt.lower().split() if w not in _STOPWORDS])
-                matching_options.append((content_count, len(opt), opt))
+                if best_match is None or content_count > best_match[0] or (content_count == best_match[0] and len(opt) > best_match[1]):
+                    best_match = (content_count, len(opt), opt)
 
-        # Sort by content word count desc, then total length desc (most specific wins)
-        matching_options.sort(reverse=True)
-        matched_anchor = matching_options[0][2] if matching_options else None
-
-        if not matched_anchor:
+        if best_match is None:
             continue
 
         matches.append({
-            "anchor_text": matched_anchor,
-            "url": cand.url,
-            "score": cand.topic_match_score,
+            "anchor_text": best_match[2],
+            "url": url,
+            "score": best_match[0],  # score by content word count
         })
 
-    # Prefer higher score, break ties by longer anchor text (more specific)
+    # Sort by content-word specificity desc, then anchor length desc
     matches.sort(key=lambda m: (-m["score"], -len(m["anchor_text"])))
 
-    # Deduplicate by URL
-    seen_urls = set()
+    # Deduplicate by URL and by anchor text (same anchor text → keep highest score)
+    seen_urls: set[str] = set()
+    seen_anchors: set[str] = set()
     deduped = []
     for m in matches:
-        if m["url"] not in seen_urls:
-            deduped.append(m)
-            seen_urls.add(m["url"])
+        if m["url"] in seen_urls:
+            continue
+        if m["anchor_text"].lower() in seen_anchors:
+            continue
+        deduped.append(m)
+        seen_urls.add(m["url"])
+        seen_anchors.add(m["anchor_text"].lower())
         if len(deduped) >= max_candidates:
             break
 
@@ -407,10 +384,11 @@ def main():
             # Gate 2: max 1 link per paragraph (spec §11.4.1-2)
             candidates_limit = min(MAX_LINKS_PER_PARAGRAPH, remaining_budget)
 
-            # Find matching candidates (combine article keyword + section topic for broader pool query)
-            combined_topic = f"{target_keyword} {h2_text}" if target_keyword else h2_text
+            # Find matching candidates using target keyword for pool query
+            # (short anchors score better against short topic queries)
+            pool_topic = target_keyword if target_keyword else h2_text
             matches = _find_matching_candidates(
-                paragraph_text, pool, combined_topic,
+                paragraph_text, pool, pool_topic,
                 used_urls_global | used_urls_section,
                 internal_keywords,
                 max_candidates=candidates_limit,
