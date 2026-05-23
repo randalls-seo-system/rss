@@ -301,13 +301,20 @@ Exactly 3 items.
 
 ---
 
-## 7.5 EXPLORE-RESOURCES HUB BOX (cluster link box)
+## 7.5 EXPLORE-RESOURCES HUB BOX (OPTIONAL — cluster hubs only)
 
-When the article belongs to a topic cluster with ≥3 sibling pages, include an
-Explore-Resources hub box between the ATF section and the main body. This box
-links the reader to related cluster articles and strengthens internal linking.
+The Explore-Resources hub box is an internal-link cluster block shown high in the
+article (between ATF FAQs and BLUF) that links to related cluster pages.
 
-### 7.5.1 Format
+This element is **OPTIONAL** and is generated only on explicit request for cluster
+hub pages — pages that anchor a topic cluster with multiple spoke articles. Standard
+articles do NOT include a hub box. Spoke pages within a cluster do NOT include a hub
+box (they are already linked FROM the hub).
+
+When generating a new article, the pipeline does NOT build a hub box by default.
+To request one, pass `--build-hub-box` to `assemble-article.py`.
+
+### 7.5.1 Format (when requested)
 ```html
 <aside class="rl-cluster-box">
   <h2>Explore {Topic} Resources</h2>
@@ -319,14 +326,14 @@ links the reader to related cluster articles and strengthens internal linking.
 </aside>
 ```
 
-### 7.5.2 Rules
+### 7.5.2 Rules (when hub box is built)
 - 7.5.2.1 Include 5-7 links to sibling/child pages in the same cluster.
 - 7.5.2.2 Links are sourced from the site's anchor pool cluster data. If cluster
   data is unavailable (new site, no cluster map), omit the hub box entirely.
 - 7.5.2.3 Do NOT duplicate links that already appear in the body — the hub box
   is for cluster navigation, body links are for contextual reading.
-- 7.5.2.4 The hub box is OPTIONAL. It is omitted when fewer than 3 cluster
-  siblings exist or when cluster data is not yet populated.
+- 7.5.2.4 Omit when fewer than 3 cluster siblings exist or when cluster data
+  is not yet populated.
 
 ---
 

@@ -56,3 +56,16 @@ Each site's `GSC_PROPERTY` is set in `sites/<slug>.conf` (e.g., `GSC_PROPERTY="s
   injection is single-pass via inject-internal-links.py only.
 - Anchor pool excludes the current article from its own link candidates.
 - H2s must be natural-language, not keyword-stuffed SEO-2012 patterns.
+
+## Hub box is opt-in
+
+The Explore Resources hub box (spec §7.5) is NOT a default article
+feature. It is only built when the user explicitly requests one for
+a specific cluster hub page (a page that anchors a topic cluster
+with multiple spoke articles).
+
+When generating a new article, do NOT pass --build-hub-box unless
+the user has specifically requested a hub box for that article.
+
+When auditing existing articles, do NOT flag missing hub boxes as
+defects.
