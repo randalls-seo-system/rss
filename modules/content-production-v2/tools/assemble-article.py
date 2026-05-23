@@ -139,6 +139,7 @@ class PipelineState:
     closing_html: str = ""
     btf_faqs_html: str = ""
     resources_html: str = ""
+    hub_box_html: str = ""
 
     # Phase H
     assembled_html: str = ""
@@ -986,7 +987,25 @@ def phase_g(state: PipelineState) -> None:
     except RuntimeError as e:
         raise RuntimeError(f"Phase G step 22 (Resources) failed.\nReason: {e}")
 
-    # Step 23: TOC — REMOVED. RSS TOC Manager renders TOC at WordPress level.
+    # Step 23: Hub box (Explore Resources cluster links, spec §7.5)
+    eprint("  [G.23] Building hub box")
+    hub_box_tool = TOOLS_DIR / "build-hub-box.py"
+    hub_box_path = state.output_dir / f"{state.post_id}-hub-box.html"
+    try:
+        _run_tool(str(hub_box_tool), [
+            "--site", state.site_slug,
+            "--target-keyword", state.target_keyword,
+            "--post-id", str(state.post_id),
+            "--output", str(hub_box_path),
+        ], "G.23")
+        state.hub_box_html = hub_box_path.read_text().strip()
+        if state.hub_box_html:
+            eprint(f"  [G.23] Hub box built ({state.hub_box_html.count('<li>')} links)")
+        else:
+            eprint("  [G.23] Hub box omitted (insufficient cluster pages)")
+    except RuntimeError as e:
+        eprint(f"  [G.23] Hub box build failed (non-blocking): {e}")
+        state.hub_box_html = ""
 
     state.phases_completed.append("G")
 
@@ -1035,6 +1054,8 @@ def phase_h(state: PipelineState) -> None:
         "\n".join(state.card_htmls),
         state.atf_faqs_html,
     ]
+    if state.hub_box_html:
+        parts.append(state.hub_box_html)
     if state.bluf_html:
         parts.append(state.bluf_html)
     parts.extend(state.body_section_htmls)  # includes mid CTA
@@ -1257,6 +1278,8 @@ def _write_manifest(state: PipelineState) -> dict:
         "atf_faq_count": 3,
         "btf_faq_count": btf_faq_count,
         "callout_count": callout_count,
+        "hub_box_present": bool(state.hub_box_html),
+        "hub_box_link_count": state.hub_box_html.count("<li>") if state.hub_box_html else 0,
         "internal_links_injected": internal_links,
         "external_links_count": external_links,
         "pending_links_count": len(state.pending_links),
