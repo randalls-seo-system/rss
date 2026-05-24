@@ -1,0 +1,102 @@
+#!/usr/bin/env bash
+#
+# RSS Layer 2 pre-commit hook
+# Rejects commits that add pipeline output or rendered article HTML.
+# Bypass with `git commit --no-verify` (leaves shell history evidence).
+#
+
+set -e
+
+# Check 1: Pipeline output file patterns
+PIPELINE_OUTPUT_PATTERNS=(
+  '.*-manifest\.json$'
+  '.*-article\.html$'
+  '.*-article\.pre-polish\.html$'
+  '.*-article-valn\.html$'
+  '.*-assembled-raw\.html$'
+  '.*-h2-[0-9]+\.html$'
+  '.*-bluf\.html$'
+  '.*-atf-faqs\.html$'
+  '.*-btf-faqs\.html$'
+  '.*-card-[0-9]+\.html$'
+  '.*-resources\.html$'
+  '.*-subtopic-gaps\.json$'
+  '.*-topic-context\.json$'
+  '.*-pending-links\.json$'
+  '.*-atf-faq-exclude\.json$'
+)
+
+# Get list of files staged for commit (added or modified)
+STAGED=$(git diff --cached --name-only --diff-filter=AM)
+
+VIOLATIONS=()
+for file in $STAGED; do
+  for pattern in "${PIPELINE_OUTPUT_PATTERNS[@]}"; do
+    if echo "$file" | grep -qE "$pattern"; then
+      VIOLATIONS+=("$file")
+      break
+    fi
+  done
+done
+
+if [ ${#VIOLATIONS[@]} -gt 0 ]; then
+  # Check for env var bypass (pre-commit runs before commit message is written,
+  # so we cannot inspect the commit message here)
+  if [ "${RSS_ALLOW_MANIFEST:-}" = "1" ]; then
+    echo "[Layer 2] Pipeline output files detected, but RSS_ALLOW_MANIFEST=1 — allowing."
+  else
+    echo ""
+    echo "❌ Layer 2 PRE-COMMIT HOOK REJECTED THIS COMMIT"
+    echo ""
+    echo "The following files match pipeline output patterns and don't belong in the repo:"
+    for f in "${VIOLATIONS[@]}"; do
+      echo "  - $f"
+    done
+    echo ""
+    echo "Pipeline outputs live in ~/valn-rewrite/articles-v2/ and deploy to"
+    echo "WordPress via push-post-content.py (SSH+SQL). They never enter git."
+    echo ""
+    echo "If you intentionally need to commit a fixture (e.g., for testing"
+    echo "the manifest format), set the env var and retry:"
+    echo "  RSS_ALLOW_MANIFEST=1 git commit -m \"your message\""
+    echo ""
+    echo "To bypass entirely (not recommended), use: git commit --no-verify"
+    exit 1
+  fi
+fi
+
+# Check 2: HTML in templates/examples directories must contain {{ placeholders
+TEMPLATE_DIRS_PATTERN='^modules/rl-components/(templates|examples)/.*\.html$'
+
+UNPARAMETERIZED=()
+for file in $STAGED; do
+  if echo "$file" | grep -qE "$TEMPLATE_DIRS_PATTERN"; then
+    # File is in templates or examples — must contain {{
+    if [ -f "$file" ] && ! grep -q '{{' "$file"; then
+      UNPARAMETERIZED+=("$file")
+    fi
+  fi
+done
+
+if [ ${#UNPARAMETERIZED[@]} -gt 0 ]; then
+  echo ""
+  echo "❌ Layer 2 PRE-COMMIT HOOK REJECTED THIS COMMIT"
+  echo ""
+  echo "The following files are in modules/rl-components/templates/ or"
+  echo "modules/rl-components/examples/ but contain no {{ placeholders }}:"
+  for f in "${UNPARAMETERIZED[@]}"; do
+    echo "  - $f"
+  done
+  echo ""
+  echo "Files in these directories are template scaffolds, not rendered"
+  echo "article content. Rendered articles should not be committed."
+  echo ""
+  echo "If this file is intentionally a non-templated example (e.g., a"
+  echo "static HTML reference), add a {{ comment }} explanation at the top"
+  echo "or move it to docs/ instead."
+  echo ""
+  exit 1
+fi
+
+# All checks passed
+exit 0
