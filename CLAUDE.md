@@ -186,3 +186,40 @@ the user has specifically requested a hub box for that article.
 
 When auditing existing articles, do NOT flag missing hub boxes as
 defects.
+
+## EVERY SESSION ENDS WITH A CLEAN WORKING TREE
+
+When a Claude Code session ends, the repo's working tree MUST be
+clean (`git status` returns "nothing to commit, working tree clean").
+
+This rule exists because dirty working trees create drift between
+sessions. A future session opens, sees uncommitted modifications
+from prior unseen work, and either bundles them into unrelated
+commits or wastes effort diagnosing what they are. This has
+happened repeatedly in this project's history.
+
+BEFORE ENDING A SESSION:
+1. Run `git status` and review what's modified.
+2. If the modifications represent completed work: commit them with
+   a descriptive message that matches the actual changes, and push
+   to origin.
+3. If the modifications are work-in-progress that you're abandoning:
+   either `git stash push -u -m "[descriptive label]"` (preserving
+   work for later) OR `git checkout .` (discarding work entirely).
+4. Confirm `git status` returns clean before ending.
+
+DO NOT END A SESSION WITH:
+- Uncommitted modifications in tracked files
+- Untracked files in the repo (untracked tools, logs, drafts —
+  these belong in ~/valn-logs/, ~/backups/, or /tmp/, NOT in the
+  repo)
+- A commit that hasn't been pushed to origin
+
+EXCEPTION: If the user explicitly instructs you to leave the tree
+dirty (e.g., "leave this for me to review later, don't commit"),
+acknowledge it explicitly in your final message so the next session
+knows.
+
+VERIFICATION: Every Claude Code session SHOULD end with a final
+`git status` output showing clean state, followed by the commit
+hash if work was committed.
