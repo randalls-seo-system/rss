@@ -334,18 +334,21 @@ def inject_links_into_content(
 
         section_html = modified[h2_end:next_h2_pos]
 
-        # Find paragraphs in this section
+        # Find paragraphs and list items in this section
         p_pattern = re.compile(r'<p[^>]*>(.*?)</p>', re.IGNORECASE | re.DOTALL)
+        li_pattern = re.compile(r'<li[^>]*>(.*?)</li>', re.IGNORECASE | re.DOTALL)
         p_matches = list(p_pattern.finditer(section_html))
+        li_matches = list(li_pattern.finditer(section_html))
+        all_matches = p_matches + li_matches
 
-        if not p_matches:
+        if not all_matches:
             continue
 
         # Try to inject 0-2 links in this section
         section_injected = 0
         max_per_section = 2
 
-        for p_match in p_matches[:4]:  # check first 4 paragraphs
+        for p_match in all_matches[:6]:  # check first 6 elements (p + li)
             if section_injected >= max_per_section:
                 break
 
