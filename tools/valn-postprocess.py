@@ -128,7 +128,7 @@ def _restructure_header(soup: BeautifulSoup, slug: str, title_id: str,
     header.append(card_inner)
 
     # Insert skip link
-    skip = soup.new_tag("a", attrs={"class": "vlnSkip", "href": "#vln-faqs"})
+    skip = soup.new_tag("a", attrs={"class": "vlnSkip", "href": f"#{slug}-faqs"})
     skip.string = "Skip to FAQs"
     card_inner.insert(0, skip)
 
@@ -391,8 +391,9 @@ def _convert_mid_ctas(soup: BeautifulSoup) -> None:
         cta_div.replace_with(pill)
 
 
-def _add_faq_id(soup: BeautifulSoup) -> None:
-    """Add id='vln-faqs' to the BTF FAQ section for skip link."""
+def _rename_closing_faq_id(soup: BeautifulSoup, slug: str) -> None:
+    """Rename closing FAQ section id from 'vln-faqs' to '{slug}-btf-faqs'."""
+    # Find the last FAQ H2 (closing FAQ, not ATF)
     btf_faq_h2 = None
     for h2 in soup.find_all("h2"):
         if "frequently asked questions" in h2.get_text(strip=True).lower():
@@ -400,9 +401,61 @@ def _add_faq_id(soup: BeautifulSoup) -> None:
     if btf_faq_h2:
         parent_section = btf_faq_h2.find_parent("section")
         if parent_section:
-            parent_section["id"] = "vln-faqs"
+            parent_section["id"] = f"{slug}-btf-faqs"
         else:
-            btf_faq_h2["id"] = "vln-faqs"
+            btf_faq_h2["id"] = f"{slug}-btf-faqs"
+
+
+def _wrap_atf_faqs(soup: BeautifulSoup, slug: str) -> None:
+    """Wrap ATF FAQ <details> elements in vlnSection / vlnSectionHead / vlnFaq."""
+    grid = soup.find("section", class_="vlnQuickGrid")
+    if not grid:
+        return
+
+    # Collect bare <details> elements between vlnQuickGrid and the body content
+    atf_details = []
+    for sibling in list(grid.next_siblings):
+        if isinstance(sibling, NavigableString) and sibling.strip() == "":
+            continue
+        if not hasattr(sibling, "name"):
+            continue
+        if sibling.name == "details":
+            atf_details.append(sibling)
+        elif sibling.name == "aside":
+            # Hub box sits here too — skip over it
+            continue
+        else:
+            # Hit a non-details, non-aside element — end of ATF FAQ region
+            break
+
+    if not atf_details:
+        return
+
+    # Build the wrapper structure
+    faq_section = soup.new_tag("section", attrs={
+        "id": f"{slug}-faqs",
+        "class": "vlnSection",
+        "aria-labelledby": f"{slug}-faqs-heading",
+    })
+
+    section_head = soup.new_tag("div", attrs={"class": "vlnSectionHead"})
+    h2 = soup.new_tag("h2", attrs={"id": f"{slug}-faqs-heading"})
+    h2.string = "Frequently Asked Questions"
+    section_head.append(h2)
+    faq_section.append(section_head)
+
+    faq_div = soup.new_tag("div", attrs={
+        "class": "vlnFaq",
+        "aria-label": "Quick FAQs",
+    })
+    faq_section.append(faq_div)
+
+    # Insert the wrapper where the first <details> was
+    atf_details[0].insert_before(faq_section)
+
+    # Move all ATF <details> into the vlnFaq div
+    for d in atf_details:
+        faq_div.append(d.extract())
 
 
 # ---------------------------------------------------------------------------
@@ -480,7 +533,7 @@ def _build_outer_wrap(soup: BeautifulSoup, slug: str, title_id: str) -> str:
     section_id = f"vln{slug.replace('-', ' ').title().replace(' ', '')}"
     atf_section = (
         f'<section id="{section_id}" class="vlnPage vlnPage-{slug}" data-vln-page="{slug}">\n'
-        f'  <a class="vlnSkip" href="#vln-faqs">Skip to FAQs</a>\n'
+        f'  <a class="vlnSkip" href="#{slug}-faqs">Skip to FAQs</a>\n'
         f'  <div class="vlnWrap">\n'
         f'{atf_html}\n'
         f'  </div>\n'
@@ -539,11 +592,14 @@ def postprocess(html: str, slug: str, title_id: str,
     # E. Wrap tables
     _wrap_tables(soup)
 
-    # G. Wrap FAQ answers
+    # G. Wrap FAQ answers in <div class="ans">
     _wrap_faq_answers(soup)
 
-    # Add FAQ id for skip link
-    _add_faq_id(soup)
+    # G2. Wrap ATF FAQs in vlnSection / vlnSectionHead / vlnFaq
+    _wrap_atf_faqs(soup, slug)
+
+    # G3. Rename closing FAQ id to {slug}-btf-faqs (frees #{slug}-faqs for ATF)
+    _rename_closing_faq_id(soup, slug)
 
     # H. Wrap body content
     _wrap_body_content(soup)
