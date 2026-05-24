@@ -132,6 +132,10 @@ _GENERIC_PHRASES = frozenset({
     "your insurance", "their insurance", "an insurance",
     "this insurance", "that insurance", "the insurance",
     "a insurance", "texas home", "texas auto",
+    # Insurance-generic 2-word phrases too ambiguous for specific destinations
+    "insurance costs", "insurance rates", "insurance coverage",
+    "insurance policy", "insurance claims", "coverage options",
+    "policy coverage", "damage coverage", "personal coverage",
     # Geo-generic phrases that appear in every local-business article
     "in san antonio", "san antonio tx", "pizza in san antonio",
     "in san antonio tx", "for san antonio", "near san antonio",
@@ -240,10 +244,10 @@ def _build_phrase_index(pool: AnchorPool, exclude_post_id: int) -> list:
         kw = dest.get("primary_keyword", "")
         anchors = dest.get("anchors", [])
 
-        # Extract 3-4 word phrases from primary keyword (skip 2-word — too generic)
+        # Extract 2-4 word phrases from primary keyword
         kw_words = kw.split()
-        if 3 <= len(kw_words) <= 4:
-            if _is_quality_anchor(kw):
+        if 2 <= len(kw_words) <= 4:
+            if _is_quality_anchor(kw) and kw.lower() not in _GENERIC_PHRASES:
                 phrases.append((kw, url, 1.0))
         # For longer keywords, extract sliding windows of 3-4 words
         if len(kw_words) > 4:
@@ -256,10 +260,10 @@ def _build_phrase_index(pool: AnchorPool, exclude_post_id: int) -> list:
                         continue
                     phrases.append((chunk, url, 0.8))
 
-        # Include anchors from the AI-generated pool (3+ words only)
+        # Include anchors from the AI-generated pool (2-6 words)
         for anchor in anchors:
             words = anchor.split()
-            if len(words) >= 3 and len(words) <= 6:
+            if len(words) >= 2 and len(words) <= 6:
                 if anchor.lower() not in _GENERIC_PHRASES and _is_quality_anchor(anchor):
                     phrases.append((anchor, url, 0.9))
 
