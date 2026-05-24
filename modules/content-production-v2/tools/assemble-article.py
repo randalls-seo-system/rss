@@ -561,35 +561,51 @@ def _normalize_h2_titles(state: PipelineState, h2s: list[dict]) -> list[dict]:
         format_lines.append(f"  {i+1}. MUST be a {fmt.upper()} — {'ends with ?' if fmt == 'question' else 'no question mark'}")
     format_block = "\n".join(format_lines)
 
-    prompt = f"""You are titling H2 sections for an article about "{kw}".
-Intent: {state.intent}.
+    prompt = f"""You will receive a list of H2 titles and their required formats.
 
-Raw H2 inventory (from SERP gap analysis):
-{raw_list}
+For each H2:
+- If REQUIRED_FORMAT is 'statement': output as a statement.
+- If REQUIRED_FORMAT is 'question': output as a question ending with '?'.
 
-REQUIRED FORMAT per section (from the article template):
-{format_block}
+CRITICAL: Every H2 with REQUIRED_FORMAT='question' MUST end with '?'. If you output a question-format H2 without '?', you have failed the task.
 
-Rewrite each H2 as a natural-language section heading. RULES:
-- FOLLOW THE FORMAT REQUIREMENT above. If a section MUST be a QUESTION,
-  transform the raw H2 into a natural question (ending with ?). If it
-  MUST be a STATEMENT, keep it as a statement (no question mark).
-- When transforming a statement to a question, preserve the topic intent.
-  Example: "Buydown Costs by Type" → "How Much Does a Buydown Cost?"
-  Example: "Qualifying Conditions" → "Who Qualifies for a Buydown?"
-- FORBIDDEN PATTERNS (never use these):
+EXAMPLES OF TRANSFORMATION:
+- 'Buydown Costs by Type' + format=question → 'How Much Does a Buydown Cost?'
+- 'How the 1% Rule Affects a VA Loan' + format=question → 'How Does the 1% Rule Affect a VA Loan?'
+- 'What to Expect from a VA Loan Rate Buydown' + format=question → 'What Should You Expect from a VA Loan Rate Buydown?'
+- 'Can You Lower Your Rate?' + format=question → 'Can You Lower Your Rate?' (already a question, keep)
+- 'How Do Points Work?' + format=statement → 'How Do Points Work?' (keep — questions can stay questions)
+
+FORBIDDEN PATTERNS:
+NEVER output a body H2 containing 'FAQ' or 'FAQs'. These belong only in the closing FAQ section. If the input contains these words, rewrite to remove them. Examples:
+- 'VA Loan Buydown FAQs' + format=statement → 'Common VA Loan Buydown Questions'
+- 'Buydown FAQ Section' + format=question → 'What Are the Most Common Buydown Questions?'
+NEVER use these generic patterns:
   "What Is {kw}" → rewrite to a specific question or statement
   "How {kw} Works" → rewrite to describe the mechanism specifically
   "Who Qualifies For {kw}" → rewrite as "Are You Eligible?" or similar
   "Key Benefits of {kw}" → rewrite to name the specific benefit
   "{kw} Requirements" → rewrite to name what's actually required
   "Common Questions About {kw}" → remove entirely, FAQs handle this
-  "How Does {kw}" → rewrite to a concrete question
-  Any title containing "FAQ" or "FAQs" → rewrite as a specific question or statement
+
+ORDER: Return H2s in the SAME order as input. Do not skip, reorder, add, or remove titles. Output length must equal input length.
+
+ADDITIONAL RULES:
 - The full target keyword "{kw}" may appear in at most 2 of the H2s. Not all.
 - H2s should sound like a knowledgeable human writer, not a keyword tool.
 - Keep H2s 5-12 words each.
 - Preserve topical coverage of the original. Don't drop subtopics.
+
+---
+
+Article topic: "{kw}"
+Intent: {state.intent}
+
+Raw H2 inventory (from SERP gap analysis):
+{raw_list}
+
+REQUIRED FORMAT per section (from the article template):
+{format_block}
 
 Return a JSON array of strings, one H2 per array element, same order as input. No commentary, no markdown fences, just the JSON."""
 
@@ -639,9 +655,12 @@ Return a JSON array of strings, one H2 per array element, same order as input. N
             f"These H2 titles still contain SEO-spammy patterns. Fix them.\n\n"
             f"Current titles:\n{retry_list}\n\n"
             f"Target keyword: \"{kw}\"\n\n"
+            f"REQUIRED FORMAT per section:\n{format_block}\n\n"
             f"RULES: No title may start with 'What Is', 'How Does', 'Who Qualifies For', "
             f"'Key Benefits Of', or 'Common Questions About'. "
             f"The full keyword '{kw}' may appear in at most 2 titles. "
+            f"Every H2 with format=QUESTION must end with '?'. "
+            f"No H2 may contain 'FAQ' or 'FAQs'. "
             f"Rewrite every violating title to sound natural and specific.\n\n"
             f"Return a JSON array of strings. No commentary."
         )
@@ -667,6 +686,29 @@ Return a JSON array of strings, one H2 per array element, same order as input. N
             eprint("  [C.10b] Re-normalization succeeded.")
         else:
             eprint("  [C.10b] Re-normalization parse failed. Keeping first-pass titles.")
+
+    # Programmatic enforcement: question-format H2s MUST end with '?'
+    question_starters = re.compile(
+        r"^(who|what|how|when|where|why|is|are|can|do|does|will|should|would|could|which)\s",
+        re.IGNORECASE,
+    )
+    for i, h in enumerate(h2s):
+        if h.get("h2_format") == "question" and not h["title"].strip().endswith("?"):
+            title = h["title"].strip()
+            if question_starters.match(title):
+                # Already reads as a question, just missing punctuation
+                h2s[i]["title"] = title + "?"
+                eprint(f"  [C.10b] Appended '?' to question-format H2 #{i+1}: {h2s[i]['title']}")
+            else:
+                # Not a natural question — flag but don't break
+                eprint(f"  [C.10b] WARNING: H2 #{i+1} is format=question but not a question: {title}")
+
+    # Programmatic enforcement: no FAQ/FAQs in any body H2
+    for i, h in enumerate(h2s):
+        title_upper = h["title"].upper()
+        if "FAQS" in title_upper or "FAQ" in title_upper:
+            h2s[i]["title"] = re.sub(r"\bFAQs?\b", "Questions", h["title"], flags=re.IGNORECASE)
+            eprint(f"  [C.10b] Stripped FAQ from H2 #{i+1}: {h2s[i]['title']}")
 
     return h2s
 

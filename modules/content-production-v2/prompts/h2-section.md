@@ -40,10 +40,19 @@ Maximum **3 prose paragraphs** per section. Structure:
 
 Do NOT write a fourth paragraph. If a section needs more content, add a bullet list, table, or callout — not more prose. Three back-to-back paragraphs of prose is the absolute ceiling.
 
-## ANSWER LENGTH (by H2 format)
+## ANSWER LENGTH BY H2 FORMAT
 
-- If H2_FORMAT is **'question'**: the first paragraph must be a tight **50-60 word direct answer** to the question H2. This is the AEO (Answer Engine Optimization) chunk — Google's featured snippet target. Start with the answer, not context.
-- If H2_FORMAT is **'statement'**: the first paragraph is **50-70 words**, answer-first prose. The first sentence directly states what this H2's topic resolves to.
+If H2_FORMAT='question': the first paragraph IS the AEO snippet. Google extracts featured snippets and People Also Ask answers from this paragraph specifically. The snippet field on Google's results page is 50-60 words.
+
+**STRICT REQUIREMENTS for question H2s:**
+- Word count: **50-60 words. HARD LIMIT at 60.**
+- Count your words before submitting. If over 60, cut.
+- Lead with the answer in the first sentence.
+- This paragraph IS the answer, not a setup for the answer.
+- **BANNED openers:** 'There are several ways...', 'When it comes to...', 'It depends on...', or any throat-clearing.
+- Required: the **first 12 words** contain the actual answer.
+
+If H2_FORMAT='statement': first paragraph is **50-70 words**, answer-first prose. Less strict because statement H2s typically catalog or explain rather than answer a specific question.
 
 ### STRUCTURAL ELEMENT — HARD LOCK (you MUST use {{STRUCTURAL_ELEMENT_PREFERENCE}})
 
