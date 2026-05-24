@@ -223,3 +223,32 @@ knows.
 VERIFICATION: Every Claude Code session SHOULD end with a final
 `git status` output showing clean state, followed by the commit
 hash if work was committed.
+
+## DEPLOYS MUST GO THROUGH push-post-content.py
+
+All article content deploys to WordPress for any RSS-tracked site
+MUST go through modules/wp-deploy/tools/push-post-content.py.
+
+This script enforces Layer 3: it requires a valid pipeline manifest
+(*-manifest.json in the article's output directory) as proof the
+content came from the RSS pipeline.
+
+DO NOT bypass push-post-content.py via:
+- Direct `wp post update --post_content=...` over SSH
+- Raw SQL `UPDATE wp_posts SET post_content = UNHEX(...)` over SSH
+- WordPress admin paste of article HTML
+- Any other mechanism that doesn't validate the manifest
+
+WHEN BYPASS IS LEGITIMATE:
+- Emergency rollback to a known-good prior version (restore from
+  a backup HTML file that predates the current Layer 3 system)
+- Redeploying pre-Layer-3 archive content that has no manifest
+- Tooling experiments in a non-production site (still rare)
+
+In legitimate bypass cases, use `--allow-no-manifest` on
+push-post-content.py. The script prints a warning and proceeds.
+This leaves an obvious trail in the deploy log.
+
+DO NOT use raw SSH+SQL for content deploys even in bypass cases
+— always go through push-post-content.py so the bypass is
+documented.

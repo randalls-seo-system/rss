@@ -22,10 +22,13 @@ Usage:
 
 import argparse
 import csv
+import glob
+import json
 import os
 import sys
 import tempfile
 import time
+from datetime import datetime, timezone
 from pathlib import Path
 
 MODULE_ROOT = Path(__file__).resolve().parents[1]
@@ -33,6 +36,71 @@ sys.path.insert(0, str(MODULE_ROOT / 'lib'))
 
 from ssh_session import SSHSession
 from php_template import generate_post_update_script
+
+
+REQUIRED_PHASES = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I']
+
+
+def validate_manifest(html_file, max_age_hours=168):
+    """Find and validate a pipeline manifest alongside the HTML file.
+
+    Returns (ok: bool, message: str, manifest: dict|None).
+    """
+    html_dir = os.path.dirname(os.path.abspath(html_file))
+    manifests = glob.glob(os.path.join(html_dir, '*-manifest.json'))
+
+    if not manifests:
+        return False, f"No pipeline manifest found in {html_dir}", None
+
+    # Take most recent by mtime if multiple
+    manifest_path = max(manifests, key=os.path.getmtime)
+    try:
+        with open(manifest_path) as f:
+            manifest = json.load(f)
+    except (json.JSONDecodeError, OSError) as e:
+        return False, f"Failed to read manifest {manifest_path}: {e}", None
+
+    # Required fields
+    errors = []
+    for field in ('target_keyword', 'intent', 'site'):
+        val = manifest.get(field)
+        if not val or not isinstance(val, str) or not val.strip():
+            errors.append(f"'{field}' missing or empty")
+
+    phases = manifest.get('phases_completed', [])
+    missing_phases = [p for p in REQUIRED_PHASES if p not in phases]
+    if missing_phases:
+        errors.append(f"phases_completed missing {missing_phases}")
+
+    llm_calls = manifest.get('llm_calls_total', 0)
+    if not isinstance(llm_calls, (int, float)) or llm_calls <= 0:
+        errors.append("llm_calls_total must be > 0")
+
+    ts_str = manifest.get('timestamp', '')
+    if ts_str:
+        try:
+            ts = datetime.fromisoformat(ts_str)
+            if ts.tzinfo is None:
+                ts = ts.replace(tzinfo=timezone.utc)
+            age_hours = (datetime.now(timezone.utc) - ts).total_seconds() / 3600
+            if age_hours > max_age_hours:
+                errors.append(f"timestamp is {age_hours:.0f}h old (max {max_age_hours}h)")
+        except ValueError:
+            errors.append(f"timestamp '{ts_str}' is not valid ISO format")
+    else:
+        errors.append("'timestamp' missing")
+
+    if errors:
+        msg = (f"Manifest validation failed ({os.path.basename(manifest_path)}):\n"
+               + '\n'.join(f"  - {e}" for e in errors))
+        return False, msg, manifest
+
+    age_str = f"{age_hours:.0f}h" if ts_str else "unknown"
+    msg = (f"Manifest verified: target_keyword='{manifest['target_keyword']}', "
+           f"intent='{manifest['intent']}', "
+           f"phases_completed={manifest['phases_completed']}, "
+           f"age={age_str}")
+    return True, msg, manifest
 
 
 def backup_post(ssh, post_id, backup_dir):
@@ -188,6 +256,10 @@ def main():
     parser.add_argument('--sleep-between', type=int, default=5)
     parser.add_argument('--dry-run', action='store_true')
     parser.add_argument('--halt-on-fail', action='store_true', default=True)
+    parser.add_argument('--allow-no-manifest', action='store_true',
+                        help='Bypass manifest check (emergency rollback only)')
+    parser.add_argument('--manifest-max-age-hours', type=int, default=168,
+                        help='Maximum manifest age in hours (default: 168 = 7 days)')
     args = parser.parse_args()
 
     if not args.post_id and not args.batch_csv:
@@ -221,6 +293,32 @@ def main():
         html_path = task.get('html_path', task.get('html_file', ''))
 
         print(f"[{i+1}/{len(tasks)}] Post {post_id}", end=' ')
+
+        # Layer 3: manifest check
+        manifest_ok, manifest_msg, _ = validate_manifest(
+            html_path, max_age_hours=args.manifest_max_age_hours)
+        if not manifest_ok:
+            if args.allow_no_manifest:
+                print()
+                print(f"  WARNING: Bypassing manifest check. This deploy has no proof of")
+                print(f"  pipeline origin. Bypass should only be used for emergency")
+                print(f"  rollbacks or redeploying pre-Layer-3 content.")
+                print(f"  Reason: {manifest_msg}")
+            else:
+                print(f"→ DEPLOY REJECTED")
+                print(f"  {manifest_msg}")
+                print(f"  Layer 3 requires a manifest as proof the content came from the RSS pipeline.")
+                print(f"  To bypass (rare cases like emergency rollback): pass --allow-no-manifest")
+                fail_count += 1
+                if args.halt_on_fail and not args.dry_run:
+                    print(f"\nHALTED. {success_count} ok, {fail_count} failed.")
+                    sys.exit(1)
+                continue
+        else:
+            print()
+            print(f"  {manifest_msg}")
+
+        print(f"  Pushing...", end=' ')
 
         ok, details = push_single_post(
             ssh, post_id, html_path, args.status,
