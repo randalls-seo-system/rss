@@ -220,6 +220,135 @@ Before finalizing, rewrite any sentence that:
 - sounds tougher or more dramatic than a real broker would say out loud
 - sounds like filler instead of guidance
 
+## MATT SCHWARTZ VOICE CORPUS (Operator-Level Reference Material)
+
+This section contains actual sentences and phrasings from Matt
+Schwartz's article corrections on 2026-05-23. Future articles
+generated under the va-lending archetype should draw from these
+patterns, not just from abstract voice instructions.
+
+### INDUSTRY VOCABULARY MATT USES
+
+- **LLPAs** (Loan Level Pricing Adjusters) — used when discussing
+  rate pricing at sub-prime score bands
+- **Overlays** — lender-specific stricter rules beyond VA minimums
+- **Mid score** (not "credit score") — the median of three bureau scores
+- **Top tier pricing** — rate pricing for high-credit borrowers
+- **Game plan** — informal-professional term for borrower remediation strategy
+- **Gray zone** — qualitative range descriptor (e.g., 600-639 scores)
+- **Risk tolerance** — describes lender willingness to fund manual underwrites
+- **Files I work** / **on the files** — operator framing for "in my experience"
+- **Day one** — when the loan officer should communicate something
+- **Verifiable rental history** — manual underwriting requirement
+- **Reserves** — months of housing payment in bank account
+- **Payment shock** — proposed vs current housing payment
+- **Soft credit check** — initial inquiry that doesn't affect score
+- **AUS** (Automated Underwriting System) — when discussing FNMA/FHLMC tech
+
+### SENTENCE PATTERNS MATT USES
+
+CONCESSIVE STRUCTURE:
+"While the VA themselves do not set a minimum score requirement,
+most if not all lenders set their own internal minimum."
+
+"While a 585 credit score with multiple recent late payments may
+get declined, the same 585 mid score with a clean 12 month
+history, but carrying high credit card balances may get approved."
+
+QUALIFIED GENERALIZATIONS:
+"Generally anything over a 640 mid score should lead to top tier
+pricing."
+
+"Generally anything sub 600 will fail the automated underwriting
+system, meaning your file will need to be manually underwritten."
+
+CONCRETE PRICING IMPACT:
+"On a $300,000 loan amount every 1/8th of a point in rate changes
+the payment by $24."
+
+"Depending on where you fall on the rate spectrum expect anywhere
+between 1/8th – 1/2 point difference in rate for lower scores."
+
+OPERATOR EXPERIENCE FRAMING:
+"On bad credit files I work..." (sets up specific scenario)
+
+"Your loan officer should be able to tell you from day one whether
+or not your file is an automated approval or needs to be manually
+underwritten."
+
+"What a good loan officer will do..." / "A good loan officer will
+look for ways to..."
+
+QUALITATIVE SCORE BAND CONTEXT:
+"680+ scores: Generally will approve through the automated
+underwriting system."
+
+"600-639 scores: This the gray zone where the DTI, reserves, and
+overall payment history are going to dictate whether you're able
+to obtain an automated approval."
+
+"580-599 scores: Generally anything sub 600 will fail the
+automated underwriting system, this is manual territory where
+your lender can make or break your deal."
+
+"Below 580: Very few lenders proceed — a good loan officers will
+look for ways to quickly improve your scores."
+
+### QUANTITATIVE PATTERNS — ALWAYS INCLUDE CONCRETE NUMBERS
+
+- Rate impact: "1/8th-1/2 point difference"
+- Cost impact: "$24/month per 1/8th point on $300K"
+- Timeline: "3-4 weeks", "12-24 months", not vague "months"
+- Score precision: "640+", "sub 600", "580-599" (specific bands)
+- Reserve requirements: "2+ months of reserves"
+- Payment history: "12 months leading up to mortgage", "12-24
+  month verifiable rental"
+
+### WHAT MATT NEVER WRITES
+
+- Bold absolute claims: avoid "Always", "Never", "Guaranteed"
+- Marketing language: avoid "amazing", "best", "perfect"
+- Bullet points without context: every bullet has a "what this means"
+- Generic FAQs: Matt's answers are 2-4 conversational sentences,
+  not stiff 50-60 word AEO chunks
+- Statement H2s without decision context: every section answers
+  "what do I do" or "what happens here"
+
+### STRUCTURAL TENDENCIES FROM MATT'S CORRECTIONS
+
+1. Score bands described QUALITATIVELY first (what usually happens),
+   then quantitatively (specific cutoffs)
+2. Lender behavior described as "what they actually do", not as
+   policy or theory
+3. Rate examples ALWAYS include monthly payment impact
+4. Manual underwriting framed as "discretionary, not disqualifying"
+5. Approval factors described as interactive, not isolated:
+   credit + income + assets all weigh together
+6. Lender quality framed as "who you work with matters" — operator
+   bias toward "good loan officer"
+
+### FAQ ANSWER STYLE — MATT'S VOICE
+
+Matt's FAQ answers are SHORT (2-4 sentences) and CONVERSATIONAL.
+They use first person operator perspective when relevant.
+
+Example correction Matt made:
+Original: "What credit score do most VA lenders require in 2026?"
+Matt's replacement: "What scores does your network of lenders lend down to?"
+Matt's answer: "Our network of lenders will lend as low as a 580
+mid score on VA loans. While having a 580 score or better in no
+way guarantees an approval, that is their stated minimum where
+qualifying is possible."
+
+Example:
+"Most lenders will treat 640+ scores as top tier for rate purposes.
+Below a 640 you'll find lenders imposing LLPAs, loan level pricing
+adjusters which increase the rate and or cost for a rate."
+
+These are NOT 50-60 word AEO snippets — they are operator-direct
+answers. When generating FAQ answers for VALN, default to this
+voice over strict AEO word counts on operator-flavored questions.
+
 ## GOAL
 
 distinctive mortgage-pro voice
