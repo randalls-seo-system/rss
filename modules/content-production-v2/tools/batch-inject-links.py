@@ -82,7 +82,7 @@ def _inject_link_in_html(html_str: str, anchor_text: str, url: str) -> tuple:
 # ---------------------------------------------------------------------------
 
 def _ssh_cmd(config: dict) -> list:
-    key = os.path.expanduser(config.get("SSH_KEY_PATH", ""))
+    key = os.path.expandvars(os.path.expanduser(config.get("SSH_KEY_PATH", "")))
     return ["ssh", "-i", key, "-o", "IdentitiesOnly=yes",
             f"{config['SSH_USER']}@{config['SSH_HOST']}"]
 
@@ -132,6 +132,10 @@ _GENERIC_PHRASES = frozenset({
     "your insurance", "their insurance", "an insurance",
     "this insurance", "that insurance", "the insurance",
     "a insurance", "texas home", "texas auto",
+    # Geo-generic phrases that appear in every local-business article
+    "in san antonio", "san antonio tx", "pizza in san antonio",
+    "in san antonio tx", "for san antonio", "near san antonio",
+    "of san antonio", "san antonio pizza",
 })
 
 # Stopwords — phrases dominated by these are not descriptive enough for anchors
@@ -153,16 +157,19 @@ CTA_ALLOWLIST = frozenset({
 })
 
 
-def _normalize_url(url: str) -> str:
+def _normalize_url(url: str, site_domain: str = "") -> str:
     """Normalize a URL for dedup comparison.
 
     Strips trailing slash, query string, fragment, lowercases host,
-    resolves absolute valoannetwork.com URLs to relative paths.
+    resolves absolute site URLs to relative paths.
     """
     if not url:
         return ""
     # Strip absolute domain variants to relative path
-    for domain in ("valoannetwork.com", "valoannetwostg.wpenginepowered.com"):
+    domains = ["valoannetwork.com", "valoannetwostg.wpenginepowered.com"]
+    if site_domain and site_domain not in domains:
+        domains.append(site_domain)
+    for domain in domains:
         if domain in url:
             idx = url.find(domain)
             slash = url.find("/", idx + len(domain))
@@ -176,7 +183,7 @@ def _normalize_url(url: str) -> str:
     return url.lower()
 
 
-def _extract_existing_internal_urls(content: str) -> set:
+def _extract_existing_internal_urls(content: str, site_domain: str = "") -> set:
     """Scan content for all internal <a href> destinations already present.
 
     Returns a normalized set of destination URLs, EXCLUDING CTA allowlist URLs.
@@ -192,10 +199,11 @@ def _extract_existing_internal_urls(content: str) -> set:
             (href.startswith("/") and not href.startswith("//"))
             or "valoannetwork.com" in href
             or "valoannetwostg" in href
+            or (site_domain and site_domain in href)
         )
         if not is_internal:
             continue
-        normalized = _normalize_url(href)
+        normalized = _normalize_url(href, site_domain=site_domain)
         # Skip CTA allowlist — those are permitted to repeat
         if normalized in CTA_ALLOWLIST:
             continue
@@ -272,6 +280,7 @@ def inject_links_into_content(
     pool: AnchorPool,
     post_id: int,
     internal_keywords: set,
+    site_domain: str = "",
 ) -> tuple:
     """Inject contextual internal links into post content.
 
@@ -293,7 +302,7 @@ def inject_links_into_content(
     # Pre-populate used_urls from links already in the content (dedup gate).
     # This prevents re-processing from creating duplicate destinations.
     # CTA URLs (e.g. /compare-loan-offers/) are excluded — they repeat by design.
-    used_urls = _extract_existing_internal_urls(content)
+    used_urls = _extract_existing_internal_urls(content, site_domain=site_domain)
     used_anchors = set()
     total_injected = 0
     link_details = []
@@ -345,7 +354,7 @@ def inject_links_into_content(
 
             # Scan for phrase matches
             for phrase, url, score in phrase_index:
-                normalized_url = _normalize_url(url)
+                normalized_url = _normalize_url(url, site_domain=site_domain)
                 if normalized_url in used_urls:
                     continue
                 if phrase.lower() in used_anchors:
@@ -400,6 +409,7 @@ def main():
 
     config = load_site_config(args.site)
     pool = AnchorPool(args.site)
+    site_domain = config.get("SITE_DOMAIN", "")
 
     if not pool._destinations:
         print(f"ERROR: No anchor pool for site '{args.site}'")
@@ -408,6 +418,7 @@ def main():
 
     internal_keywords = pool.get_internal_keywords_set()
     print(f"Anchor pool: {len(pool._destinations)} destinations, {len(internal_keywords)} keywords")
+    print(f"Site domain: {site_domain}")
 
     # Get list of published posts (pipe SQL via stdin)
     sql = "SELECT ID, post_name FROM wp_posts WHERE post_type='post' AND post_status='publish' ORDER BY ID;"
@@ -451,7 +462,7 @@ def main():
 
         # Inject
         modified, link_count, details = inject_links_into_content(
-            content, pool, pid, internal_keywords
+            content, pool, pid, internal_keywords, site_domain=site_domain
         )
 
         if link_count == 0:
