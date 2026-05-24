@@ -520,11 +520,13 @@ def _build_h2_inventory(state: PipelineState) -> list[dict]:
             h2["structural_element"] = stype
             h2["template_role"] = tmpl.get("role", "")
             h2["template_hint"] = tmpl.get("hint", "")
+            h2["h2_format"] = tmpl.get("h2_format", "statement")
         else:
             # Sections beyond template range get prose_optional_table → bullets
             h2["structural_element"] = "bullets"
             h2["template_role"] = "overflow"
             h2["template_hint"] = ""
+            h2["h2_format"] = "statement"
 
         # Assign callout key/label for callout-type sections
         if h2["structural_element"] == "callout":
@@ -551,13 +553,30 @@ def _normalize_h2_titles(state: PipelineState, h2s: list[dict]) -> list[dict]:
     raw_hash = hashlib.md5(raw_list.encode()).hexdigest()[:12]
 
     kw = state.target_keyword
+
+    # Build format requirements from template
+    format_lines = []
+    for i, h in enumerate(h2s):
+        fmt = h.get("h2_format", "statement")
+        format_lines.append(f"  {i+1}. MUST be a {fmt.upper()} — {'ends with ?' if fmt == 'question' else 'no question mark'}")
+    format_block = "\n".join(format_lines)
+
     prompt = f"""You are titling H2 sections for an article about "{kw}".
 Intent: {state.intent}.
 
 Raw H2 inventory (from SERP gap analysis):
 {raw_list}
 
+REQUIRED FORMAT per section (from the article template):
+{format_block}
+
 Rewrite each H2 as a natural-language section heading. RULES:
+- FOLLOW THE FORMAT REQUIREMENT above. If a section MUST be a QUESTION,
+  transform the raw H2 into a natural question (ending with ?). If it
+  MUST be a STATEMENT, keep it as a statement (no question mark).
+- When transforming a statement to a question, preserve the topic intent.
+  Example: "Buydown Costs by Type" → "How Much Does a Buydown Cost?"
+  Example: "Qualifying Conditions" → "Who Qualifies for a Buydown?"
 - FORBIDDEN PATTERNS (never use these):
   "What Is {kw}" → rewrite to a specific question or statement
   "How {kw} Works" → rewrite to describe the mechanism specifically
@@ -566,13 +585,8 @@ Rewrite each H2 as a natural-language section heading. RULES:
   "{kw} Requirements" → rewrite to name what's actually required
   "Common Questions About {kw}" → remove entirely, FAQs handle this
   "How Does {kw}" → rewrite to a concrete question
-- EXAMPLES OF GOOD REWRITES:
-  "What Is VA Funding Fee" → "The Fee Most Veterans Pay at Closing"
-  "How VA Loan Limits Work" → "Can You Buy Above the Conforming Limit?"
-  "Key Benefits of First-Time Homebuyer Programs" → "Grants That Don't Require Repayment"
-  "Who Qualifies For Down Payment Assistance" → "Income and Credit Thresholds"
+  Any title containing "FAQ" or "FAQs" → rewrite as a specific question or statement
 - The full target keyword "{kw}" may appear in at most 2 of the H2s. Not all.
-- Mix question-form H2s (ending in ?) and statement-form H2s. At least 2 questions, at least 2 statements.
 - H2s should sound like a knowledgeable human writer, not a keyword tool.
 - Keep H2s 5-12 words each.
 - Preserve topical coverage of the original. Don't drop subtopics.
@@ -883,6 +897,8 @@ def phase_f(state: PipelineState) -> None:
             args_list += ["--callout-label", h2["callout_label"]]
         if h2.get("template_hint"):
             args_list += ["--template-hint", h2["template_hint"]]
+        if h2.get("h2_format"):
+            args_list += ["--h2-format", h2["h2_format"]]
         if prior_sections_summary:
             args_list += ["--prior-sections-summary", prior_sections_summary]
 

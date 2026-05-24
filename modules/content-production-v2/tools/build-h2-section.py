@@ -130,6 +130,7 @@ def main():
     )
     parser.add_argument("--serp-json", required=True, help="Path to SERP JSON")
     parser.add_argument("--template-hint", default="", help="Role hint from structural template (e.g., 'Headline fee schedule or rate breakdown')")
+    parser.add_argument("--h2-format", default="statement", choices=["question", "statement"], help="H2 format: question (50-60w AEO answer) or statement (50-70w)")
     parser.add_argument("--prior-sections-summary", default="", help="Summary of prior sections for context continuity")
     parser.add_argument("--output", help="Output file path (default: stdout)")
     args = parser.parse_args()
@@ -161,6 +162,7 @@ def main():
     prompt = render_prompt(template, {
         "TARGET_KEYWORD": args.target_keyword,
         "H2_TITLE": args.h2_title,
+        "H2_FORMAT": args.h2_format,
         "SECTION_ROLE": args.section_role,
         "STRUCTURAL_ELEMENT_PREFERENCE": args.structural_element,
         "TEMPLATE_HINT": args.template_hint or "",

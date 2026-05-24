@@ -7,6 +7,7 @@ You are writing ONE body H2 section for an article about **{{TARGET_KEYWORD}}**.
 ## Inputs
 
 - **H2 title:** {{H2_TITLE}}
+- **H2 format:** {{H2_FORMAT}} (question or statement — determines answer length)
 - **Section role:** {{SECTION_ROLE}}
 - **LOCKED structural element:** {{STRUCTURAL_ELEMENT_PREFERENCE}}
 - **Template role hint:** {{TEMPLATE_HINT}}
@@ -23,19 +24,33 @@ Produce exactly this HTML structure:
 ```
 <section>
   <h2>{H2_TITLE}</h2>
-  <p>{Intro paragraph: 50-70 words, answer-first}</p>
-  <p>{Optional body paragraph: 60-100 words. Include if target word count requires it. May omit for shorter sections.}</p>
+  <p>{ANSWER paragraph — see ANSWER LENGTH rules below}</p>
+  <p>{Optional supporting paragraph — include only if needed}</p>
   {ONE structural element — LOCKED to {{STRUCTURAL_ELEMENT_PREFERENCE}}, see instructions below}
-  <p>{Optional closing paragraph: 40-80 words. Often a scenario, deal math application, or practical implication.}</p>
+  <p>{Optional closing paragraph — only if needed for practical application}</p>
 </section>
 ```
+
+## PARAGRAPH CAP — HARD LIMIT
+
+Maximum **3 prose paragraphs** per section. Structure:
+- **Paragraph 1 (REQUIRED):** the answer paragraph (see ANSWER LENGTH below)
+- **Paragraph 2 (optional):** supporting detail or context
+- **Paragraph 3 (optional):** closing note, scenario, or transition
+
+Do NOT write a fourth paragraph. If a section needs more content, add a bullet list, table, or callout — not more prose. Three back-to-back paragraphs of prose is the absolute ceiling.
+
+## ANSWER LENGTH (by H2 format)
+
+- If H2_FORMAT is **'question'**: the first paragraph must be a tight **50-60 word direct answer** to the question H2. This is the AEO (Answer Engine Optimization) chunk — Google's featured snippet target. Start with the answer, not context.
+- If H2_FORMAT is **'statement'**: the first paragraph is **50-70 words**, answer-first prose. The first sentence directly states what this H2's topic resolves to.
 
 ### STRUCTURAL ELEMENT — HARD LOCK (you MUST use {{STRUCTURAL_ELEMENT_PREFERENCE}})
 
 The structural element for this section is **locked by the article template**. You do NOT get to choose. Follow the instruction for "{{STRUCTURAL_ELEMENT_PREFERENCE}}" below:
 
 **If "table":**
-This section MUST be built around a TABLE. Use the role hint to design it: "{{TEMPLATE_HINT}}". Do NOT use bullets or callouts as the primary structure. Surrounding prose of 1-2 paragraphs is fine to frame the table.
+This section MUST be built around a TABLE. Use the role hint to design it: "{{TEMPLATE_HINT}}". Do NOT use bullets or callouts as the primary structure. Surrounding prose of 1-2 paragraphs is fine to frame the table. A bullet list is NOT needed alongside the table unless the prose genuinely warrants additional scannable points.
 ```
 <table>
   <thead><tr><th>...</th><th>...</th></tr></thead>
@@ -48,7 +63,7 @@ This section MUST be built around a TABLE. Use the role hint to design it: "{{TE
 Tables should have 3-7 columns and 3-12 rows. Include a header row. Data should be specific (numbers, rates, timelines), not vague.
 
 **If "callout":**
-This section MUST be built around a CALLOUT block. The callout is the centerpiece. Role hint: "{{TEMPLATE_HINT}}". Use the archetype voice. Do NOT use a table or bullets as the primary structure.
+This section MUST be built around a CALLOUT block. The callout is the centerpiece. Role hint: "{{TEMPLATE_HINT}}". Use the archetype voice. Do NOT use a table or bullets as the primary structure. A bullet list is NOT needed alongside the callout.
 ```
 <div class="rl-callout rl-callout--{{CALLOUT_KEY}}">
   <strong>{{CALLOUT_LABEL}}</strong>
@@ -65,22 +80,24 @@ This section MUST use BULLETS as the primary structure. Role hint: "{{TEMPLATE_H
   ...
 </ul>
 ```
-Lists should have 3-7 bullets. Each bullet is a substantive point, not a single word.
+Bullet rules:
+- **3-4 bullets** (not 5-7). Quality over quantity.
+- Each bullet **18+ words** — a substantive operational point, not a fragment.
+- Use **bold lead-ins** for scannability (e.g., `<strong>Documentation:</strong> ...`).
 
 **If "prose_optional_table":**
 Use prose. A table is OPTIONAL if the content benefits from one; otherwise just prose. Role hint: "{{TEMPLATE_HINT}}".
 
 ## Constraints
 
-- **Intro paragraph is REQUIRED.** 50-70 words. Answer-first: the first sentence directly states what this H2's topic resolves to.
-- **Do NOT include any internal links in the section HTML.** No `<a>` tags. Internal linking is handled by a separate post-processing step. Your job is content only.
-- **Optional body paragraph:** 60-100 words. Include when the section needs more depth to hit {{TARGET_WORD_COUNT}}.
+- **Answer paragraph is REQUIRED.** Word count per H2_FORMAT rules above.
+- **Do NOT include any internal links in the section HTML.** No `<a>` tags. Internal linking is handled by a separate post-processing step.
 - **EXACTLY ONE structural element.** It MUST be {{STRUCTURAL_ELEMENT_PREFERENCE}}. Do not substitute a different type.
-- **Optional closing paragraph:** 40-80 words. Include when the section benefits from a practical application or scenario.
+- **Maximum 3 paragraphs.** Do not write 4+ paragraphs of prose.
 - **Section total:** 200-450 words (all paragraphs combined, not counting structural element text).
 - ZERO links of any kind. No `<a>` tags anywhere in the section.
 - If {{STRUCTURAL_ELEMENT_PREFERENCE}} is "callout", use {{CALLOUT_KEY}} for the CSS class modifier and {{CALLOUT_LABEL}} for the visible heading text.
-- **Cross-section continuity:** If PRIOR_SECTIONS_SUMMARY is non-empty, do NOT re-state facts already covered in those sections. Pick up where the prior sections left off. Refer back to prior context if useful, but don't waste words re-establishing what the reader just read.
+- **Cross-section continuity:** If PRIOR_SECTIONS_SUMMARY is non-empty, do NOT re-state facts already covered. Pick up where prior sections left off.
 
 ## Anti-patterns
 
@@ -90,6 +107,7 @@ Do NOT produce any of the following:
 - More than one structural element (no table + bullets, no table + callout)
 - Empty sections with only an H2 and no structural element
 - Using a DIFFERENT structural element than {{STRUCTURAL_ELEMENT_PREFERENCE}} — this is a hard constraint, not a suggestion
+- **4+ paragraphs of prose** — use bullets, tables, or callouts for density instead
 - Em dashes (use commas, periods, or parentheses instead)
 - Filler words: "discover", "explore", "vibrant", "dive into", "let's", "we'll cover"
 - AI-tells: "navigate the complexities", "in today's fast-paced world", "robust", "leverage", "delve into", "unlock", "unveil"
