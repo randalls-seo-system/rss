@@ -216,12 +216,53 @@ def _extract_existing_internal_urls(content: str, site_domain: str = "") -> set:
     return existing
 
 
+_JUNK_ANCHOR_PATTERNS = [
+    # B - Filler phrases
+    "what to know about", "what you should know", "what you need to know",
+    "things to consider", "things to know", "here's what",
+    "everything you need",
+    # D - CTA language
+    "explore our", "discover the", "see how", "check out",
+    "find out", "learn more", "read more", "click here",
+    # C - Vague comparatives
+    "choosing the right", "picking the right", "finding the best",
+    "selecting the best", "how to choose", "how to pick", "how to select",
+    # E - Quantity filler
+    "top tips", "best practices", "top reasons",
+    # G - Vague nouns
+    "this guide", "your guide to", "our guide", "the guide to",
+    "this article", "this post", "additional information",
+    # A - Generic openers
+    "before you start", "before you begin", "getting started",
+    "where to begin", "where to start",
+]
+
+_JUNK_EXACT = frozenset({"what is", "how it works", "when to use"})
+_JUNK_QUANTITY_RE = re.compile(r'^\d+\s+(tips|things|ways|reasons)\b', re.IGNORECASE)
+
+
+def _is_junk_anchor(text: str) -> bool:
+    """Reject wrapper-phrase junk anchors (defense in depth)."""
+    lower = text.lower().strip()
+    if lower in _JUNK_EXACT:
+        return True
+    if _JUNK_QUANTITY_RE.match(lower):
+        return True
+    for pattern in _JUNK_ANCHOR_PATTERNS:
+        if pattern in lower:
+            return True
+    return False
+
+
 def _is_quality_anchor(phrase: str) -> bool:
     """Check if a phrase is descriptive enough to be anchor text.
 
     Rejects phrases where most words are stopwords, which produce
     garbage anchors like 'to the VA', 'and does not', 'it does not'.
+    Also rejects junk wrapper-phrase anchors.
     """
+    if _is_junk_anchor(phrase):
+        return False
     words = phrase.lower().split()
     if len(words) < 3:
         return len(words) >= 2  # 2-word phrases checked separately
