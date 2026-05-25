@@ -31,6 +31,10 @@ Produce exactly this HTML structure:
 </section>
 ```
 
+## CRITICAL CONSTRAINT — NO PROSE WALLS
+
+No single paragraph in any section may exceed **100 words**. This is a hard cap. If you have content that would exceed this, break it into bullets, a table, or multiple paragraphs. A paragraph between 80-100 words is acceptable but should be the exception, not the norm. A paragraph at 150+ words is a structural failure and will be rejected. **Count your words per paragraph before submitting.**
+
 ## PARAGRAPH CAP — HARD LIMIT
 
 Maximum **3 prose paragraphs** per section. Structure:
@@ -46,6 +50,8 @@ The structural_type assigned to each section determines what element is the visu
 
 **If structural_type = 'callout':**
 - Maximum **2 prose paragraphs** in the section
+- **Per-paragraph word limit: 80 words target, 100 words HARD CAP.** No single paragraph may exceed 100 words.
+- If you have more content than fits in 2 paragraphs of 80-100 words, USE BULLETS — bullets are the correct structure for multi-facet content.
 - One paragraph BEFORE the callout (the answer paragraph)
 - The callout block (the visual centerpiece)
 - Optionally one paragraph AFTER (transition or closing note)
@@ -53,6 +59,8 @@ The structural_type assigned to each section determines what element is the visu
 
 **If structural_type = 'table':**
 - Maximum **2 prose paragraphs** in the section
+- **Per-paragraph word limit: 80 words target, 100 words HARD CAP.** No single paragraph may exceed 100 words.
+- If you have more content than fits in 2 paragraphs of 80-100 words, USE BULLETS alongside the table.
 - One paragraph BEFORE the table (the answer paragraph)
 - The table (the visual centerpiece)
 - Optionally one paragraph AFTER
@@ -60,12 +68,14 @@ The structural_type assigned to each section determines what element is the visu
 
 **If structural_type = 'bullets':**
 - Maximum **1 prose paragraph** (the answer paragraph only)
+- **Per-paragraph word limit: 80 words target, 100 words HARD CAP.**
 - Then 3-4 bullets
 - Bullets are the dominant element
 - No closing prose paragraph after the bullets
 
 **If structural_type = 'prose' or 'prose_optional_table':**
 - Standard 3-paragraph cap applies
+- **Per-paragraph word limit: 80 words target, 100 words HARD CAP.**
 - No required structural element
 
 ## ANSWER LENGTH BY H2 FORMAT
