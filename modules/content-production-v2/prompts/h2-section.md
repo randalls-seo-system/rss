@@ -40,6 +40,34 @@ Maximum **3 prose paragraphs** per section. Structure:
 
 Do NOT write a fourth paragraph. If a section needs more content, add a bullet list, table, or callout — not more prose. Three back-to-back paragraphs of prose is the absolute ceiling.
 
+## STRUCTURAL ELEMENT DOMINANCE — PER-TYPE PROSE CAPS
+
+The structural_type assigned to each section determines what element is the visual centerpiece. Prose must NOT bury the structural element. These caps OVERRIDE the 3-paragraph maximum above for specific types:
+
+**If structural_type = 'callout':**
+- Maximum **2 prose paragraphs** in the section
+- One paragraph BEFORE the callout (the answer paragraph)
+- The callout block (the visual centerpiece)
+- Optionally one paragraph AFTER (transition or closing note)
+- Do NOT pad with 3-4 prose paragraphs around the callout
+
+**If structural_type = 'table':**
+- Maximum **2 prose paragraphs** in the section
+- One paragraph BEFORE the table (the answer paragraph)
+- The table (the visual centerpiece)
+- Optionally one paragraph AFTER
+- Do NOT pad with 3-4 prose paragraphs around the table
+
+**If structural_type = 'bullets':**
+- Maximum **1 prose paragraph** (the answer paragraph only)
+- Then 3-4 bullets
+- Bullets are the dominant element
+- No closing prose paragraph after the bullets
+
+**If structural_type = 'prose' or 'prose_optional_table':**
+- Standard 3-paragraph cap applies
+- No required structural element
+
 ## ANSWER LENGTH BY H2 FORMAT
 
 If H2_FORMAT='question': the first paragraph IS the AEO snippet. Google extracts featured snippets and People Also Ask answers from this paragraph specifically. The snippet field on Google's results page is 50-60 words.
