@@ -53,6 +53,7 @@ if _env_file.exists():
 from bs4 import BeautifulSoup
 
 from lib.anchor_pool import AnchorPool
+from lib.html_sanitizer import sanitize_assembled_html
 from lib.llm_client import LLMClient
 from lib.overlay_loader import load_overlay
 from lib.serp_adapter import SerpData
@@ -1130,6 +1131,22 @@ def phase_h(state: PipelineState) -> None:
     assembled = "\n\n".join(p for p in parts if p.strip())
     assembled_path = state.output_dir / f"{state.post_id}-assembled-raw.html"
     assembled_path.write_text(assembled)
+
+    # Step 24b: Sanitize assembled HTML (catches upstream defects)
+    eprint("  [H.24b] Running post-assembly sanitizer")
+    assembled, san_errors = sanitize_assembled_html(assembled)
+    if san_errors:
+        eprint(f"  [H.24b] SANITIZER HARD STOP — {len(san_errors)} error(s):")
+        for err in san_errors:
+            eprint(f"    FAIL: {err}")
+        sanitized_path = state.output_dir / f"{state.post_id}-assembled-sanitized.html"
+        sanitized_path.write_text(assembled)
+        raise RuntimeError(
+            f"Phase H step 24b (sanitizer) found {len(san_errors)} error(s). "
+            f"Fix upstream section builders.\n"
+            + "\n".join(f"  - {e}" for e in san_errors)
+        )
+    eprint("  [H.24b] Sanitizer: PASS")
 
     # Step 25: Inject internal links
     eprint("  [H.25] Injecting internal links")

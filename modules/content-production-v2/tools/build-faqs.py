@@ -58,14 +58,26 @@ def _word_count(text: str) -> int:
 # ---------------------------------------------------------------------------
 
 def validate_atf_faq(html: str) -> list[str]:
-    """Validate a single ATF FAQ <details> element."""
+    """Validate a single ATF FAQ <details> element.
+
+    Also rejects responses containing content outside <details> — catches
+    LLM reasoning leakage like "Wait, I used an en dash. Let me fix that."
+    """
     errors = []
     soup = BeautifulSoup(html, "html.parser")
 
-    details = soup.find("details")
-    if details is None:
+    # Check for exactly one <details> element
+    all_details = soup.find_all("details")
+    if len(all_details) == 0:
         errors.append("Missing <details> element")
         return errors
+    if len(all_details) > 1:
+        errors.append(
+            f"Expected 1 <details> element, found {len(all_details)} "
+            f"(possible LLM self-correction with duplicate)"
+        )
+
+    details = all_details[0]
 
     summary = details.find("summary")
     if summary is None:
@@ -78,6 +90,18 @@ def validate_atf_faq(html: str) -> list[str]:
     wc = _word_count(answer_text)
     if not (35 <= wc <= 60):
         errors.append(f"ATF FAQ answer is {wc} words, expected 35-60 (spec 7.4.3)")
+
+    # Reject content outside <details> (reasoning leakage)
+    # Use BS4 decompose to remove <details> elements, then check remaining text
+    soup_copy = BeautifulSoup(html, "html.parser")
+    for d in soup_copy.find_all("details"):
+        d.decompose()
+    outside_text = soup_copy.get_text(strip=True)
+    if len(outside_text) > 5:
+        errors.append(
+            f"Content outside <details> ({len(outside_text)} chars): "
+            f"'{outside_text[:80]}' — likely LLM reasoning leakage"
+        )
 
     return errors
 
@@ -124,6 +148,7 @@ def make_btf_validator(exclude_questions: list[str]):
             )
 
         exclude_lower = {q.lower().strip() for q in exclude_questions}
+        seen_questions = set()
         for d in details_list:
             summary = d.find("summary")
             if summary:
@@ -132,6 +157,22 @@ def make_btf_validator(exclude_questions: list[str]):
                     errors.append(
                         f"BTF FAQ overlaps with ATF: '{q_text[:50]}' (spec 14.3.1)"
                     )
+                if q_text in seen_questions:
+                    errors.append(
+                        f"Duplicate BTF FAQ question: '{q_text[:50]}'"
+                    )
+                seen_questions.add(q_text)
+
+        # Reject content outside <details> (reasoning leakage)
+        soup_copy = BeautifulSoup(html, "html.parser")
+        for d in soup_copy.find_all("details"):
+            d.decompose()
+        outside_text = soup_copy.get_text(strip=True)
+        if len(outside_text) > 5:
+            errors.append(
+                f"Content outside <details> ({len(outside_text)} chars): "
+                f"'{outside_text[:80]}' — likely LLM reasoning leakage"
+            )
 
         return errors
 
