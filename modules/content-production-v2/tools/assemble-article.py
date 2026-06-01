@@ -15,7 +15,9 @@ Usage:
         [--output-dir <path>]           \\
         [--skip-deploy]                 \\
         [--allow-no-serp]               \\
-        [--force]
+        [--force]                       \\
+        [--h2-override <json-file>]     \\
+        [--accept-generic]
 
 See docs/v2-module-architecture.md "tools/assemble-article.py" for pipeline.
 """
@@ -81,6 +83,105 @@ LLM_CALL_TIMEOUT = 300  # 5 minutes per LLM call
 # Mechanical tasks (H2 normalize, polish) use OpenAI to save Opus for content.
 MECHANICAL_PROVIDER = "openai"
 MECHANICAL_MODEL = "gpt-5.4-mini"
+
+# ---------------------------------------------------------------------------
+# Geo-scope filter — prevents multi-locale H2 drift on locale-specific articles
+# ---------------------------------------------------------------------------
+
+GEO_ADJACENCY = {
+    'austin': ['round rock', 'pflugerville', 'cedar park', 'leander', 'buda', 'kyle',
+               'dripping springs', 'lakeway', 'bee cave', 'georgetown', 'hutto',
+               'manor', 'travis county', 'williamson county'],
+    'san antonio': ['jbsa', 'lackland', 'randolph', 'fort sam houston', 'camp bullis',
+                    'alamo heights', 'stone oak', 'helotes', 'leon valley', 'shavano park',
+                    'live oak', 'converse', 'schertz', 'universal city', 'selma',
+                    'bexar county', 'castle hills', 'olmos park', 'terrell hills',
+                    'medical center', 'southtown', 'dominion', 'rogers ranch',
+                    'alamo ranch', 'pearl district', 'king william', 'monte vista'],
+    'killeen': ['fort cavazos', 'fort hood', 'harker heights', 'copperas cove',
+                'temple', 'belton', 'bell county'],
+    'new braunfels': ['gruene', 'canyon lake', 'comal county', 'garden ridge'],
+    'corpus christi': ['nas corpus christi', 'portland', 'flour bluff', 'calallen',
+                       'padre island', 'rockport', 'port aransas', 'nueces county'],
+    'boerne': ['fair oaks ranch', 'kendall county', 'comfort'],
+    'seguin': ['guadalupe county'],
+    'round rock': ['austin', 'pflugerville', 'cedar park', 'hutto', 'williamson county'],
+    'georgetown': ['sun city', 'williamson county', 'round rock'],
+}
+
+_ALL_GEOS = sorted(set([
+    'san antonio', 'austin', 'killeen', 'new braunfels', 'corpus christi',
+    'round rock', 'georgetown', 'boerne', 'seguin', 'pflugerville',
+    'cedar park', 'dripping springs', 'bastrop', 'marble falls',
+    'spring branch', 'bulverde', 'helotes', 'schertz', 'cibolo',
+    'converse', 'selma', 'buda', 'kyle', 'leander', 'hutto',
+    'temple', 'waco', 'fredericksburg', 'kerrville',
+    'fort cavazos', 'fort hood', 'jbsa', 'lackland', 'randolph',
+    'fort sam houston', 'camp bullis',
+    'abilene', 'dallas', 'houston', 'el paso', 'lubbock',
+    'wichita falls', 'del rio', 'laughlin', 'goodfellow',
+    'san marcos', 'canyon lake',
+    'alamo heights', 'stone oak', 'dominion', 'shavano park',
+    'terrell hills', 'olmos park', 'leon valley',
+    'portland', 'flour bluff', 'calallen', 'padre island',
+    'harker heights', 'copperas cove', 'belton',
+    'nas corpus christi',
+]), key=len, reverse=True)
+
+
+def _detect_multi_geo_intent(keyword: str) -> bool:
+    """Return True if the keyword indicates a multi-geo or statewide article."""
+    kw = keyword.lower()
+    if any(w in kw for w in [' vs ', ' versus ', ' compared to ', ' between ']):
+        return True
+    if any(w in kw for w in ['texas', 'central texas', 'hill country', 'statewide']):
+        return True
+    if re.search(r'best\s+\w+\s+(?:in|for|near)\b', kw):
+        after = re.search(r'best\s+\w+\s+(?:in|for|near)\s+(.+)', kw)
+        if after and not any(geo in after.group(1) for geo in _ALL_GEOS):
+            return True
+    return False
+
+
+def _filter_subtopics_by_geo(keyword: str, subtopics: list) -> list:
+    """Filter subtopics containing off-target geos. Returns filtered list."""
+    if _detect_multi_geo_intent(keyword):
+        return subtopics
+
+    kw = keyword.lower()
+    target_geo = None
+    for geo in _ALL_GEOS:
+        if geo in kw:
+            target_geo = geo
+            break
+    if not target_geo:
+        return subtopics
+
+    allowed = {target_geo}
+    if target_geo in GEO_ADJACENCY:
+        allowed.update(GEO_ADJACENCY[target_geo])
+
+    kept = []
+    for st in subtopics:
+        title = st if isinstance(st, str) else st.get('subtopic', st.get('heading', str(st)))
+        title_lower = title.lower() if isinstance(title, str) else str(title).lower()
+
+        if target_geo in title_lower:
+            kept.append(st)
+            continue
+
+        off_geo_found = False
+        for geo in _ALL_GEOS:
+            if geo in title_lower and geo not in allowed:
+                eprint(f"  [geo-filter] Dropped subtopic: '{title}' (contains off-target '{geo}')")
+                off_geo_found = True
+                break
+
+        if not off_geo_found:
+            kept.append(st)
+
+    return kept
+
 
 # Intent detection keywords (spec Section 1 table)
 _INTENT_TRIGGERS: dict[str, list[str]] = {
@@ -358,13 +459,52 @@ def phase_b(state: PipelineState, allow_no_serp: bool = False) -> None:
 # Phase C: Structure Planning
 # ---------------------------------------------------------------------------
 
+def _load_h2_override(state: PipelineState) -> list[dict]:
+    """Load manual H2 inventory from --h2-override JSON file."""
+    override_path = Path(state.h2_override_path)
+    if not override_path.exists():
+        raise RuntimeError(f"--h2-override file not found: {override_path}")
+
+    with open(override_path) as f:
+        data = json.load(f)
+
+    items = data.get("h2_inventory") or data
+    if not isinstance(items, list) or len(items) == 0:
+        raise RuntimeError(f"--h2-override JSON must contain a non-empty 'h2_inventory' list")
+
+    h2s = []
+    for item in items:
+        if isinstance(item, str):
+            h2s.append({"title": item, "role": "manual_override", "source": "h2_override"})
+        elif isinstance(item, dict):
+            title = item.get("title", "")
+            if not title:
+                raise RuntimeError(f"H2 override item missing 'title': {item}")
+            entry = {
+                "title": title,
+                "role": "manual_override",
+                "source": "h2_override",
+            }
+            if item.get("framing"):
+                entry["framing"] = item["framing"]
+            h2s.append(entry)
+
+    eprint(f"  [C.10] Loaded {len(h2s)} H2s from --h2-override")
+    for h in h2s:
+        eprint(f"    - {h['title']}")
+    return h2s
+
+
 def phase_c(state: PipelineState) -> None:
     """Build H2 inventory, header prelude, jump nav."""
     eprint("PHASE C: Structure Planning")
 
     # Step 10: Build H2 inventory
     eprint("  [C.10] Building H2 inventory")
-    h2s = _build_h2_inventory(state)
+    if getattr(state, "h2_override_path", None):
+        h2s = _load_h2_override(state)
+    else:
+        h2s = _build_h2_inventory(state)
     state.h2_inventory = h2s
     eprint(f"  [C.10] Raw H2 inventory: {len(h2s)} sections")
 
@@ -375,6 +515,29 @@ def phase_c(state: PipelineState) -> None:
     eprint(f"  [C.10b] Normalized H2 inventory: {len(h2s)} sections")
     for h in h2s:
         eprint(f"    - {h['title']} [{h['structural_element']}]")
+
+    # Safety check: detect generic-template H2s that signal fallback was used
+    _GENERIC_MARKERS = [
+        "what to expect", "common mistakes", "how to get started",
+        "how should you get started", "how do you get started",
+        "costs and timeline", "frequently overlooked", "next steps after",
+    ]
+    generic_count = sum(
+        1 for h in h2s
+        if any(m in h["title"].lower() for m in _GENERIC_MARKERS)
+    )
+    if generic_count >= 4:
+        if not getattr(state, "accept_generic", False):
+            raise RuntimeError(
+                f"SAFETY: {generic_count} of {len(h2s)} H2s match generic-template "
+                f"patterns. This usually means SERP scraping failed and the pipeline "
+                f"fell back to template H2s. Article quality will be poor.\n"
+                f"  Options:\n"
+                f"  1. Supply --h2-override <json-file> with topic-specific H2s\n"
+                f"  2. Pass --accept-generic to override this check (not recommended)\n"
+                f"  H2s: {[h['title'] for h in h2s]}"
+            )
+        eprint(f"  [C.10] WARNING: {generic_count} generic-template H2s detected, --accept-generic overriding")
 
     # Step 11: Build header prelude (deterministic)
     eprint("  [C.11] Building header prelude")
@@ -422,17 +585,12 @@ Return a JSON array of {needed} strings. No commentary."""
     except (json.JSONDecodeError, ValueError):
         pass
 
-    # Hard fallback if LLM fails (should be rare)
-    eprint("  [C.10] Warning: LLM fallback H2 generation failed, using minimal defaults")
-    generic = [
-        f"What to Expect with {kw.title()}",
-        f"Common Mistakes to Avoid",
-        f"How to Get Started",
-        f"Costs and Timeline Breakdown",
-        f"Frequently Overlooked Details",
-        f"Next Steps After Reading This",
-    ]
-    return generic[:needed]
+    # Hard fallback — FATAL: do not silently produce generic-template articles
+    raise RuntimeError(
+        "FATAL: SERP scraper yielded zero usable subtopics AND LLM fallback H2 "
+        "generation failed. Pipeline cannot generate topic-specific H2s. "
+        "Supply --h2-override <json-file> with manual H2 inventory, or fix SERP data."
+    )
 
 
 def _build_h2_inventory(state: PipelineState) -> list[dict]:
@@ -452,6 +610,15 @@ def _build_h2_inventory(state: PipelineState) -> list[dict]:
     high_cov = state.subtopic_gaps.get("high_coverage", [])
     med_cov = state.subtopic_gaps.get("medium_coverage", [])
     low_cov = state.subtopic_gaps.get("low_coverage_gaps", [])
+
+    # Geo-scope filter: drop subtopics containing off-target geo terms
+    pre_count = len(high_cov) + len(med_cov) + len(low_cov)
+    high_cov = _filter_subtopics_by_geo(state.target_keyword, high_cov)
+    med_cov = _filter_subtopics_by_geo(state.target_keyword, med_cov)
+    low_cov = _filter_subtopics_by_geo(state.target_keyword, low_cov)
+    post_count = len(high_cov) + len(med_cov) + len(low_cov)
+    if post_count < pre_count:
+        eprint(f"  [C.10] Geo-filter: dropped {pre_count - post_count} off-target subtopic(s)")
 
     # Build H2 titles from gaps
     def _extract_gap_title(item):
@@ -528,6 +695,10 @@ def _build_h2_inventory(state: PipelineState) -> list[dict]:
             h2["template_role"] = "overflow"
             h2["template_hint"] = ""
             h2["h2_format"] = "statement"
+
+        # For h2-override entries, inject framing as template_hint if not already set
+        if h2.get("source") == "h2_override" and h2.get("framing") and not h2.get("template_hint"):
+            h2["template_hint"] = h2["framing"]
 
         # Assign callout key/label for callout-type sections
         if h2["structural_element"] == "callout":
@@ -1412,6 +1583,8 @@ def main():
     parser.add_argument("--force", action="store_true", help="Overwrite existing outputs")
     parser.add_argument("--skip-polish", action="store_true", help="Skip final prose polish LLM pass")
     parser.add_argument("--build-hub-box", action="store_true", help="Build Explore Resources hub box (opt-in for cluster hub pages)")
+    parser.add_argument("--h2-override", help="JSON file with manual H2 inventory (skips SERP-driven H2 generation)")
+    parser.add_argument("--accept-generic", action="store_true", help="Override generic-template H2 safety check (not recommended)")
     args = parser.parse_args()
 
     # Initialize state
@@ -1422,6 +1595,8 @@ def main():
     state.intent = args.intent or ""
     state.status = args.status
     state.build_hub_box = args.build_hub_box
+    state.accept_generic = args.accept_generic
+    state.h2_override_path = args.h2_override
     state.start_time = time.time()
 
     # Output directory
