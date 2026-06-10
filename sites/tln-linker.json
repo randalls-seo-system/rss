@@ -1,0 +1,23 @@
+{
+  "site_id": "tln",
+  "site_domain": "thelendersnetwork.com",
+  "css_prefix": ["tln"],
+  "zone_suffixes": ["hero", "quickcard", "quickgrid", "callout", "faq", "table", "bluf", "disclosure"],
+  "extra_zone_classes": [],
+  "skip_slugs": [
+    "privacy-policy", "terms-of-use", "advertising-disclosures",
+    "service-disclaimer", "contact-us", "about-us",
+    "apply-now", "compare-loan-offers", "blog", "confirmation",
+    "contributor", "realtor-referral-program", "high-quality-mortgage-leads",
+    "scholarship", "about-the-lenders-network", "about-tln-editorial-team"
+  ],
+  "protected_slugs": [],
+  "pool_path": "sites/tln-anchor-pools.json",
+  "inbound_min": 3,
+  "per_run_dest_cap": 10,
+  "max_links_per_para": 1,
+  "max_links_per_section": 3,
+  "max_links_per_post": 10,
+  "pages_as_sources": false,
+  "url_transform": null
+}

@@ -1,0 +1,5 @@
+# Single-word trigger whitelist for inject-internal-links.py
+# One word per line. These are the ONLY single-word triggers allowed.
+# Default: empty (all single-word triggers blocked).
+# Add words here only after manual review confirms they are
+# distinctive enough to avoid mass-injection.

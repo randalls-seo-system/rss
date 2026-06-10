@@ -1,0 +1,109 @@
+{
+  "identity": {
+    "site_id": "lrg",
+    "name": "Levi Rodgers Real Estate Group",
+    "public_url": "https://lrgrealty.com",
+    "platform": "wpe-worker",
+    "platform_notes": "Cloudflare Worker 'lrg-blog-proxy' v1.1 routes /lrg-blog/*, /spanish-blog/*, /wp-content/*, /wp-includes/*, /wp-json/* to WPE origin lrgrealtyblog.wpenginepowered.com. siteurl=lrgrealty.com, home=lrgrealty.com/lrg-blog."
+  },
+
+  "access": {
+    "ssh_host": "lrgrealtyblog.ssh.wpengine.net",
+    "ssh_user": "lrgrealtyblog",
+    "ssh_key_path": "~/.ssh/wpengine_valn",
+    "wp_path": "/nas/content/live/lrgrealtyblog/",
+    "mu_plugins_path": "/nas/content/live/lrgrealtyblog/wp-content/mu-plugins/"
+  },
+
+  "content": {
+    "css_prefix": ["rl-"],
+    "brand_voice_archetype": "realtor",
+    "primary_color": "#0b1b3a",
+    "secondary_color": "#b91c1c",
+    "logo_url": "TODO-verify",
+    "phone": "TODO-verify",
+    "cta_url": "/lrg-blog/connect-with-lrg/",
+    "cta_text": "Connect with LRG",
+    "form_page_slug": "TODO-verify",
+    "article_min_words": 1800,
+    "article_max_words": 3500,
+    "default_post_status": "draft"
+  },
+
+  "authors": {
+    "author_map": {
+      "primary": {
+        "wp_user_id": 1,
+        "name": "Levi Rodgers",
+        "scope": "all-content"
+      }
+    },
+    "byline_mode": "single",
+    "never_author": []
+  },
+
+  "linking": {
+    "zone_suffixes": ["hero", "quick-card", "callout", "bluf", "resources"],
+    "extra_zone_classes": ["rl-resources"],
+    "skip_slugs": [
+      "privacy-policy", "home-old", "agents", "contact",
+      "about-team-lrg", "home", "home-evaluation",
+      "resources", "join-us", "areas-we-cover", "financing",
+      "media", "lrg-blog", "connect-with-lrg"
+    ],
+    "protected_slugs": [],
+    "excluded_destinations": [
+      "/lrg-blog/connect-with-lrg",
+      "/lrg-blog/category/",
+      "/wp-admin",
+      "/agents",
+      "/mortgage-calculator",
+      "/affordability-calculator"
+    ],
+    "pool_path": "sites/lrg-anchor-pools.json",
+    "inbound_min": 3,
+    "per_run_dest_cap": 10,
+    "max_links_per_para": 1,
+    "max_links_per_section": 3,
+    "max_links_per_post": 10,
+    "pages_as_sources": false,
+    "url_transform": "lrg_blog_prefix",
+    "canonical_formats": {
+      "english_post": "/lrg-blog/{slug}/",
+      "spanish_post": "/spanish-blog/{slug}/",
+      "listing_page": "/listings/{city-slug}/"
+    },
+    "source_dest_language_match": true,
+    "language_prefixes": {
+      "spanish": "/spanish-blog/",
+      "default": "/lrg-blog/"
+    }
+  },
+
+  "protected": {
+    "do_not_touch_pages": [],
+    "theme_builder_layouts": "TODO-verify",
+    "frozen_subsystems": [],
+    "known_traps": [
+      {"name": "Divi builder cache", "description": "Raw SQL UPDATE wp_posts does NOT refresh Divi cache. Always follow with wp_update_post() to trigger save_post hooks."},
+      {"name": "Cloudflare Worker routing", "description": "Only /lrg-blog/*, /spanish-blog/*, /wp-content/*, /wp-includes/*, /wp-json/* are proxied. Other paths serve from the main lrgrealty.com origin (not WPE)."},
+      {"name": "lrg-proxy-canonical-fix.php", "description": "Suppresses redirect_canonical domain-301 when redirect is host-only (same path). Fixes /lrg-blog/ index 301 loop through Worker proxy."}
+    ]
+  },
+
+  "integrations": {
+    "gsc_property": "sc-domain:lrgrealty.com",
+    "ga4_property_id": "TODO-verify",
+    "clarity_project_id": "TODO-verify",
+    "cdn_notes": "Cloudflare (via Worker) + WP Engine Varnish behind. Purge WPE cache via WpeCommon. CF cache managed by Worker cache headers."
+  },
+
+  "ops": {
+    "work_log": "TODO-verify",
+    "backup_dir": "TODO-verify",
+    "service_tier": "Premium",
+    "reference_files": {
+      "pipeline_claude_md": "~/lrg-rewrite/CLAUDE.md"
+    }
+  }
+}

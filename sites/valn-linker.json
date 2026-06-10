@@ -1,0 +1,22 @@
+{
+  "site_id": "valn",
+  "site_domain": "valoannetwork.com",
+  "css_prefix": ["vln", "valn", "rl-"],
+  "zone_suffixes": ["hero", "quickcard", "quickgrid", "callout", "faq", "table", "bluf", "disclosure"],
+  "extra_zone_classes": ["rl-resources"],
+  "skip_slugs": [
+    "legal", "advertising-disclosures", "va-loan-network-editorial-team",
+    "privacy-policy", "terms", "disclaimer"
+  ],
+  "protected_slugs": [
+    "/va-funding-fee/", "/va-loan-hub/", "/complex-va-loan-center/"
+  ],
+  "pool_path": "sites/valn-anchor-pools.json",
+  "inbound_min": 3,
+  "per_run_dest_cap": 10,
+  "max_links_per_para": 1,
+  "max_links_per_section": 3,
+  "max_links_per_post": 10,
+  "pages_as_sources": false,
+  "url_transform": null
+}

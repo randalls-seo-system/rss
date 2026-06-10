@@ -1,0 +1,46 @@
+{
+  "identity": {
+    "site_id": "velocityseo",
+    "name": "Velocity SEO",
+    "public_url": "TODO-verify",
+    "platform": "TODO-verify",
+    "platform_notes": "TODO-verify — new site, not yet onboarded to RSS pipeline."
+  },
+
+  "access": {
+    "ssh_host": "TODO-verify",
+    "ssh_user": "TODO-verify",
+    "ssh_key_path": "TODO-verify",
+    "wp_path": "TODO-verify"
+  },
+
+  "content": {
+    "css_prefix": ["TODO-verify"],
+    "brand_voice_archetype": "TODO-verify",
+    "primary_color": "TODO-verify",
+    "cta_url": "TODO-verify"
+  },
+
+  "authors": {
+    "author_map": "TODO-verify",
+    "byline_mode": "TODO-verify"
+  },
+
+  "linking": {
+    "zone_suffixes": "TODO-verify",
+    "skip_slugs": "TODO-verify",
+    "pool_path": "TODO-verify"
+  },
+
+  "protected": {
+    "do_not_touch_pages": "TODO-verify"
+  },
+
+  "integrations": {
+    "gsc_property": "TODO-verify"
+  },
+
+  "ops": {
+    "service_tier": "TODO-verify"
+  }
+}

@@ -1,0 +1,199 @@
+{
+  "identity": {
+    "site_id": "valn",
+    "name": "VA Loan Network",
+    "public_url": "https://valoannetwork.com",
+    "platform": "wpe",
+    "platform_notes": "Standard WP Engine hosting. No reverse proxy or Worker."
+  },
+
+  "access": {
+    "ssh_host": "valoannetwork.ssh.wpengine.net",
+    "ssh_user": "valoannetwork",
+    "ssh_key_path": "~/.ssh/wpengine_valn",
+    "wp_path": "/nas/content/live/valoannetwork/",
+    "mu_plugins_path": "/nas/content/live/valoannetwork/wp-content/mu-plugins/",
+    "staging": {
+      "url": "https://valoannetwostg.wpenginepowered.com",
+      "ssh_user": "valoannetwostg",
+      "ssh_key_path": "~/.ssh/id_ed25519_wpe_staging",
+      "wp_path": "/nas/content/live/valoannetwostg/"
+    }
+  },
+
+  "content": {
+    "css_prefix": ["vln", "valn", "rl-"],
+    "brand_voice_archetype": "va-lending",
+    "primary_color": "#1F4E79",
+    "secondary_color": "#2E86C1",
+    "logo_url": "https://valoannetwork.com/wp-content/uploads/2025/06/VA.LoanNetwork.blue_.webp",
+    "logo_url_white": "https://d21ygep7xuspew.cloudfront.net/wp-media/2025/02/VA.LoanNetwork.white_-1.png",
+    "phone": "1-800-230-7201",
+    "cta_url": "/compare-loan-offers/",
+    "cta_text": "Compare VA Loan Offers",
+    "form_page_slug": "compare-loan-offers",
+    "claims_policy": "~/randalls-seo-system/docs/valn-messaging-standard.md",
+    "article_min_words": 1600,
+    "article_max_words": 3500,
+    "default_post_status": "draft"
+  },
+
+  "authors": {
+    "author_map": {
+      "primary_sme": {
+        "wp_user_id": 941,
+        "name": "Matt Schwartz",
+        "scope": "mortgage-operational",
+        "nmls": "151017",
+        "notes": "Named author/SME. E-E-A-T asset. Person schema carries his NMLS."
+      },
+      "secondary": {
+        "wp_user_id": 234,
+        "name": "Levi Rodgers",
+        "scope": "benefits-lifestyle",
+        "notes": "Benefits, military lifestyle, memorial/seasonal content."
+      }
+    },
+    "byline_mode": "single",
+    "never_author": [12],
+    "never_author_notes": "Randall Yates (ID 12) is site owner, never post_author."
+  },
+
+  "linking": {
+    "zone_suffixes": ["hero", "quickcard", "quickgrid", "callout", "faq", "table", "bluf", "disclosure"],
+    "extra_zone_classes": ["rl-resources"],
+    "skip_slugs": [
+      "legal", "advertising-disclosures", "va-loan-network-editorial-team",
+      "privacy-policy", "terms", "disclaimer"
+    ],
+    "protected_slugs": [
+      "/va-funding-fee/",
+      "/va-loan-hub/",
+      "/complex-va-loan-center/"
+    ],
+    "excluded_destinations": [],
+    "pool_path": "sites/valn-anchor-pools.json",
+    "inbound_min": 3,
+    "per_run_dest_cap": 10,
+    "max_links_per_para": 1,
+    "max_links_per_section": 3,
+    "max_links_per_post": 10,
+    "pages_as_sources": false,
+    "url_transform": null,
+    "canonical_formats": {
+      "post": "/{slug}/",
+      "page": "/{slug}/"
+    },
+    "source_dest_language_match": false,
+    "language_prefixes": {}
+  },
+
+  "protected": {
+    "do_not_touch_pages": [
+      {"post_id": 4, "slug": "homepage", "reason": "Homepage — no structure/layout/hero changes. Calculator JS fixes and meta updates only with explicit instruction."},
+      {"post_id": 385, "slug": "compare-loan-offers", "reason": "Application/money page — do NOT modify under any circumstances."},
+      {"slug": "va-funding-fee", "reason": "Funding fee gold standard page."},
+      {"slug": "va-loan-hub", "reason": "Hub page — protected from batch operations."},
+      {"slug": "complex-va-loan-center", "reason": "Hub page — protected from batch operations."},
+      {"slug": "legal", "reason": "Legal page cluster."},
+      {"slug": "advertising-disclosures", "reason": "Legal."},
+      {"slug": "va-loan-network-editorial-team", "reason": "Editorial team page."},
+      {"slug": "privacy-policy", "reason": "Legal."},
+      {"slug": "terms", "reason": "Legal."},
+      {"slug": "disclaimer", "reason": "Legal."}
+    ],
+    "theme_builder_layouts": {
+      "homepage_header": 36985,
+      "inner_pages_header": 16940,
+      "all_layout_ids": [16940, 13308, 13318, 13353, 13357, 17564, 29500, 29524, 30872, 31908, 35717]
+    },
+    "hero_architecture": {
+      "home_hero_shortcode": "[valn_home_hero]",
+      "home_hero_plugin": "valn-home-hero.php",
+      "blog_hero_shortcode": "[valn_blog_hero]",
+      "blog_hero_plugin": "valn-blog-hero.php",
+      "all_pages_template": 16455,
+      "homepage_template": 13332
+    },
+    "frozen_subsystems": [
+      {
+        "name": "valn_drip_cron_hook",
+        "status": "dormant",
+        "since": "2026-04-30",
+        "path": "/nas/content/live/valoannetwork/fub-drip/",
+        "notes": "Drip messaging cron. Schema mismatch in queue.php. Re-enable by uncommenting wp_schedule_event in valn-cron-schedule.php."
+      },
+      {
+        "name": "valn_reactivation_enroll",
+        "status": "dormant",
+        "since": "2026-04-30",
+        "path": "fub-drip/auto-enroll.php",
+        "notes": "Kill switch active. Re-enable by uncommenting wp_schedule_event AND flipping kill switch."
+      },
+      {
+        "name": "command_center_dashboard",
+        "status": "active",
+        "path": "/nas/content/live/valoannetwork/fub-drip/",
+        "notes": "LIVE dashboard (annotations, work log, leads). Legacy 'fub drip' UI labels are cosmetic only."
+      }
+    ],
+    "known_traps": [
+      {
+        "name": "WPCode CLI",
+        "description": "Never call WPCode_Snippet::save() from wp eval/eval-file. It wipes post_content and taxonomy terms. Use wp_update_post() for content, verify taxonomy after."
+      },
+      {
+        "name": "PHP OPcache",
+        "description": "wp cache flush only clears object cache, not OPcache. Touch the PHP file + Varnish purge for immediate effect."
+      },
+      {
+        "name": "Tracker rate limit",
+        "description": "/wp-json/valn/v1/track/page: 100 req/min per IP (WPE Cloudflare). Managed Challenge for 1 min on exceed."
+      }
+    ],
+    "military_pay_cluster": [
+      {"post_id": 11783, "slug": "military-base-pay", "role": "reference-chart", "notes": "2026 full pay chart, all grades. Target: 'pay chart' queries."},
+      {"post_id": 32857, "slug": "2026-military-pay-raise", "role": "comparison", "notes": "Target: 'pay raise' queries. Distinct intent from 11783."},
+      {"post_id": 11775, "slug": "military-pay-hub", "role": "hub", "notes": "Hub page linking chart + raise + BAH."},
+      {"post_id": "TODO-verify", "slug": "bah-rates", "role": "bah-reference", "notes": "BAH rate lookup. Post ID needs verification."}
+    ]
+  },
+
+  "integrations": {
+    "gsc_property": "sc-domain:valoannetwork.com",
+    "ga4_property_id": "322038992",
+    "ga4_measurement_id": "TODO-verify",
+    "clarity_project_id": "wg6mx15a2g",
+    "gtm_container_id": "GTM-PFBDZC36",
+    "meta_pixel_id": "787887528011596",
+    "cdn_notes": "WP Engine Varnish. Purge via WpeCommon::purge_varnish_cache(). wp cache flush is object cache only.",
+    "lead_form": {
+      "form_id": 9,
+      "crm": "Follow Up Boss",
+      "guard_plugin": "valn-form-submit-guard.php",
+      "idempotency": "crypto.randomUUID() client-side, 5-min transient server-side"
+    },
+    "nmls_number": "151017",
+    "license_disclaimer": "VA Loan Network is a marketing platform that connects veterans with licensed mortgage professionals. We are not a lender, not a government agency, and do not originate or fund loans."
+  },
+
+  "ops": {
+    "work_log": {
+      "table": "wp_valn_work_log",
+      "method": "wp eval-file with $wpdb->insert()",
+      "categories": ["content", "links", "optimization", "tool", "system", "fix", "analysis"],
+      "metric_types": ["pages_published", "pages_updated", "words_added", "links_added", "sections_added", "tools_deployed", "leads_synced", "sequences_created", "templates_created", "pages_audited", "errors_fixed"]
+    },
+    "backup_dir": "/nas/content/live/valoannetwork/backups/",
+    "service_tier": "Premium",
+    "reference_files": {
+      "content_spec": "~/valn-rewrite/content-spec.md",
+      "linking_policy": "~/valn-rewrite/internal-linking-policy.md",
+      "v6_pattern": "~/valn-rewrite/V6-PATTERN-CANONICAL.md",
+      "article_rewrite_rules": "~/valn-rewrite/CLAUDE.md",
+      "content_voice": "matt-forward-compact-v1.4.txt",
+      "messaging_standard": "~/randalls-seo-system/docs/valn-messaging-standard.md",
+      "completed_rewrites": "~/valn-rewrite/completed-rewrites.csv"
+    }
+  }
+}

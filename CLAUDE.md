@@ -16,6 +16,20 @@ The following modules are frozen during v2 build and MUST NOT be modified:
 
 If a v2 task seems to require modifying a frozen module, stop and ask.
 
+## Server Safety — Deploy Scripts
+
+Deploy scripts run foreground only, never backgrounded. All deploy scripts
+require lockfile + already-done resumability check before any write.
+
+- Lockfile: `~/locks/<script>-<site>.lock` with PID + timestamp. Abort if lock
+  exists and PID is alive; remove stale locks with a warning.
+- Resumability: before writing to a post, check if the target change already
+  exists in the DB. Skip with a log entry if so.
+- Dry-run verification: dry-run wrappers must execute `_inject_link_in_paragraph`
+  against an in-memory copy of the post before writing a CSV row. Only
+  successfully-injected candidates appear in the output CSV.
+- Long-running scripts of any kind run foreground only, never backgrounded.
+
 ## SERP credentials
 
 SERP credentials live in ~/randalls-seo-system/.env (gitignored).

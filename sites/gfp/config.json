@@ -1,0 +1,76 @@
+{
+  "identity": {
+    "site_id": "gfp",
+    "name": "Godfather's Pizza San Antonio",
+    "public_url": "https://gfpsanantonio.com",
+    "platform": "wpe",
+    "platform_notes": "Standard WP Engine hosting."
+  },
+
+  "access": {
+    "ssh_host": "gfpsanantonio.ssh.wpengine.net",
+    "ssh_user": "gfpsanantonio",
+    "ssh_key_path": "~/.ssh/id_ed25519_wpe_staging",
+    "wp_path": "/sites/gfpsanantonio/",
+    "mu_plugins_path": "/sites/gfpsanantonio/wp-content/mu-plugins/"
+  },
+
+  "content": {
+    "css_prefix": ["TODO-verify"],
+    "brand_voice_archetype": "pizza-shop",
+    "primary_color": "#d4212c",
+    "secondary_color": "#1a1a1a",
+    "logo_url": "https://gfpsanantonio.com/wp-content/uploads/2025/11/Gemini_Generated_Image_uj6xbluj6xbluj6x2.png",
+    "phone": "(210) 750-2222",
+    "cta_url": "https://godfathers.orderexperience.net",
+    "cta_text": "Order Now",
+    "form_page_slug": "TODO-verify",
+    "article_min_words": 800,
+    "article_max_words": 2000,
+    "default_post_status": "draft"
+  },
+
+  "authors": {
+    "author_map": {
+      "primary": {
+        "wp_user_id": "TODO-verify",
+        "name": "The Pizza Guy",
+        "scope": "all-content"
+      }
+    },
+    "byline_mode": "single",
+    "never_author": []
+  },
+
+  "linking": {
+    "zone_suffixes": "TODO-verify",
+    "extra_zone_classes": [],
+    "skip_slugs": "TODO-verify",
+    "protected_slugs": [],
+    "excluded_destinations": [],
+    "pool_path": "sites/gfp-anchor-pools.json",
+    "inbound_min": 3,
+    "per_run_dest_cap": 10,
+    "max_links_per_para": 1,
+    "max_links_per_section": 3,
+    "max_links_per_post": 10,
+    "pages_as_sources": false,
+    "url_transform": null
+  },
+
+  "protected": {
+    "do_not_touch_pages": "TODO-verify",
+    "frozen_subsystems": [],
+    "known_traps": []
+  },
+
+  "integrations": {
+    "gsc_property": "TODO-verify",
+    "ga4_property_id": "TODO-verify",
+    "cdn_notes": "WP Engine Varnish. Standard purge."
+  },
+
+  "ops": {
+    "service_tier": "Pro"
+  }
+}

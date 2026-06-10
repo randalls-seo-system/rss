@@ -1,0 +1,81 @@
+{
+  "identity": {
+    "site_id": "canopy",
+    "name": "Canopy Insurance Texas",
+    "public_url": "https://canopyinsurancetexas.com",
+    "platform": "wpe",
+    "platform_notes": "Standard WP Engine hosting."
+  },
+
+  "access": {
+    "ssh_host": "canopyinsuranc.ssh.wpengine.net",
+    "ssh_user": "canopyinsuranc",
+    "ssh_key_path": "~/.ssh/id_ed25519_wpe_staging",
+    "wp_path": "/nas/content/live/canopyinsuranc/",
+    "mu_plugins_path": "/nas/content/live/canopyinsuranc/wp-content/mu-plugins/"
+  },
+
+  "content": {
+    "css_prefix": ["cnp"],
+    "brand_voice_archetype": "authoritative-advisor",
+    "primary_color": "#1A365D",
+    "secondary_color": "#f97316",
+    "logo_url": "https://canopyinsurancetexas.com/wp-content/uploads/2026/04/canopy_transparent_logo.png",
+    "phone": "210-436-6080",
+    "cta_url": "/get-a-quote/",
+    "cta_text": "Get a Quote",
+    "form_page_slug": "get-a-quote",
+    "article_min_words": "TODO-verify",
+    "article_max_words": "TODO-verify",
+    "default_post_status": "draft"
+  },
+
+  "authors": {
+    "author_map": {
+      "ej": {"wp_user_id": 3, "name": "EJ Nadolny", "scope": "primary"},
+      "devin": {"wp_user_id": 4, "name": "Devin", "scope": "contributor"},
+      "gevenny": {"wp_user_id": 5, "name": "Gevenny", "scope": "contributor"},
+      "cory": {"wp_user_id": 6, "name": "Cory", "scope": "contributor"},
+      "zach": {"wp_user_id": 7, "name": "Zach", "scope": "contributor"}
+    },
+    "byline_mode": "multi",
+    "never_author": []
+  },
+
+  "linking": {
+    "zone_suffixes": "TODO-verify",
+    "extra_zone_classes": [],
+    "skip_slugs": "TODO-verify",
+    "protected_slugs": [],
+    "excluded_destinations": [],
+    "pool_path": "sites/canopy-anchor-pools.json",
+    "inbound_min": 3,
+    "per_run_dest_cap": 10,
+    "max_links_per_para": 1,
+    "max_links_per_section": 3,
+    "max_links_per_post": 10,
+    "pages_as_sources": false,
+    "url_transform": null
+  },
+
+  "protected": {
+    "do_not_touch_pages": "TODO-verify",
+    "frozen_subsystems": [],
+    "known_traps": []
+  },
+
+  "integrations": {
+    "gsc_property": "sc-domain:canopyinsurancetexas.com",
+    "ga4_property_id": "TODO-verify",
+    "cdn_notes": "WP Engine Varnish."
+  },
+
+  "ops": {
+    "work_log": {
+      "table": "canopy_work_log (CPT)",
+      "method": "canopy_work_log custom post type at /dashboard/"
+    },
+    "service_tier": "TODO-verify",
+    "reference_files": {}
+  }
+}

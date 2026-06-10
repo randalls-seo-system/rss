@@ -1,0 +1,104 @@
+{
+  "identity": {
+    "site_id": "tln",
+    "name": "The Lenders Network",
+    "public_url": "https://thelendersnetwork.com",
+    "platform": "wpe",
+    "platform_notes": "WP Engine install 'lrgrealtyblogs' — shared install with LRG via Divi theme switching. TLN is the active front-end."
+  },
+
+  "access": {
+    "ssh_host": "lrgrealtyblogs.ssh.wpengine.net",
+    "ssh_user": "lrgrealtyblogs",
+    "ssh_key_path": "~/.ssh/id_ed25519_wpe_staging",
+    "wp_path": "/nas/content/live/lrgrealtyblogs/",
+    "mu_plugins_path": "/nas/content/live/lrgrealtyblogs/wp-content/mu-plugins/",
+    "staging": {
+      "url": "TODO-verify",
+      "ssh_user": "TODO-verify",
+      "ssh_key_path": "TODO-verify",
+      "wp_path": "TODO-verify"
+    }
+  },
+
+  "content": {
+    "css_prefix": ["tln"],
+    "brand_voice_archetype": "va-lending",
+    "primary_color": "#00d93e",
+    "secondary_color": "TODO-verify",
+    "logo_url": "TODO-verify",
+    "phone": "TODO-verify",
+    "cta_url": "/compare-loan-offers/",
+    "cta_text": "Compare Mortgage Offers",
+    "form_page_slug": "compare-loan-offers",
+    "article_min_words": 1800,
+    "article_max_words": 3500,
+    "default_post_status": "draft"
+  },
+
+  "authors": {
+    "author_map": {
+      "team": {
+        "wp_user_id": 14,
+        "name": "The Lenders Network Team",
+        "scope": "all-content"
+      }
+    },
+    "byline_mode": "single",
+    "never_author": []
+  },
+
+  "linking": {
+    "zone_suffixes": ["hero", "quickcard", "quickgrid", "callout", "faq", "table", "bluf", "disclosure"],
+    "extra_zone_classes": [],
+    "skip_slugs": [
+      "privacy-policy", "terms-of-use", "advertising-disclosures",
+      "service-disclaimer", "contact-us", "about-us",
+      "apply-now", "compare-loan-offers", "blog", "confirmation",
+      "contributor", "realtor-referral-program", "high-quality-mortgage-leads",
+      "scholarship", "about-the-lenders-network", "about-tln-editorial-team"
+    ],
+    "protected_slugs": [],
+    "excluded_destinations": [],
+    "pool_path": "sites/tln-anchor-pools.json",
+    "inbound_min": 3,
+    "per_run_dest_cap": 10,
+    "max_links_per_para": 1,
+    "max_links_per_section": 3,
+    "max_links_per_post": 10,
+    "pages_as_sources": false,
+    "url_transform": null,
+    "canonical_formats": {"post": "/{slug}/", "page": "/{slug}/"},
+    "source_dest_language_match": false,
+    "language_prefixes": {}
+  },
+
+  "protected": {
+    "do_not_touch_pages": [
+      {"post_id": 566, "slug": "compare-loan-offers", "reason": "Money page, 125+ inbound links."}
+    ],
+    "theme_builder_layouts": "TODO-verify",
+    "frozen_subsystems": [],
+    "known_traps": [
+      {"name": "Shared WPE install", "description": "TLN and LRG share the lrgrealtyblogs WP Engine install. Work on one affects the other."}
+    ]
+  },
+
+  "integrations": {
+    "gsc_property": "sc-domain:thelendersnetwork.com",
+    "ga4_property_id": "TODO-verify",
+    "clarity_project_id": "TODO-verify",
+    "cdn_notes": "WP Engine Varnish. Standard purge via WpeCommon."
+  },
+
+  "ops": {
+    "work_log": "TODO-verify",
+    "backup_dir": "TODO-verify",
+    "persistent_ops_dir": "/nas/content/live/lrgrealtyblogs/wp-content/uploads/tln-ops/",
+    "service_tier": "Pro",
+    "reference_files": {
+      "pipeline_claude_md": "~/tln-rewrite/CLAUDE.md",
+      "content_voice": "matt-forward-compact-v1.4-tln.txt"
+    }
+  }
+}
