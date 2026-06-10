@@ -135,7 +135,7 @@ add_action( 'template_redirect', function () {
         '/va-loans/texas/'                                       => '/va-loan-guides/texas/',
         // /irrrl/ (3) → /va-loans/irrrl/
         '/irrrl/'                                                => '/va-loans/irrrl/',
-        // /va-irrrl/ (1) — from audit and CLAUDE.md P2 list
+        // /va-irrrl/ (1) — from audit and valn-project-status.md P2 list
         '/va-irrrl/'                                             => '/va-loans/irrrl/',
         // /va-renovation-loan/ (1) — P2 list
         '/va-renovation-loan/'                                   => '/va-renovation-loans/',
