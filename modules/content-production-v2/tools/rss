@@ -1,0 +1,246 @@
+#!/usr/bin/env python3
+"""RSS — Rank Logic SEO System CLI.
+
+Usage:
+    rss new-article --site <id> --topic "<topic>" [options]
+
+Commands:
+    new-article   Generate and deploy a new article as draft
+"""
+
+import argparse
+import json
+import sys
+import time
+from datetime import datetime
+from pathlib import Path
+
+MODULE_DIR = Path(__file__).resolve().parent.parent
+sys.path.insert(0, str(MODULE_DIR))
+
+from lib.orchestrator import (
+    create_job, load_job, save_job, job_dir, stage_done, mark_stage,
+    validate_config, resolve_author, run_gates, gates_passed,
+    create_draft_post, run_assemble, run_link_pass,
+    deploy_draft, set_yoast_meta, purge_cache, verify_deploy,
+)
+from lib.linker_core import deploy_lock
+
+
+def cmd_new_article(args):
+    start = time.time()
+
+    # Load site config
+    REPO_ROOT = MODULE_DIR.parent.parent
+    config_path = REPO_ROOT / "sites" / args.site / "config.json"
+    if not config_path.exists():
+        print(f"ERROR: site config not found: {config_path}", file=sys.stderr)
+        sys.exit(1)
+    with open(config_path) as f:
+        config = json.load(f)
+
+    def log(msg):
+        print(f"[{datetime.now().strftime('%H:%M:%S')}] {msg}", flush=True)
+
+    # Resume or create job
+    if args.resume:
+        job = load_job(args.resume)
+        log(f"Resuming job {job['id']} at first incomplete stage")
+    else:
+        job = create_job(args.site, args.topic)
+        log(f"Created job {job['id']}")
+
+    jd = job_dir(job)
+
+    # ── Stage A: Config validate ──
+    if not stage_done(job, "config"):
+        log("Stage A: CONFIG LOAD + VALIDATE")
+        missing = validate_config(config)
+        if missing:
+            log(f"FAIL: missing config fields: {', '.join(missing)}")
+            mark_stage(job, "config", "failed", missing=missing)
+            sys.exit(1)
+        # Snapshot config
+        with open(jd / "config-snapshot.json", "w") as f:
+            json.dump(config, f, indent=2)
+        mark_stage(job, "config", "done")
+        log("  Config valid")
+
+    # ── Stage B: Gap scan ──
+    if not stage_done(job, "gap_scan"):
+        if args.skip_gap_scan:
+            log("Stage B: GAP SCAN (skipped)")
+            mark_stage(job, "gap_scan", "done", skipped=True)
+        else:
+            log("Stage B: GAP SCAN")
+            # Gap scan runs as part of assemble-article; we just note it
+            mark_stage(job, "gap_scan", "done", note="integrated into assemble-article")
+            log("  Gap scan will run inside assemble-article")
+
+    # ── Stage C: Generate ──
+    if not stage_done(job, "generate"):
+        log("Stage C: GENERATE")
+
+        # Create draft post if not already created
+        if not job.get("post_id"):
+            author_id, author_name = resolve_author(config, args.category or "")
+            job["author_id"] = author_id
+            log(f"  Author: {author_name} (ID {author_id})")
+
+            log("  Creating draft post on server...")
+            post_id = create_draft_post(config, args.topic, author_id)
+            job["post_id"] = post_id
+            job["post_slug"] = args.topic.lower().replace(" ", "-")[:60]
+            save_job(job)
+            log(f"  Draft post created: ID {post_id}")
+            time.sleep(5)
+
+        log("  Running assemble-article.py...")
+        t0 = time.time()
+        try:
+            article_path = run_assemble(job, config, skip_gap=args.skip_gap_scan)
+        except RuntimeError as e:
+            log(f"  FAIL: {e}")
+            mark_stage(job, "generate", "failed", error=str(e))
+            sys.exit(1)
+        duration = time.time() - t0
+
+        wc = len(article_path.read_text().split())
+        mark_stage(job, "generate", "done", duration_s=round(duration), word_count=wc)
+        job["artifacts"] = job.get("artifacts", {})
+        job["artifacts"]["article_html"] = str(article_path)
+        save_job(job)
+        log(f"  Generated: {wc} words in {duration:.0f}s")
+
+    # ── Stage D: Emit gates ──
+    if not stage_done(job, "gates"):
+        log("Stage D: EMIT GATES")
+        article_path = Path(job["artifacts"]["article_html"])
+        html = article_path.read_text()
+        results = run_gates(html, config)
+
+        with open(jd / "gate-results.json", "w") as f:
+            json.dump(results, f, indent=2)
+
+        if gates_passed(results):
+            mark_stage(job, "gates", "done", results=results)
+            log("  All gates passed")
+        else:
+            failures = {k: v for k, v in results.items() if not v.startswith("pass")}
+            log(f"  GATE FAILURES: {json.dumps(failures, indent=2)}")
+            mark_stage(job, "gates", "failed", results=results)
+            sys.exit(1)
+
+    # ── Stage E: Link pass ──
+    if not stage_done(job, "link_pass"):
+        log("Stage E: LINK PASS")
+        try:
+            linked_path, links_injected = run_link_pass(job, config)
+        except RuntimeError as e:
+            log(f"  WARN: link pass failed ({e}) — proceeding with unlinked article")
+            linked_path = Path(job["artifacts"]["article_html"])
+            links_injected = 0
+
+        mark_stage(job, "link_pass", "done", links_injected=links_injected)
+        job["artifacts"]["article_linked"] = str(linked_path)
+        save_job(job)
+        log(f"  {links_injected} links injected")
+
+    if args.dry_run:
+        log("\nDRY RUN — stopping before deploy")
+        job["completed"] = datetime.now().isoformat()
+        job["wall_clock_s"] = round(time.time() - start)
+        save_job(job)
+        log(f"Job {job['id']} complete (dry-run, {job['wall_clock_s']}s)")
+        return
+
+    # ── Stage F: Deploy ──
+    if not stage_done(job, "deploy"):
+        log("Stage F: DEPLOY")
+        linked_path = Path(job["artifacts"].get("article_linked", job["artifacts"]["article_html"]))
+
+        ok = deploy_draft(job, config, linked_path)
+        if not ok:
+            log("  DEPLOY FAILED")
+            mark_stage(job, "deploy", "failed")
+            sys.exit(1)
+
+        time.sleep(5)
+
+        # Yoast meta (best effort)
+        topic = job["topic"]
+        title = f"{topic} | {config.get('identity', {}).get('name', '')}"
+        desc = f"Learn about {topic.lower()}. Expert guide from {config.get('identity', {}).get('name', '')}."
+        try:
+            set_yoast_meta(config, job["post_id"], title[:70], desc[:160])
+            log("  Yoast meta set")
+        except Exception as e:
+            log(f"  WARN: Yoast meta failed: {e}")
+
+        purge_cache(config)
+        log("  Cache purged")
+        mark_stage(job, "deploy", "done", post_id=job["post_id"])
+        log(f"  Deployed as draft: post ID {job['post_id']}")
+
+    # ── Stage G: Verify ──
+    if not stage_done(job, "verify"):
+        log("Stage G: VERIFY")
+        checks = verify_deploy(job, config)
+        mark_stage(job, "verify", "done", checks=checks)
+        for k, v in checks.items():
+            status = "OK" if v.startswith("pass") else v
+            log(f"  {k}: {status}")
+
+    # ── Stage H: Log ──
+    if not stage_done(job, "log"):
+        log("Stage H: LOG")
+        job["completed"] = datetime.now().isoformat()
+        job["wall_clock_s"] = round(time.time() - start)
+        mark_stage(job, "log", "done")
+        save_job(job)
+        log(f"  Job record written: {jd / 'job.json'}")
+
+    # Summary
+    log(f"\n{'='*60}")
+    log(f"JOB COMPLETE: {job['id']}")
+    log(f"{'='*60}")
+    log(f"Site:       {job['site']}")
+    log(f"Topic:      {job['topic']}")
+    log(f"Post ID:    {job['post_id']}")
+    log(f"Author:     {job['author_id']}")
+    log(f"Wall clock: {job['wall_clock_s']}s")
+    for stage, data in job.get("stages", {}).items():
+        extra = ""
+        if "duration_s" in data:
+            extra += f" ({data['duration_s']}s)"
+        if "links_injected" in data:
+            extra += f" ({data['links_injected']} links)"
+        if "word_count" in data:
+            extra += f" ({data['word_count']} words)"
+        log(f"  {stage:15s} {data['status']}{extra}")
+    log(f"Job dir:    {jd}")
+
+
+def main():
+    parser = argparse.ArgumentParser(description="RSS — Rank Logic SEO System CLI")
+    sub = parser.add_subparsers(dest="command")
+
+    na = sub.add_parser("new-article", help="Generate and deploy a new article as draft")
+    na.add_argument("--site", required=True, help="Site ID from sites/<site>/config.json")
+    na.add_argument("--topic", required=True, help="Target keyword / article topic")
+    na.add_argument("--category", default="", help="Author scope category (e.g., mortgage-operational)")
+    na.add_argument("--hub", default="", help="Cluster hub slug for hub box")
+    na.add_argument("--skip-gap-scan", action="store_true", help="Skip competitive gap analysis")
+    na.add_argument("--dry-run", action="store_true", help="Run through gates but don't deploy")
+    na.add_argument("--resume", default="", help="Resume an existing job by ID")
+
+    args = parser.parse_args()
+    if args.command == "new-article":
+        cmd_new_article(args)
+    else:
+        parser.print_help()
+        sys.exit(1)
+
+
+if __name__ == "__main__":
+    main()
