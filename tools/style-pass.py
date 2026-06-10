@@ -848,6 +848,8 @@ Tiers:
                         help="Max posts to process")
     parser.add_argument("--backup-dir", type=str, default=None,
                         help="Local backup directory (default: ~/backups/style-pass/)")
+    parser.add_argument("--production-confirmed", action="store_true",
+                        help="Allow --execute on production (for sites without staging)")
 
     args = parser.parse_args()
 
@@ -881,9 +883,10 @@ Tiers:
     # Execute mode requires lock
     lock_file = None
     if args.execute:
-        if not args.staging:
-            eprint("ERROR: --execute on production requires explicit confirmation.")
-            eprint("       For now, only staging is supported for auto-fix.")
+        if not args.staging and not args.production_confirmed:
+            eprint("ERROR: --execute on production requires --production-confirmed flag.")
+            eprint("       Use --staging for staging environments, or")
+            eprint("       --production-confirmed for sites without staging.")
             sys.exit(1)
         lock_file = _acquire_lock(args.site, "style-pass")
         eprint(f"  Deploy lock acquired: {lock_file}")
@@ -1040,14 +1043,20 @@ Tiers:
 # ---------------------------------------------------------------------------
 
 def _write_post_content(ssh_cmd: list[str], wp_path: str, post_id: int, html: str):
-    """Write post content back via wp eval-file (safe method)."""
-    import tempfile
+    """Write post content back via wp eval-file (safe method).
 
-    # Create PHP script that reads content from stdin and updates the post
+    Uses single SSH session: pipes PHP script that contains hex-encoded
+    content, writes to /tmp, and executes — all in one session so WPE's
+    session-local /tmp works correctly.
+    """
+    # Hex-encode content so it survives shell transport without corruption
+    hex_content = html.encode("utf-8").hex()
+
     php = f"""<?php
-$content = file_get_contents('php://stdin');
+$hex = '{hex_content}';
+$content = hex2bin($hex);
 if (empty($content)) {{
-    echo "ERROR: empty content\\n";
+    echo "ERROR: empty content after hex2bin\\n";
     exit(1);
 }}
 $result = wp_update_post(array(
@@ -1061,53 +1070,13 @@ if (is_wp_error($result)) {{
 echo "OK: updated post {post_id}, " . strlen($content) . " bytes\\n";
 """
 
-    # Pipe PHP script first, then content
-    # Two-step: write PHP to /tmp, then pipe content to wp eval
-    # Step 1: Write PHP script
+    # Single SSH session: pipe PHP to /tmp and execute
     result = subprocess.run(
-        ssh_cmd + [f"cat > /tmp/_sp_update.php"],
-        input=php, capture_output=True, text=True, timeout=15,
-    )
-
-    # Step 2: Pipe content as stdin to wp eval-file
-    # We need to pass content through stdin to the PHP script
-    # Use a wrapper that reads stdin and passes it to the PHP script
-    wrapper_php = f"""<?php
-$content = file_get_contents('/tmp/_sp_content.txt');
-if (empty($content)) {{
-    echo "ERROR: empty content\\n";
-    exit(1);
-}}
-$result = wp_update_post(array(
-    'ID' => {post_id},
-    'post_content' => $content,
-), true);
-if (is_wp_error($result)) {{
-    echo "ERROR: " . $result->get_error_message() . "\\n";
-    exit(1);
-}}
-echo "OK: updated post {post_id}, " . strlen($content) . " bytes\\n";
-"""
-
-    # Write content to temp file on server
-    result = subprocess.run(
-        ssh_cmd + [f"cat > /tmp/_sp_content.txt"],
-        input=html, capture_output=True, text=True, timeout=30,
-    )
-
-    # Write PHP script
-    result = subprocess.run(
-        ssh_cmd + [f"cat > /tmp/_sp_update.php"],
-        input=wrapper_php, capture_output=True, text=True, timeout=15,
-    )
-
-    # Execute
-    result = subprocess.run(
-        ssh_cmd + [f"wp eval-file /tmp/_sp_update.php --path={wp_path}"],
-        capture_output=True, text=True, timeout=60,
+        ssh_cmd + [f"cat > /tmp/_sp_update.php && wp eval-file /tmp/_sp_update.php --path={wp_path}"],
+        input=php, capture_output=True, text=True, timeout=120,
     )
     if result.returncode != 0 or "ERROR" in result.stdout:
-        raise RuntimeError(f"Write failed: {result.stdout} {result.stderr}")
+        raise RuntimeError(f"Write failed: {result.stdout} {result.stderr[:300]}")
 
     eprint(f"    {result.stdout.strip()}")
 
