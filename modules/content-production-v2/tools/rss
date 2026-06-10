@@ -23,6 +23,7 @@ from lib.orchestrator import (
     validate_config, resolve_author, run_gates, gates_passed,
     create_draft_post, run_assemble, run_link_pass,
     deploy_draft, set_yoast_meta, purge_cache, verify_deploy,
+    run_d2_claims_check,
 )
 from lib.linker_core import deploy_lock
 
@@ -129,6 +130,46 @@ def cmd_new_article(args):
             failures = {k: v for k, v in results.items() if not v.startswith("pass")}
             log(f"  GATE FAILURES: {json.dumps(failures, indent=2)}")
             mark_stage(job, "gates", "failed", results=results)
+            sys.exit(1)
+
+    # ── Stage D2: Claims verification ──
+    if not stage_done(job, "claims_check"):
+        log("Stage D2: CLAIMS VERIFICATION")
+        article_path = Path(job["artifacts"]["article_html"])
+        html = article_path.read_text()
+
+        d2 = run_d2_claims_check(html, config, job)
+
+        vent_count = len(d2["ventriloquism_hits"])
+        unsourced = d2["unsourced_count"]
+        total = d2["total_claims"]
+        log(f"  Claims extracted: {total}")
+        log(f"  Policy-backed: {d2['policy_count']}, Source-backed: {d2['source_count']}, UNSOURCED: {unsourced}")
+        log(f"  Ventriloquism hits: {vent_count}")
+
+        if vent_count > 0:
+            log("  VENTRILOQUISM GATE FAILED:")
+            for h in d2["ventriloquism_hits"]:
+                log(f"    line ~{h['line_approx']}: \"{h['matched']}\" — ...{h['context']}...")
+
+        if unsourced > 0:
+            log(f"  UNSOURCED CLAIMS ({unsourced}):")
+            for c in d2["classified_claims"]:
+                if c.get("classification") == "UNSOURCED":
+                    log(f"    [{c.get('section','')}] \"{c['claim'][:80]}\"")
+                    if c.get("suggestion"):
+                        log(f"      suggestion: {c['suggestion'][:100]}")
+
+        if d2["passed"]:
+            mark_stage(job, "claims_check", "done",
+                       total_claims=total, unsourced=unsourced, ventriloquism=vent_count)
+            log("  D2 PASSED")
+        else:
+            mark_stage(job, "claims_check", "blocked",
+                       total_claims=total, unsourced=unsourced, ventriloquism=vent_count)
+            log(f"  D2 BLOCKED — {unsourced} unsourced claims, {vent_count} ventriloquism hits")
+            log(f"  Review: rss job show {job['id']}")
+            log(f"  Claims report: {job_dir(job) / 'd2-claims-report.json'}")
             sys.exit(1)
 
     # ── Stage E: Link pass ──

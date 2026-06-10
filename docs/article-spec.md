@@ -408,10 +408,15 @@ Each body H2 section has:
 - 9.5.3 If SERP unavailable: target 1800-2400 words for body.
 - 9.5.4 The current "min 1600" hardcoded floor is REPLACED by SERP-relative target.
 
-### 9.6 Anti-patterns
-- 9.6.1 No "In this section we'll cover..." opener.
-- 9.6.2 No empty H2s with no structural element.
-- 9.6.3 No more than ONE callout per H2 section.
+### 9.6 Title-topic must lead
+- 9.6.1 The FIRST body H2 section must directly answer the title question or address the title topic. If the title says "VA Loan After Foreclosure," the first H2 covers foreclosure — not bankruptcy, not credit repair, not a tangential concept.
+- 9.6.2 Adjacent topics (bankruptcy on a foreclosure page, credit repair on a qualifying page) are permitted but MUST NOT lead the article and MUST NOT exceed ~25% of body word count. The title topic gets ≥50% of body content.
+- 9.6.3 Structural drift — where adjacent topics dominate the article and push the title topic below the fold — is a hard fail in D2 review.
+
+### 9.7 Anti-patterns
+- 9.7.1 No "In this section we'll cover..." opener.
+- 9.7.2 No empty H2s with no structural element.
+- 9.7.3 No more than ONE callout per H2 section.
 - 9.6.4 No external links in H2 body content (except in callouts that explicitly reference a regulatory citation).
 
 ### 9.7 Sentence-length variance
@@ -754,6 +759,9 @@ Hard fail on:
 - 18.4.8 Semicolon density exceeds 1 per 300 words (prose semicolons only; HTML entities excluded).
 - 18.4.9 Any AI-lexicon word: delve, navigate, leverage, robust, comprehensive, crucial, essential, seamless, holistic. Any AI phrase: "in today's * landscape", "it's important to note", "when it comes to".
 - 18.4.10 "It's not X, it's Y" / "That's not X, that's Y" constructions.
+- 18.4.11 **Specificity from sources only.** Every specific factual claim (numbers, percentages, timelines, waiting periods, named rules, dollar figures, score thresholds) must trace to one of: (a) the site's claims policy, (b) gap-scan source material, or (c) material provided by the user. Numbers that appear in the draft but do not appear in any source are UNSOURCED and must be flagged for human review before deploy. The generation model does not get to invent specifics.
+- 18.4.12 **Per-tactic credit-score-gain predictions are banned.** Statements like "disputing collections can raise your score 40-60 points" or "opening three tradelines adds 80 points in 6 months" are inherently unpredictable, borrower-specific, and unverifiable. Use directional language instead ("disputing inaccurate items may improve your score over time").
+- 18.4.13 **Ventriloquism.** First-person SME constructions ("on files I work," "borrowers who come to me," "I see," "in my experience," "my clients") are banned unless the site's voice configuration explicitly licenses first-person. Default: second-person neutral voice. Detected by deterministic regex gate (D2).
 
 ### 18.5 Soft warnings (don't fail, but log)
 - 18.5.1 H2 question/statement mix outside 30-70% range when ≥4 PAA questions available.

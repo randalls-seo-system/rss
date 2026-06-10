@@ -101,6 +101,27 @@ The `--skip-deploy` flag is ALWAYS set — the orchestrator handles deploy separ
 
 **Output:** `jobs/<job_id>/gate-results.json`
 
+### Stage D2 — CLAIMS VERIFICATION
+
+**Module:** `lib/orchestrator.py` (run_d2_claims_check)
+
+Runs after emit gates pass, before link pass. Three components:
+
+1. **Ventriloquism gate (deterministic, no LLM):** Regex scan for first-person SME constructions ("on files I work", "I see", "in my experience", "my clients", etc.). HARD FAIL listing every instance. Overridable only if the site's voice config contains `first_person_licensed: true` (no current site has this).
+
+2. **Claim extraction (Opus via claude CLI):** Extracts every factual claim from the draft — numbers, percentages, timelines, waiting periods, named rules/programs/forms, dollar figures, score thresholds. Output: JSON array of `{claim, section, claim_type}`.
+
+3. **Source classification (Opus via claude CLI):** Classifies each claim against (a) the site's claims_policy file, (b) gap-scan source material in the job dir. Conservative: unsure → UNSOURCED. Output: JSON array with `classification: POLICY|SOURCE|UNSOURCED` and `suggestion` for unsourced claims.
+
+**Disposition:**
+- UNSOURCED claims block deploy. Job halts at D2 with a claims report.
+- Human reviews via `rss job show <id>`, then either:
+  - `rss job approve-claims <id> --neutralize` (applies suggested neutralizations, re-runs D2)
+  - Manual edit + `rss job retry-stage <id> claims_check`
+- Nothing unsourced deploys silently.
+
+**Output:** `jobs/<job_id>/d2-claims-report.json`
+
 ### Stage E — LINK PASS
 
 **Module:** `tools/inject-internal-links.py` (pipeline pool mode)
@@ -237,4 +258,16 @@ jobs/
 | G | deploy verify | modules/wp-deploy/tools/verify-write.py |
 | * | deploy lock | lib/linker_core.py (deploy_lock) |
 | * | brand voice | modules/brand-voice/archetypes/*.md |
+| D2 | claims check | lib/orchestrator.py (run_d2_claims_check) |
 | * | claims policy | docs/*-claims-policy.md or site-specific path |
+
+---
+
+## Deferred Items (follow-up session)
+
+These are approved designs not yet implemented:
+
+1. **Job state commands:** `rss job list`, `rss job show <id>`, `rss job retry-stage <id> <stage>`, `rss job mark-done <id> <stage> --reason`, `rss job approve-claims <id> --neutralize`. Every change appends to a history array. Direct JSON edits are off-limits.
+2. **Topic overlap guard (Stage B):** Fuzzy-match topic against existing published titles/slugs. High overlap = HARD STOP listing matching URLs. Human decides: true gap, gap-fill of existing page, or duplicate.
+3. **D2 cost optimization:** Batch extraction+classification into one call, or downgrade extraction to a cheaper model. Only after D2 catch rate is proven across multiple articles.
+4. **Approve-claims flow:** `--neutralize` flag applies D2's suggested neutralizations and re-runs D2. Requires the suggestion quality to be validated on the 37185 correction pass first.
