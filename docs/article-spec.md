@@ -414,6 +414,19 @@ Each body H2 section has:
 - 9.6.3 No more than ONE callout per H2 section.
 - 9.6.4 No external links in H2 body content (except in callouts that explicitly reference a regulatory citation).
 
+### 9.7 Sentence-length variance
+- 9.7.1 Each body H2 section MUST include at least one sentence under 8 words and at least one sentence over 30 words. Monotone sentence length signals AI-generated prose.
+- 9.7.2 The assembler should verify this per-section and flag violations for the LLM to revise.
+
+### 9.8 Section opening variety
+- 9.8.1 At most half of all body H2 sections may open with a topic-sentence-style declarative intro ("X is...", "The Y works by..."). The remaining sections should open with a question, a scenario, a concrete fact, or an imperative.
+- 9.8.2 This is a soft guardrail for the LLM prompt, not a hard validator gate.
+
+### 9.9 Specificity quota
+- 9.9.1 Every article MUST contain 3-5 verifiable specifics: current fee percentages, named programs, dated references, dollar amounts, regulatory citations, or other concrete checkable facts.
+- 9.9.2 Specifics MUST be sourced ONLY from the gap scan, provided source material, or the site's claims policy file (`docs/ahn-claims-policy.md` or site-specific equivalent). NEVER invented.
+- 9.9.3 If the pipeline cannot source 3 verifiable specifics from available inputs, generation FAILS rather than ships with invented numbers.
+
 ---
 
 ## 10. CALLOUT TYPOLOGY
@@ -738,6 +751,9 @@ Hard fail on:
 - 18.4.5 Card title is a generic intent label ("Best for", "Key advantage", "Watch out") instead of a subtopic name.
 - 18.4.6 Two H2 sections without a structural element between intro paragraph and the next H2.
 - 18.4.7 More than one callout in a single H2 section.
+- 18.4.8 Semicolon density exceeds 1 per 300 words (prose semicolons only; HTML entities excluded).
+- 18.4.9 Any AI-lexicon word: delve, navigate, leverage, robust, comprehensive, crucial, essential, seamless, holistic. Any AI phrase: "in today's * landscape", "it's important to note", "when it comes to".
+- 18.4.10 "It's not X, it's Y" / "That's not X, that's Y" constructions.
 
 ### 18.5 Soft warnings (don't fail, but log)
 - 18.5.1 H2 question/statement mix outside 30-70% range when ≥4 PAA questions available.

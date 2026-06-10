@@ -752,6 +752,84 @@ def assert_max_one_callout_per_section(soup: BeautifulSoup, context: dict) -> As
     return AssertionResult(True, "hard", None, "18.4.7")
 
 
+def assert_semicolon_density(soup: BeautifulSoup, context: dict) -> AssertionResult:
+    """18.4.8 Semicolon density must not exceed 1 per 300 words."""
+    text = soup.get_text(separator=" ", strip=True)
+    wc = _word_count(text)
+    if wc == 0:
+        return AssertionResult(True, "hard", None, "18.4.8")
+    semi_count = text.count(";")
+    # Allow semicolons in HTML entities — only count those in prose
+    # Rough filter: subtract occurrences inside &...; patterns
+    entity_semis = len(re.findall(r"&\w+;", text))
+    prose_semis = semi_count - entity_semis
+    if prose_semis <= 0:
+        return AssertionResult(True, "hard", None, "18.4.8")
+    allowed = max(1, wc // 300)
+    if prose_semis > allowed:
+        # Find the first offending sentence for the error message
+        for element in soup.descendants:
+            if isinstance(element, str) and ";" in element:
+                parent = element.parent
+                if parent and parent.name in ("script", "style", "code"):
+                    continue
+                snippet = element.strip()[:80]
+                if ";" in snippet and not re.match(r"&\w+;", snippet):
+                    return AssertionResult(False, "hard",
+                        f"Semicolon density {prose_semis} in {wc} words "
+                        f"(max {allowed}). First: '...{snippet}...'", "18.4.8")
+        return AssertionResult(False, "hard",
+            f"Semicolon density {prose_semis} in {wc} words (max {allowed})",
+            "18.4.8")
+    return AssertionResult(True, "hard", None, "18.4.8")
+
+
+_AI_LEXICON = [
+    r"\bdelve\b", r"\bnavigate\b", r"\bleverage\b", r"\brobust\b",
+    r"\bcomprehensive\b", r"\bcrucial\b", r"\bessential\b",
+    r"\bseamless\b", r"\bholistic\b",
+]
+_AI_LEXICON_RE = re.compile("|".join(_AI_LEXICON), re.IGNORECASE)
+
+_AI_PHRASE_PATTERNS = [
+    re.compile(r"in today'?s\s+\w+\s+landscape", re.I),
+    re.compile(r"it'?s important to note", re.I),
+    re.compile(r"when it comes to\b", re.I),
+]
+
+
+def assert_no_ai_lexicon(soup: BeautifulSoup, context: dict) -> AssertionResult:
+    """18.4.9 No AI-lexicon words or phrases in article text."""
+    text = soup.get_text(separator=" ", strip=True)
+    hits = _AI_LEXICON_RE.findall(text)
+    if hits:
+        unique = list(dict.fromkeys(h.lower() for h in hits))
+        return AssertionResult(False, "hard",
+            f"AI-lexicon words found: {unique[:5]}", "18.4.9")
+    for pat in _AI_PHRASE_PATTERNS:
+        m = pat.search(text)
+        if m:
+            return AssertionResult(False, "hard",
+                f"AI phrase found: '{m.group()}'", "18.4.9")
+    return AssertionResult(True, "hard", None, "18.4.9")
+
+
+_NOT_X_ITS_Y_RE = re.compile(
+    r"(?:it'?s|that'?s)\s+not\s+\w[\w\s,]{2,40}[,;]\s*(?:it'?s|that'?s)\s+\w",
+    re.IGNORECASE,
+)
+
+
+def assert_no_not_x_its_y(soup: BeautifulSoup, context: dict) -> AssertionResult:
+    """18.4.10 No 'it's not X, it's Y' constructions."""
+    text = soup.get_text(separator=" ", strip=True)
+    m = _NOT_X_ITS_Y_RE.search(text)
+    if m:
+        return AssertionResult(False, "hard",
+            f"'Not X, it's Y' pattern found: '{m.group()[:60]}'", "18.4.10")
+    return AssertionResult(True, "hard", None, "18.4.10")
+
+
 # ---------------------------------------------------------------------------
 # 18.5 Soft warnings
 # ---------------------------------------------------------------------------
@@ -885,6 +963,10 @@ ALL_HARD_ASSERTIONS: list[Callable] = [
     assert_no_card_label_as_h3,
     assert_no_missing_structural_element,
     assert_max_one_callout_per_section,
+    # 18.4.8-10 Style-pass emit gates
+    assert_semicolon_density,
+    assert_no_ai_lexicon,
+    assert_no_not_x_its_y,
 ]
 
 ALL_SOFT_ASSERTIONS: list[Callable] = [
