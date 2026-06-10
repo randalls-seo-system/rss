@@ -279,6 +279,18 @@ _EDGE_STRIP = frozenset({
     "from", "as", "it", "its", "but", "not", "if", "do", "be", "my",
     "we", "our", "you", "they", "their", "this", "that", "so", "up",
     "much", "most", "more", "very", "all", "each", "every",
+    # Spanish function words — prevents stopword-only Spanish anchors
+    "de", "en", "para", "del", "los", "las", "con", "una", "un", "es",
+    "al", "el", "su", "tu", "por", "sin",
+})
+
+# Bare phrases blocked as anchors even when they pass POS/edge checks.
+# Geo names stay OUT of _EDGE_STRIP to preserve "San Antonio Neighborhoods" etc.
+_BLOCKED_ANCHORS = frozenset({
+    "san antonio", "austin", "killeen", "texas", "san marcos",
+    "real estate", "home", "homes", "house", "property",
+    "texas home", "texas homes", "killeen home", "killeen homes",
+    "austin home", "austin homes",
 })
 
 # Question stems that are never useful anchors
@@ -335,6 +347,9 @@ def _is_valid_candidate_phrase(phrase: str, require_noun_ending: bool = False) -
         return False
     # Reject if starts or ends with a stopword
     if words[0].lower() in _EDGE_STRIP or words[-1].lower() in _EDGE_STRIP:
+        return False
+    # Reject bare blocked phrases (geo-only, generic nouns)
+    if phrase.lower() in _BLOCKED_ANCHORS:
         return False
     # Reject question stems
     two_word = " ".join(words[:2]).lower()
@@ -464,6 +479,42 @@ def corpus_candidates(
                     chunk = _strip_edge_stopwords(chunk)
                     if _is_valid_candidate_phrase(chunk, require_noun_ending=True):
                         candidates.append((chunk, url, 0.7, "slug", dest_id))
+
+    return _dedup_candidates(candidates)
+
+
+def manual_destinations_candidates(
+    entries: list[dict],
+) -> list[tuple[str, str, float, str]]:
+    """Generate candidates from manually configured destinations.
+
+    Each entry: {"url": str, "title": str, "anchor_seeds": [str, ...]}
+    Seeds go through the same POS gate and edge rules as corpus candidates.
+    Title-derived phrases use the same windowing as corpus_candidates.
+
+    Returns list of (phrase, dest_url, score, source_type).
+    """
+    candidates = []
+    for entry in entries:
+        url = entry.get("url", "")
+        title = entry.get("title", "")
+        seeds = entry.get("anchor_seeds", [])
+        dest_id = entry.get("id")
+
+        # Title-derived (same logic as corpus_candidates)
+        for segment_words in _tokenize_for_phrases(title):
+            for size in range(min(5, len(segment_words) + 1), 1, -1):
+                for i in range(len(segment_words) - size + 1):
+                    chunk = " ".join(segment_words[i : i + size])
+                    chunk = _strip_edge_stopwords(chunk)
+                    if _is_valid_candidate_phrase(chunk, require_noun_ending=True):
+                        candidates.append((chunk, url, 1.0, "manual_title", dest_id))
+
+        # Anchor seeds — validated but not POS-gated (they're human-written)
+        for seed in seeds:
+            seed = seed.strip()
+            if seed and _is_valid_candidate_phrase(seed):
+                candidates.append((seed, url, 0.95, "manual_seed", dest_id))
 
     return _dedup_candidates(candidates)
 

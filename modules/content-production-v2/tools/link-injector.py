@@ -44,6 +44,7 @@ from lib.linker_core import (
     is_body_section,
     is_dest_capped,
     is_restricted_zone,
+    manual_destinations_candidates,
     pool_candidates,
     score_candidate,
 )
@@ -314,6 +315,17 @@ def main():
                 if key not in existing_keys:
                     candidates.append(c)
                     existing_keys.add(key)
+
+    # Add manual_destinations if configured (additive, same dedup)
+    manual_dests = config.get("manual_destinations", [])
+    if manual_dests:
+        manual_cands = manual_destinations_candidates(manual_dests)
+        existing_keys = {(c[0].lower(), c[1]) for c in candidates}
+        for c in manual_cands:
+            key = (c[0].lower(), c[1])
+            if key not in existing_keys:
+                candidates.append(c)
+                existing_keys.add(key)
 
     # Re-sort by phrase length desc
     candidates.sort(key=lambda x: -len(x[0]))

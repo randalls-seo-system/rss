@@ -1,0 +1,104 @@
+{
+  "identity": {
+    "site_id": "ahn",
+    "name": "Afghan Home Network",
+    "public_url": "https://afghanhomenetw.wpenginepowered.com",
+    "platform": "wpe",
+    "platform_notes": "Standard WP Engine hosting. Custom domain not yet mapped. Dashboard at /dashboard/ is a standalone PHP app (not a WP plugin)."
+  },
+
+  "access": {
+    "ssh_host": "afghanhomenetw.ssh.wpengine.net",
+    "ssh_user": "afghanhomenetw",
+    "ssh_key_path": "~/.ssh/wpengine_valn",
+    "wp_path": "/nas/content/live/afghanhomenetw/",
+    "mu_plugins_path": "/nas/content/live/afghanhomenetw/wp-content/mu-plugins/"
+  },
+
+  "content": {
+    "css_prefix": ["ahn"],
+    "brand_voice_archetype": "islamic-finance",
+    "primary_color": "TODO-verify",
+    "secondary_color": "TODO-verify",
+    "logo_url": "TODO-verify",
+    "phone": "TODO-verify",
+    "cta_url": "TODO-verify",
+    "cta_text": "TODO-verify",
+    "form_page_slug": "TODO-verify",
+    "claims_policy": "~/randalls-seo-system/docs/ahn-claims-policy.md",
+    "article_min_words": 1800,
+    "article_max_words": 3500,
+    "default_post_status": "draft",
+    "voice_capture": {
+      "dashboard_path": "/nas/content/live/afghanhomenetw/dashboard/",
+      "dashboard_url": "https://afghanhomenetw.wpenginepowered.com/dashboard/",
+      "capture_dir": "dashboard/data/capture/{topic_id}__{lang}.json",
+      "drafts_dir": "dashboard/data/drafts/{topic_id}__{lang}.json",
+      "topics_file": "dashboard/data/topics.json",
+      "kb_file": "dashboard/data/kb.json",
+      "bilingual_convention": "Files use __{lang} suffix (en, prs, ps). Each topic can have captures and drafts in multiple languages.",
+      "draft_format_note": "Generated drafts contain <h1> in body HTML. Hub pipeline must strip per article spec (H1 lives in ATF hero, not in main-content).",
+      "generation_model": "gpt-5.5",
+      "api_key_location": "dashboard/config.php (OPENAI_API_KEY constant — not in repo)"
+    }
+  },
+
+  "authors": {
+    "author_map": {
+      "primary_sme": {
+        "wp_user_id": "TODO-verify",
+        "name": "Sohail A. Safi",
+        "scope": "islamic-finance-expert",
+        "notes": "Named author/SME. Voice capture subject. All content drafted from his answers."
+      }
+    },
+    "byline_mode": "single",
+    "never_author": []
+  },
+
+  "linking": {
+    "zone_suffixes": "TODO-verify",
+    "extra_zone_classes": [],
+    "skip_slugs": "TODO-verify",
+    "protected_slugs": [],
+    "excluded_destinations": [],
+    "pool_path": "TODO-verify",
+    "inbound_min": 3,
+    "per_run_dest_cap": 10,
+    "max_links_per_para": 1,
+    "max_links_per_section": 3,
+    "max_links_per_post": 10,
+    "pages_as_sources": false,
+    "url_transform": null
+  },
+
+  "protected": {
+    "do_not_touch_pages": [
+      {"post_id": 9, "slug": "home", "reason": "Homepage."}
+    ],
+    "frozen_subsystems": [
+      {
+        "name": "voice_capture_dashboard",
+        "status": "active",
+        "path": "/nas/content/live/afghanhomenetw/dashboard/",
+        "notes": "Standalone PHP app. Safi actively using for voice capture. Claims policy embedded in GUARDRAILS constant (index.php lines 42-61). TODO: refactor to read from docs/ahn-claims-policy.md."
+      }
+    ],
+    "known_traps": [
+      {"name": "Dashboard auth", "description": "Token-based auth (no WP sessions). Operator and author roles. Passwords in index.php constants."},
+      {"name": "No WP publish path", "description": "Dashboard stores drafts as flat JSON files. No wp_insert_post or wp_update_post. 'Published' is a JSON status label, not a WP post_status."},
+      {"name": "kb.json enrichment", "description": "Capture submissions automatically append examples to kb.json. Any test capture must restore kb.json afterward."}
+    ]
+  },
+
+  "integrations": {
+    "gsc_property": "TODO-verify",
+    "ga4_property_id": "TODO-verify",
+    "cdn_notes": "WP Engine Varnish. Dashboard served directly from webroot, not through WP — standard WPE cache applies."
+  },
+
+  "ops": {
+    "backup_dir": "~/backups/ahn-voicecapture-{date}/",
+    "service_tier": "TODO-verify"
+  }
+}
