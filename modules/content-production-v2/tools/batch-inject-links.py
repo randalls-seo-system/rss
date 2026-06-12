@@ -152,7 +152,11 @@ _STOPWORDS = frozenset({
 })
 
 # Maximum links per article — prevents over-linking
-MAX_LINKS_PER_POST = 6
+MAX_LINKS_PER_POST = 8
+
+# Maximum inbound links per destination across a single batch run.
+# Prevents any one page from getting an unnatural spike of new inbound links.
+MAX_INBOUND_PER_DEST = 8
 
 # CTA URLs that are PERMITTED to repeat (hero + mid-article CTAs by design).
 # The dedup logic only applies to editorial/contextual body links.
@@ -271,8 +275,16 @@ def _is_quality_anchor(phrase: str) -> bool:
     return len(content_words) >= 2
 
 
-def _build_phrase_index(pool: AnchorPool, exclude_post_id: int) -> list:
+def _build_phrase_index(
+    pool: AnchorPool,
+    exclude_post_id: int,
+    exclude_dest_ids: set | None = None,
+) -> list:
     """Build a phrase index from all destinations for retroactive matching.
+
+    Args:
+        exclude_dest_ids: Optional set of destination post IDs to skip
+            entirely (e.g. Spanish destinations when processing English posts).
 
     Returns list of (phrase, url, score_boost) sorted by phrase length desc
     (longer phrases match first = more specific).
@@ -280,6 +292,8 @@ def _build_phrase_index(pool: AnchorPool, exclude_post_id: int) -> list:
     phrases = []
     for dest in pool._destinations:
         if dest.get("id") == exclude_post_id:
+            continue
+        if exclude_dest_ids and dest.get("id") in exclude_dest_ids:
             continue
         url = dest.get("url", "")
         kw = dest.get("primary_keyword", "")
@@ -326,19 +340,29 @@ def inject_links_into_content(
     post_id: int,
     internal_keywords: set,
     site_domain: str = "",
+    dest_counter: dict | None = None,
+    exclude_dest_ids: set | None = None,
 ) -> tuple:
     """Inject contextual internal links into post content.
 
     Uses phrase scanning: finds 2-4 word keyword phrases from other posts
     that already appear naturally in paragraph text.
 
+    Args:
+        dest_counter: Optional cross-post destination frequency dict.
+            Keys are normalized URLs, values are injection counts across
+            the batch. When provided, destinations that have already
+            reached MAX_INBOUND_PER_DEST are skipped.
+        exclude_dest_ids: Optional set of destination post IDs to skip
+            (language filter: exclude Spanish dests for English posts, etc).
+
     Returns (modified_content, links_injected_count, link_details).
     """
     # Build phrase index (all linkable phrases from other posts)
-    phrase_index = _build_phrase_index(pool, exclude_post_id=post_id)
+    phrase_index = _build_phrase_index(pool, exclude_post_id=post_id, exclude_dest_ids=exclude_dest_ids)
 
     # Find all H2s and their positions
-    h2_pattern = re.compile(r'<h2[^>]*>(.*?)</h2>', re.IGNORECASE | re.DOTALL)
+    h2_pattern = re.compile(r'<h[23][^>]*>(.*?)</h[23]>', re.IGNORECASE | re.DOTALL)
     h2_matches = list(h2_pattern.finditer(content))
 
     if not h2_matches:
@@ -387,10 +411,12 @@ def inject_links_into_content(
 
         # Try to inject 0-2 links in this section
         section_injected = 0
-        max_per_section = 2
+        max_per_section = 3
 
         for p_match in all_matches[:6]:  # check first 6 elements (p + li)
             if section_injected >= max_per_section:
+                break
+            if total_injected >= MAX_LINKS_PER_POST:
                 break
 
             p_text = re.sub(r'<[^>]+>', '', p_match.group(1))
@@ -407,6 +433,10 @@ def inject_links_into_content(
                     continue
                 if phrase.lower() in used_anchors:
                     continue
+                # Cross-post destination frequency cap
+                if dest_counter is not None:
+                    if dest_counter.get(normalized_url, 0) >= MAX_INBOUND_PER_DEST:
+                        continue
 
                 # Check if phrase appears in paragraph text (word boundary)
                 pattern = re.compile(r"\b" + re.escape(phrase) + r"\b", re.IGNORECASE)
@@ -430,6 +460,10 @@ def inject_links_into_content(
                     used_anchors.add(phrase.lower())
                     section_injected += 1
                     total_injected += 1
+
+                    # Update cross-post destination counter
+                    if dest_counter is not None:
+                        dest_counter[normalized_url] = dest_counter.get(normalized_url, 0) + 1
 
                     link_details.append({
                         "section": h2_text[:50],
