@@ -29,6 +29,15 @@ require lockfile + already-done resumability check before any write.
   against an in-memory copy of the post before writing a CSV row. Only
   successfully-injected candidates appear in the output CSV.
 - Long-running scripts of any kind run foreground only, never backgrounded.
+- UI verification: API-level curl tests do NOT verify browser-delivered pages.
+  Any session modifying page HTML/JS must syntax-check the deployed page's
+  script blocks (`node --check`) and verify the page's own request flow.
+  `node --check` is necessary but insufficient — it catches syntax errors,
+  not runtime ReferenceErrors. New or modified handlers must be reference-
+  traced: every variable they use must resolve to a definition at the
+  correct scope (top-level vs closure). Closure-scoped functions (like
+  `curTopic()` inside `PAGES.voice`) are invisible to code added at the
+  script's top level.
 
 ## SERP credentials
 
@@ -60,6 +69,29 @@ Fallback: `~/valn-rewrite/.gsc-credentials.json`. Required packages: `google-api
 To grant a new site access: In Google Search Console → Settings → Users and permissions → Add `valn-125@igneous-trail-449919-r4.iam.gserviceaccount.com` as a Full user.
 
 Each site's `GSC_PROPERTY` is set in `sites/<slug>.conf` (e.g., `GSC_PROPERTY="sc-domain:example.com"`).
+
+## Business-facts source-of-truth (REQUIRED per site)
+
+Every site that generates content MUST have a business-facts file at
+`sites/{slug}-business-facts.md`. This file is the closed standard for
+operational claims: prices, hours, delivery zones, menu items, policies.
+
+**Rules (same discipline as VALN messaging standard):**
+1. Only assert facts marked CONFIRMED in the file. VERIFY items get
+   conditional language ("check our menu", "call for current info").
+2. If the file doesn't have a fact, content does NOT assert it — omit
+   or flag, never invent.
+3. The pipeline warns loudly if no facts file exists for a site.
+4. Post-assembly claims check (H.27) flags any operational claims
+   (prices, hours, zones) in the output for review.
+5. Sites without a facts file can still generate content, but any
+   invented business detail is a defect.
+
+**Existing facts files:**
+- `sites/gfp-business-facts.md` (GFP — mostly VERIFY, pending team ratification)
+
+**To create for a new site:** Copy the GFP template, fill confirmed
+facts, mark unknowns as VERIFY, get team ratification before content gen.
 
 ## Article generation rules (do not violate)
 

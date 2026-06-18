@@ -23,9 +23,11 @@ See docs/v2-module-architecture.md "tools/assemble-article.py" for pipeline.
 """
 
 import argparse
+import atexit
 import json
 import os
 import re
+import signal
 import subprocess
 import sys
 import time
@@ -65,6 +67,7 @@ from lib.tool_utils import (
     eprint,
     extract_html,
     load_brand_voice,
+    load_business_facts,
     load_prompt_template,
     load_structural_template,
     render_prompt,
@@ -325,6 +328,16 @@ def phase_a(state: PipelineState) -> None:
     eprint(f"  [A.2] Loading brand voice: {state.archetype or '(none)'}")
     state.brand_voice = load_brand_voice(state.archetype) if state.archetype else ""
 
+    # Step 2b: Load business facts (closed standard — appended to brand voice)
+    facts = load_business_facts(state.site_slug)
+    if facts:
+        state.brand_voice += facts
+        eprint(f"  [A.2b] Business facts loaded ({len(facts)} chars)")
+    else:
+        eprint(f"  [A.2b] WARNING: No business-facts file for '{state.site_slug}'. "
+               f"Content may invent operational details (prices, hours, zones). "
+               f"Create sites/{state.site_slug}-business-facts.md to prevent this.")
+
     # Step 3: Detect intent if not provided
     if not state.intent:
         state.intent = detect_intent(state.target_keyword)
@@ -513,6 +526,13 @@ def phase_c(state: PipelineState) -> None:
     h2s = _normalize_h2_titles(state, h2s)
     state.h2_inventory = h2s
     eprint(f"  [C.10b] Normalized H2 inventory: {len(h2s)} sections")
+    # Ensure all H2s have structural_element (overrides may lack it)
+    for h in h2s:
+        if "structural_element" not in h:
+            h["structural_element"] = "prose"
+            h["template_role"] = h.get("template_role", "manual_override")
+            h["template_hint"] = h.get("template_hint", h.get("framing", ""))
+            h["h2_format"] = h.get("h2_format", "statement")
     for h in h2s:
         eprint(f"    - {h['title']} [{h['structural_element']}]")
 
@@ -676,6 +696,10 @@ def _build_h2_inventory(state: PipelineState) -> list[dict]:
         "key_insight": ("file_guidance", "File Guidance"),
     }
 
+    # Sites without mortgage/lending archetype get relaxed structural requirements
+    _strict_archetypes = {"va-lending", "realtor"}
+    _relaxed_site = state.archetype not in _strict_archetypes
+
     for i, h2 in enumerate(h2s):
         template_idx = i + 2  # body sections start at template index 2
         tmpl = template_by_index.get(template_idx)
@@ -684,14 +708,17 @@ def _build_h2_inventory(state: PipelineState) -> list[dict]:
             stype = tmpl["type"]
             # Map prose_optional_table to bullets for CLI compatibility
             if stype == "prose_optional_table":
-                stype = "bullets"
+                stype = "prose" if _relaxed_site else "bullets"
+            # For relaxed sites, downgrade strict structural demands to prose
+            if _relaxed_site and stype in ("table", "callout"):
+                stype = "prose"
             h2["structural_element"] = stype
             h2["template_role"] = tmpl.get("role", "")
             h2["template_hint"] = tmpl.get("hint", "")
             h2["h2_format"] = tmpl.get("h2_format", "statement")
         else:
-            # Sections beyond template range get prose_optional_table → bullets
-            h2["structural_element"] = "bullets"
+            # Sections beyond template range
+            h2["structural_element"] = "prose" if _relaxed_site else "bullets"
             h2["template_role"] = "overflow"
             h2["template_hint"] = ""
             h2["h2_format"] = "statement"
@@ -1388,6 +1415,44 @@ def phase_h(state: PipelineState) -> None:
         shutil.copy2(str(linked_path), str(review_path))
         eprint(f"  [H.26] Below threshold ({hard_passed}/{hard_total} < 25/30) → saved as .review.html")
 
+    # Step 27: Business-facts claims check (D2-style)
+    # Scan assembled HTML for operational claims (prices, hours, zones)
+    # that may have been invented if the facts file was missing or incomplete.
+    facts_file = REPO_ROOT / "sites" / f"{state.site_slug}-business-facts.md"
+    has_facts_file = facts_file.exists()
+    text = BeautifulSoup(state.assembled_html, "html.parser").get_text()
+
+    import re as _re
+    claim_flags = []
+    # Specific dollar amounts
+    prices = _re.findall(r'\$\d+\.?\d{0,2}', text)
+    if len(prices) >= 3:
+        claim_flags.append(f"PRICES: {len(prices)} dollar amounts found")
+    # Specific hours
+    if _re.search(r'(?:sunday|monday|tuesday|wednesday|thursday|friday|saturday).{0,20}\d{1,2}\s*(?:am|pm)', text, _re.I):
+        claim_flags.append("HOURS: specific day+time schedule asserted")
+    # Delivery zone claims
+    if _re.search(r'we deliver to|our delivery (?:area|zone|radius)', text, _re.I):
+        claim_flags.append("DELIVERY: specific zone/area claimed")
+
+    if claim_flags:
+        claims_path = state.output_dir / f"{state.post_id}-claims-review.txt"
+        lines = [
+            f"CLAIMS CHECK — {state.site_slug} post {state.post_id}",
+            f"Business facts file: {'PRESENT' if has_facts_file else 'MISSING'}",
+            f"Flags ({len(claim_flags)}):",
+        ]
+        for f in claim_flags:
+            lines.append(f"  - {f}")
+        if not has_facts_file:
+            lines.append("")
+            lines.append("WARNING: No business-facts file. These claims are likely invented.")
+            lines.append("Create sites/{}-business-facts.md and re-run.".format(state.site_slug))
+        claims_path.write_text("\n".join(lines))
+        eprint(f"  [H.27] Claims check: {len(claim_flags)} flag(s) → {claims_path.name}")
+    else:
+        eprint("  [H.27] Claims check: clean (no operational claims detected)")
+
     state.phases_completed.append("H")
 
 
@@ -1489,6 +1554,53 @@ def phase_i(state: PipelineState, skip_deploy: bool) -> None:
 
 
 # ---------------------------------------------------------------------------
+# Phase J: Featured Image
+# ---------------------------------------------------------------------------
+
+def phase_j(state: PipelineState, skip: bool = False) -> None:
+    """Generate and upload a branded GPT featured image."""
+    eprint("PHASE J: Featured Image")
+
+    if skip:
+        eprint("  [J.30] --skip-featured-image: skipping")
+        state.phases_completed.append("J")
+        return
+
+    feat_tool = TOOLS_DIR / "generate-featured-image.py"
+    if not feat_tool.exists():
+        eprint(f"  [J.30] Tool not found: {feat_tool}, skipping")
+        state.phases_completed.append("J")
+        return
+
+    title = state.target_keyword.replace("-", " ").title()
+    # Use the actual WP post title if available
+    if hasattr(state, "post_title") and state.post_title:
+        title = state.post_title
+
+    cmd = [
+        sys.executable, str(feat_tool),
+        "--site", state.site_slug,
+        "--post-id", str(state.post_id),
+        "--title", title,
+    ]
+
+    eprint(f"  [J.30] Generating featured image for post {state.post_id}")
+    try:
+        _run_tool(str(feat_tool), [
+            "--site", state.site_slug,
+            "--post-id", str(state.post_id),
+            "--title", title,
+        ], "J.30")
+        eprint(f"  [J.30] Featured image set for post {state.post_id}")
+    except RuntimeError as e:
+        # Featured image failure is non-fatal — log and continue
+        eprint(f"  [J.30] WARNING: Featured image failed: {e}")
+        eprint(f"  [J.30] Article deployed successfully, image can be set manually")
+
+    state.phases_completed.append("J")
+
+
+# ---------------------------------------------------------------------------
 # Manifest
 # ---------------------------------------------------------------------------
 
@@ -1555,6 +1667,19 @@ def _write_manifest(state: PipelineState) -> dict:
 
 
 # ---------------------------------------------------------------------------
+# P1/P7: Deploy lock (centralized in lib/deploy_lock.py)
+# ---------------------------------------------------------------------------
+
+sys.path.insert(0, str(REPO_ROOT / 'modules' / '_shared'))
+from lib.deploy_lock import acquire_deploy_lock as _acquire_lock_impl
+
+
+def _acquire_lock(site_slug: str) -> None:
+    """Acquire the centralized deploy lock for assemble-article."""
+    _acquire_lock_impl(site_slug, tool_name='assemble-article')
+
+
+# ---------------------------------------------------------------------------
 # Main
 # ---------------------------------------------------------------------------
 
@@ -1567,7 +1692,7 @@ def main():
     parser.add_argument("--target-keyword", required=True, help="Target keyword")
     parser.add_argument(
         "--intent",
-        choices=["definition", "process", "decision", "cost", "comparison"],
+        choices=["definition", "process", "decision", "cost", "comparison", "employer-relocation"],
         help="Intent type (auto-detected if omitted)",
     )
     parser.add_argument(
@@ -1585,7 +1710,11 @@ def main():
     parser.add_argument("--build-hub-box", action="store_true", help="Build Explore Resources hub box (opt-in for cluster hub pages)")
     parser.add_argument("--h2-override", help="JSON file with manual H2 inventory (skips SERP-driven H2 generation)")
     parser.add_argument("--accept-generic", action="store_true", help="Override generic-template H2 safety check (not recommended)")
+    parser.add_argument("--skip-featured-image", action="store_true", help="Skip GPT-generated branded featured image (Phase J)")
     args = parser.parse_args()
+
+    # P1: Single-agent lockfile — abort if another instance is running
+    _acquire_lock(args.site)
 
     # Initialize state
     state = PipelineState()
@@ -1633,6 +1762,7 @@ def main():
         phase_h(state)
         phase_polish(state, skip=args.skip_polish)
         phase_i(state, skip_deploy=args.skip_deploy)
+        phase_j(state, skip=args.skip_featured_image or args.skip_deploy)
     except RuntimeError as e:
         eprint(f"\nPIPELINE FAILED")
         eprint(f"Phases completed: {state.phases_completed}")

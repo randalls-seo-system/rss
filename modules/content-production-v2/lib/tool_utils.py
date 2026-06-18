@@ -34,6 +34,8 @@ def extract_html(text: str) -> str:
     text = text.strip()
     if text.startswith("```html"):
         text = text[7:]
+    elif text.startswith("```json"):
+        text = text[7:]
     elif text.startswith("```"):
         text = text[3:]
     if text.endswith("```"):
@@ -147,6 +149,39 @@ def load_brand_voice(archetype: str) -> str:
         eprint(f"Warning: brand voice archetype '{archetype}' not found at {voice_path}")
         return ""
     return voice_path.read_text()
+
+
+def load_business_facts(site_slug: str) -> str:
+    """Load business-facts source-of-truth for a site.
+
+    Returns the confirmed facts formatted as a prompt appendix.
+    If no facts file exists, returns a fallback instruction that
+    prevents the LLM from inventing business details.
+    """
+    facts_path = REPO_ROOT / "sites" / f"{site_slug}-business-facts.md"
+    if not facts_path.exists():
+        # No facts file — inject a safety fallback so the LLM defaults
+        # to conditional language instead of inventing business details.
+        return (
+            "\n\n---\n"
+            "BUSINESS FACTS: No source-of-truth file exists for this site.\n"
+            "DEFAULT TO CONDITIONAL LANGUAGE for all operational claims:\n"
+            "- Prices: 'check our current menu for pricing' — never invent dollar amounts\n"
+            "- Hours: 'check our website for current hours' — never assert specific times\n"
+            "- Delivery/service areas: 'call to confirm service to your area' — never assert specific zones\n"
+            "- Deals/promotions: 'check our specials page' — never invent deal structures\n"
+            "- Menu items: reference general categories only, not specific items unless certain\n"
+            "This prevents inventing business facts that may be wrong.\n"
+        )
+    raw = facts_path.read_text()
+    return (
+        "\n\n---\n"
+        "BUSINESS FACTS (source of truth — closed standard):\n"
+        "Only assert facts marked CONFIRMED. For VERIFY items, use conditional "
+        "language ('check our menu', 'call for current info') or omit. "
+        "NEVER invent business details not in this file.\n\n"
+        + raw
+    )
 
 
 def build_topic_context(serp, filter_topic: str, max_results: int = 5) -> str:
