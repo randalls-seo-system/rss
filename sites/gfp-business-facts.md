@@ -1,24 +1,22 @@
 # GFP Business Facts — Source of Truth
 
-> **Status: DRAFT — requires team ratification.**
+> **Status: RATIFIED (2026-06-18)**
 > Every claim in GFP content MUST trace to a fact in this file.
-> Fields marked `VERIFY` need the team (Yael/owner) to confirm or correct.
 > If a fact is not in this file, content does NOT assert it — omit or flag.
 >
-> **Last updated:** 2026-06-17 (initial build from known sources)
-> **Ratified by:** (pending team sign-off)
+> **Last updated:** 2026-06-18
+> **Ratified by:** Randall (team-confirmed data from owner/menu)
 
 ---
 
 ## 1. Location & Contact
 
-| Fact | Value | Source | Status |
-|------|-------|--------|--------|
-| Address | 8530 SH 151 Access Rd, San Antonio, TX 78245 | gfp.conf, site schema | CONFIRMED |
-| Phone | (210) 750-2222 | gfp.conf, site schema | CONFIRMED |
-| Online ordering URL | https://godfathers.orderexperience.net | gfp.conf | CONFIRMED |
-| Third-party apps | DoorDash, Uber Eats | VERIFY — are these current? Others? | VERIFY |
-| Parking | "Easy parking and quick counter" | Asserted in content — is this accurate? | VERIFY |
+| Fact | Value | Status |
+|------|-------|--------|
+| Address | 8530 State Highway 151, San Antonio, TX | CONFIRMED |
+| Phone | (210) 750-2222 | CONFIRMED |
+| Online ordering URL | https://godfathers.orderexperience.net/67f40d4de6a0a26aac0faed3/menu/6684703faafa0064310cbb30 | CONFIRMED |
+| Parking | Easy parking and quick counter | CONFIRMED |
 
 ---
 
@@ -26,16 +24,14 @@
 
 | Day | Hours | Status |
 |-----|-------|--------|
-| Sunday | VERIFY | VERIFY |
-| Monday | VERIFY | VERIFY |
-| Tuesday | VERIFY | VERIFY |
-| Wednesday | VERIFY | VERIFY |
-| Thursday | VERIFY | VERIFY |
-| Friday | VERIFY | VERIFY |
-| Saturday | VERIFY | VERIFY |
-
-> **Content currently asserts:** Sun-Thu 11am-9pm, Fri-Sat 11am-10pm.
-> Team must confirm or correct. If hours vary seasonally, note that.
+| Monday | 11:00 AM – 9:00 PM | CONFIRMED |
+| Tuesday | 11:00 AM – 9:00 PM | CONFIRMED |
+| Wednesday | 11:00 AM – 9:00 PM | CONFIRMED |
+| Thursday | 11:00 AM – 9:00 PM | CONFIRMED |
+| Friday | 11:00 AM – 10:00 PM | CONFIRMED |
+| Saturday | 11:00 AM – 10:00 PM | CONFIRMED |
+| Sunday | 11:00 AM – 9:00 PM | CONFIRMED |
+| Holiday hours | NOT PROVIDED | NEVER-CLAIM — use "call for holiday hours" |
 
 ---
 
@@ -43,168 +39,125 @@
 
 | Fact | Value | Status |
 |------|-------|--------|
-| Delivery available? | Yes | CONFIRMED (site content) |
-| Direct delivery area | VERIFY — what neighborhoods/zones are actually covered? | VERIFY |
-| Delivery radius (miles) | VERIFY | VERIFY |
-| Delivery fee (direct) | VERIFY — content says "modest fee" but no exact number | VERIFY |
-| Minimum order for delivery | VERIFY | VERIFY |
-| Delivery time estimate | VERIFY — content asserts 15-45 min range | VERIFY |
-| Last delivery order cutoff | VERIFY — content says 30-45 min before close | VERIFY |
-| Third-party delivery extends range? | VERIFY | VERIFY |
-
-> **Content currently asserts specific neighborhoods:** Helotes, Westover Hills, Lackland corridor, Medical Center, Stone Oak, Leon Valley, Culebra, Bandera Road area, Ingram Park, Potranco Road, Balcones Heights, Fair Oaks Ranch, Leon Springs, USAA area, plus hotels along Hwy 151.
-> Team must confirm which of these are actually in direct delivery range.
+| Delivery available? | Yes, via DoorDash | CONFIRMED |
+| Delivery radius | 9 miles from 8530 State Highway 151 | CONFIRMED |
+| Delivery minimum order | $25 | CONFIRMED |
+| Estimated delivery time | ~45 minutes | CONFIRMED |
+| Estimated pickup time | ~25 minutes | CONFIRMED |
+| Pickup/carryout available? | Yes | CONFIRMED |
+| Delivery fee | NOT PROVIDED | NEVER-CLAIM — use "check current delivery fee" |
+| Third-party apps | DoorDash | CONFIRMED (do NOT assert Uber Eats without verification) |
 
 ---
 
 ## 4. Menu — Crusts
 
-| Crust | Available? | Status |
-|-------|-----------|--------|
-| Original | VERIFY | VERIFY |
-| Golden | VERIFY | VERIFY |
-| Thin | VERIFY | VERIFY |
-| Mozzarella Loaded (stuffed) | VERIFY | VERIFY |
-| Other? | VERIFY | VERIFY |
-
-> **Content asserts 4-5 crust options.** Team to confirm exact names and availability.
+| Crust | Status |
+|-------|--------|
+| Original | CONFIRMED |
+| Golden | CONFIRMED |
+| Thin | CONFIRMED |
+| Mozzarella-Loaded (stuffed) | CONFIRMED |
 
 ---
 
-## 5. Menu — Pizzas (Specialties)
+## 5. Menu — Specialty Pizzas
 
-| Pizza Name | Available? | Status |
-|-----------|-----------|--------|
-| Classic Combo | VERIFY | VERIFY |
-| All-Meat Combo | VERIFY | VERIFY |
-| Taco Pie | VERIFY | VERIFY |
-| BBQ Chicken | VERIFY | VERIFY |
-| Buffalo Chicken | VERIFY | VERIFY |
-| Veggie | VERIFY | VERIFY |
-| Humble Pie | VERIFY | VERIFY |
-| Hot Stuff | VERIFY | VERIFY |
-| Super Taco | VERIFY | VERIFY |
-| Bacon Cheeseburger | VERIFY | VERIFY |
-| Hawaiian | VERIFY | VERIFY |
+| Pizza Name | Status |
+|-----------|--------|
+| Classic Combo | CONFIRMED |
+| All-Meat Combo | CONFIRMED |
+| Taco Pie | CONFIRMED |
+| BBQ Chicken | CONFIRMED |
+| Buffalo Chicken | CONFIRMED |
+| Veggie | CONFIRMED |
+| Humble Pie | CONFIRMED |
+| Hot Stuff | CONFIRMED |
+| Super Taco | CONFIRMED |
+| Bacon Cheeseburger | CONFIRMED |
+| Hawaiian | CONFIRMED |
+| Banana Pepper & Sausage Trio | CONFIRMED |
+| Chicken Bacon Ranch | CONFIRMED |
 
-> Team to provide the full current specialty menu. Remove any that are discontinued.
-
----
-
-## 6. Menu — Sides & Desserts
-
-| Item | Available? | Status |
-|------|-----------|--------|
-| Cheesesticks | VERIFY | VERIFY |
-| Wings (boneless / bone-in) | VERIFY | VERIFY |
-| Pizza Rolls | VERIFY | VERIFY |
-| Breadsticks | VERIFY | VERIFY |
-| Potato Wedges | VERIFY | VERIFY |
-| Cinnamon Monkey Bread | VERIFY | VERIFY |
-| Calzones | VERIFY | VERIFY |
-| Ciabatta Sandwiches | VERIFY | VERIFY |
+> Item names and ingredients as listed on the live ordering menu are CONFIRMED.
+> Seasonal/limited items may change — note date checked.
 
 ---
 
-## 7. Pricing
+## 6. Menu — Sides, Salads, Wings, Desserts
 
-> **CRITICAL: Do NOT assert prices in content unless confirmed here.**
-> Prices change. Stale prices are a customer service problem and a trust issue.
+| Category | Items | Status |
+|----------|-------|--------|
+| Sides | Cheesesticks, Breadsticks, Pizza Rolls, Potato Wedges | CONFIRMED |
+| Wings | Bone-in and Boneless (multiple sauce options) | CONFIRMED |
+| Salads | As listed on ordering menu | CONFIRMED |
+| Desserts | Cinnamon Monkey Bread, Streusel | CONFIRMED |
+| Sandwiches | Ciabatta sandwiches (as listed) | CONFIRMED |
+| Calzones | As listed on ordering menu | CONFIRMED |
 
-| Item | Price | Status |
+---
+
+## 7. Catering
+
+| Fact | Value | Status |
 |------|-------|--------|
-| Large 1-topping | VERIFY | VERIFY |
-| Large specialty range | VERIFY — content asserts $24-$34 | VERIFY |
-| Pizza Pack (4 large 1-topping) | VERIFY — content asserts $75 | VERIFY |
-| Build Your Own Feast | VERIFY — content asserts $35.99 (M) / $45.99 (L) | VERIFY |
-| Wings (full order) | VERIFY — content asserts $26.49 | VERIFY |
-| Cinnamon Monkey Bread | VERIFY — content asserts $7.79 | VERIFY |
-| Monday/Wednesday deal | VERIFY — content asserts "$8 off large pizzas" | VERIFY |
-
-> **Pricing rule:** If team confirms prices, include effective date.
-> Content should use "starting at" or "check current menu" for prices
-> that change frequently. Never assert a price without a confirmed source.
+| Catering available? | Yes | CONFIRMED |
+| Lead time | 1 day (24 hours) | CONFIRMED |
+| Pricing | Call for quote — discount pricing available | CONFIRMED |
+| Large-format / party sizes | NOT AVAILABLE | CONFIRMED — do NOT claim party/jumbo sizes |
+| Catering menu | Same as regular menu | CONFIRMED |
 
 ---
 
-## 8. Deals & Promotions
-
-| Deal | Details | Status |
-|------|---------|--------|
-| Monday/Wednesday special | VERIFY — content asserts $8 off large | VERIFY |
-| Veterans Day deals | VERIFY | VERIFY |
-| Other recurring deals | VERIFY | VERIFY |
-
-> **Rule:** Seasonal/limited promotions must NOT be asserted as permanent
-> in evergreen content. Use conditional language: "Check our specials page
-> for current deals."
-
----
-
-## 9. Business Identity
+## 8. Business Identity
 
 | Fact | Value | Status |
 |------|-------|--------|
 | Brand name | Godfather's Pizza | CONFIRMED |
-| Tagline | "The Best Pizza in San Antonio" | CONFIRMED (logo) |
-| Franchise or independent? | VERIFY — is this a franchise location or independent? | VERIFY |
-| Owner name(s) | VERIFY — do NOT use in content without explicit approval | VERIFY |
-| Veteran-owned? | VERIFY — content asserts this | VERIFY |
-| Year reopened in SA | VERIFY — content asserts 2025 | VERIFY |
-| "Brand gone for 35 years" claim | VERIFY | VERIFY |
-
-> **Owner name rule:** Owner names are NOT used in content unless explicitly
-> approved by the team. The AI generator already has this rule.
+| Tagline | "The Best Pizza in San Antonio" | CONFIRMED |
 
 ---
 
-## 10. Catering
+## NEVER-CLAIM LIST (permanent policy)
 
-| Fact | Value | Status |
-|------|-------|--------|
-| Catering available? | VERIFY | VERIFY |
-| Catering minimum order | VERIFY | VERIFY |
-| Advance notice required | VERIFY — content asserts "2+ hours for large orders" | VERIFY |
-| Catering delivery area | VERIFY — same as regular delivery? | VERIFY |
-| Catering menu differs from regular? | VERIFY | VERIFY |
+These facts MUST NEVER be asserted in content. Use conditional language
+or omit entirely.
 
----
-
-## 11. Sizes
-
-| Size | Diameter | Slices | Status |
-|------|----------|--------|--------|
-| Mini | VERIFY | VERIFY | VERIFY |
-| Medium | VERIFY | VERIFY | VERIFY |
-| Large | VERIFY — content asserts ~14 inches | VERIFY | VERIFY |
-| Other? | VERIFY | VERIFY | VERIFY |
+| Claim | Why | Required language |
+|-------|-----|-------------------|
+| **Any price** | Prices change; stale prices damage trust | "Check our current menu for pricing" |
+| **Veteran-owned** | Not confirmed; do NOT claim or imply | Remove all veteran-owned claims |
+| **Veteran discount** | Not a confirmed GFP policy | Remove all veteran discount claims |
+| **Delivery fee amount** | Not provided | "Check current delivery fee" |
+| **Holiday hours** | Not provided | "Call for holiday hours" |
+| **Year established / "comeback story"** | Unconfirmed specifics | Soften — "Godfather's Pizza in San Antonio" (no year, no story claims) |
+| **Family-owned** | Unconfirmed | Do not assert |
+| **Owner name(s)** | Not approved for content use | Do not use |
+| **Franchise vs independent** | Unconfirmed | Do not assert either way |
 
 ---
 
 ## Usage Rules for Content Generation
 
 1. **Closed-standard rule.** Only assert business facts that appear in this
-   file with status CONFIRMED. If a fact is VERIFY, do not assert it —
-   use conditional language ("check our menu," "call for current pricing")
-   or omit.
+   file with status CONFIRMED. If a claim is on the NEVER-CLAIM list,
+   do not assert it under any circumstances.
 
-2. **Prices are volatile.** Even CONFIRMED prices must include the effective
-   date. Content should prefer "starting at" or "check current menu" over
-   exact prices for evergreen articles. Exact prices are acceptable only
-   in deal-specific or comparison articles where precision matters.
+2. **Prices are NEVER stated.** This is a permanent policy, not a temporary
+   gap. Content uses "check our current menu" or "see current pricing."
 
-3. **Delivery zones are approximate.** Content can reference confirmed
-   neighborhoods but must include "call to confirm delivery to your
-   specific address" for any zone claim.
+3. **Delivery facts are specific.** DoorDash, 9-mile radius from 8530 Hwy
+   151, $25 minimum, ~45 min delivery, ~25 min pickup. Include "call to
+   confirm delivery to your specific address" for zone claims.
 
-4. **Hours change.** Content must include "check our hours page for current
-   times" rather than asserting exact hours in evergreen articles. Exact
-   hours are acceptable only in operationally-focused articles (delivery
-   page, BMT guide) where they are the primary value.
+4. **Hours can be stated.** Mon-Thu & Sun 11am-9pm, Fri-Sat 11am-10pm.
+   Add "call for holiday hours" in seasonal content.
 
-5. **Menu items change.** Content can reference confirmed menu items by name
-   but must acknowledge availability may vary: "Check our current menu."
+5. **Menu items can be named.** All items on the confirmed list can be
+   referenced by name. Ingredients as listed on the ordering menu.
 
-6. **Never invent.** If the facts file doesn't have it, content does not
-   assert it. This is the same discipline as VALN's closed standard:
-   gaps stay neutral or get cut, never filled by assumption.
+6. **Catering: 1-day lead, call for quote.** No large-format/party sizes.
+   Do NOT assert catering pricing. Do NOT claim party-size pizzas.
+
+7. **Never invent.** If the facts file doesn't have it, content does not
+   assert it.
