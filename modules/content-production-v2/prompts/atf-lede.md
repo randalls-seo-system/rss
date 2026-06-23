@@ -36,7 +36,9 @@ Produce a single `<p>` element (preferred). Two `<p>` elements are acceptable on
 
 Do NOT produce any of the following:
 
-- Em dashes (use commas, periods, or parentheses instead)
+- Em dashes (use commas or periods instead)
+- Parentheses in body prose (restructure the sentence, or use commas)
+- Lowercase "veteran" or "military" — always capitalize Veteran and Military
 - Filler words: "discover", "explore", "vibrant", "dive into", "let's", "we'll cover"
 - "In this article/section we'll..."
 - AI-tells: "navigate the complexities", "in today's fast-paced world", "robust", "leverage", "delve into", "unlock", "unveil"

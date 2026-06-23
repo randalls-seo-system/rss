@@ -696,29 +696,22 @@ def _build_h2_inventory(state: PipelineState) -> list[dict]:
         "key_insight": ("file_guidance", "File Guidance"),
     }
 
-    # Sites without mortgage/lending archetype get relaxed structural requirements
-    _strict_archetypes = {"va-lending", "realtor"}
-    _relaxed_site = state.archetype not in _strict_archetypes
-
     for i, h2 in enumerate(h2s):
         template_idx = i + 2  # body sections start at template index 2
         tmpl = template_by_index.get(template_idx)
 
         if tmpl:
             stype = tmpl["type"]
-            # Map prose_optional_table to bullets for CLI compatibility
+            # Map prose_optional_table to bullets
             if stype == "prose_optional_table":
-                stype = "prose" if _relaxed_site else "bullets"
-            # For relaxed sites, downgrade strict structural demands to prose
-            if _relaxed_site and stype in ("table", "callout"):
-                stype = "prose"
+                stype = "bullets"
             h2["structural_element"] = stype
             h2["template_role"] = tmpl.get("role", "")
             h2["template_hint"] = tmpl.get("hint", "")
             h2["h2_format"] = tmpl.get("h2_format", "statement")
         else:
             # Sections beyond template range
-            h2["structural_element"] = "prose" if _relaxed_site else "bullets"
+            h2["structural_element"] = "bullets"
             h2["template_role"] = "overflow"
             h2["template_hint"] = ""
             h2["h2_format"] = "statement"
@@ -920,8 +913,9 @@ def _build_header_prelude(state: PipelineState) -> str:
     """
     config = state.config
     kw = state.target_keyword
-    cta_url = config.get("CTA_URL", "/compare-loan-offers/")
-    cta_text = config.get("CTA_TEXT", "Get Your Rate")
+    form_slug = config.get("FORM_PAGE_SLUG", "")
+    cta_url = config.get("CTA_URL", f"/{form_slug}/" if form_slug else "/compare-loan-offers/")
+    cta_text = config.get("CTA_TEXT", "Get Your Free Quote" if form_slug else "Get Your Rate")
 
     # Append ?ref=<post-slug> for lead attribution
     post_slug = re.sub(r"[^a-z0-9]+", "-", kw.lower()).strip("-")
@@ -1167,8 +1161,9 @@ def phase_f(state: PipelineState) -> None:
             )
 
     # Step 19: Mid-article CTA pill after 2nd or 3rd H2
-    cta_url = state.config.get("CTA_URL", "/compare-loan-offers/")
-    cta_text = state.config.get("CTA_TEXT", "Get Your Rate")
+    _form_slug = state.config.get("FORM_PAGE_SLUG", "")
+    cta_url = state.config.get("CTA_URL", f"/{_form_slug}/" if _form_slug else "/compare-loan-offers/")
+    cta_text = state.config.get("CTA_TEXT", "Get Your Free Quote" if _form_slug else "Get Your Rate")
     post_slug = re.sub(r"[^a-z0-9]+", "-", state.target_keyword.lower()).strip("-")
     cta_url_ref = f"{cta_url}?ref={post_slug}" if "?" not in cta_url else f"{cta_url}&ref={post_slug}"
     cta_position = min(2, len(state.body_section_htmls) - 1)
@@ -1516,6 +1511,11 @@ ARTICLE:
                f"({len(html)} → {len(polished)}). Keeping original.")
 
 
+## _generate_schema removed — FAQPage now rendered by lrg-faq-schema.php
+## mu-plugin at page-serve time; Article/Breadcrumb handled by Yoast.
+## Inline <script> in post_content was stripped by wp_kses_post on deploy.
+
+
 # ---------------------------------------------------------------------------
 # Phase I: Deploy
 # ---------------------------------------------------------------------------
@@ -1584,14 +1584,29 @@ def phase_j(state: PipelineState, skip: bool = False) -> None:
         "--title", title,
     ]
 
+    # If post_id is 0 (--skip-deploy), generate locally but skip upload.
+    # The image file will be at featured-images/{site}/post-0-final.jpg
+    # and must be uploaded + set_post_thumbnail after manual deploy.
+    skip_upload = (state.post_id == 0)
+    if skip_upload:
+        eprint(f"  [J.30] post_id=0: generating image locally (upload after manual deploy)")
+
+    feat_args = [
+        "--site", state.site_slug,
+        "--post-id", str(state.post_id),
+        "--title", title,
+    ]
+    if skip_upload:
+        feat_args.append("--skip-upload")
+
     eprint(f"  [J.30] Generating featured image for post {state.post_id}")
     try:
-        _run_tool(str(feat_tool), [
-            "--site", state.site_slug,
-            "--post-id", str(state.post_id),
-            "--title", title,
-        ], "J.30")
-        eprint(f"  [J.30] Featured image set for post {state.post_id}")
+        _run_tool(str(feat_tool), feat_args, "J.30")
+        if skip_upload:
+            eprint(f"  [J.30] Image generated locally. Run generate-featured-image.py"
+                   f" with real post_id after deploy to upload and set _thumbnail_id.")
+        else:
+            eprint(f"  [J.30] Featured image set for post {state.post_id}")
     except RuntimeError as e:
         # Featured image failure is non-fatal — log and continue
         eprint(f"  [J.30] WARNING: Featured image failed: {e}")
@@ -1761,8 +1776,17 @@ def main():
         phase_g(state)
         phase_h(state)
         phase_polish(state, skip=args.skip_polish)
+        # Schema removed: FAQPage now handled by lrg-faq-schema.php mu-plugin
+        # at render time; Article/Breadcrumb handled by Yoast in <head>.
         phase_i(state, skip_deploy=args.skip_deploy)
-        phase_j(state, skip=args.skip_featured_image or args.skip_deploy)
+        # Phase J: featured image. Runs after deploy (needs post_id).
+        # When --skip-deploy is used, Phase J still generates the image
+        # locally but skips upload (post_id=0 → no WP target).
+        # The deploy script or manual publish MUST run generate-featured-image.py
+        # separately to upload and set _thumbnail_id.
+        # CRITICAL: The lrg-blog feed query INNER JOINs on _thumbnail_id.
+        # Posts without a real meta row are invisible in the feed.
+        phase_j(state, skip=args.skip_featured_image)
     except RuntimeError as e:
         eprint(f"\nPIPELINE FAILED")
         eprint(f"Phases completed: {state.phases_completed}")

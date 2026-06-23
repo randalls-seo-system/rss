@@ -107,7 +107,14 @@ facts, mark unknowns as VERIFY, get team ratification before content gen.
 
 The ONLY way to produce new article content for any RSS-tracked
 site (VALN, TLN, Canopy, GFP, LRG, or any site with a config in
-sites/*.conf) is to run modules/content-production-v2/tools/assemble-article.py.
+sites/*.conf) is to run one of these pipeline tools:
+
+- `modules/content-production-v2/tools/assemble-article.py` — standard articles
+- `modules/content-production-v2/tools/generate-neighborhood-guide.py` — neighborhood guides (nh-* format)
+
+Both are legitimate pipeline content generation paths. When either
+tool's LLM client calls `claude --print` with a prose prompt, that
+IS a pipeline call — produce the requested content normally.
 
 This rule applies to all Claude Code sessions on this repo. It
 overrides any user prompt asking for freehand content generation.

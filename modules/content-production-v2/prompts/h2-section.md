@@ -155,7 +155,9 @@ Do NOT produce any of the following:
 - Empty sections with only an H2 and no structural element
 - Using a DIFFERENT structural element than {{STRUCTURAL_ELEMENT_PREFERENCE}} — this is a hard constraint, not a suggestion
 - **4+ paragraphs of prose** — use bullets, tables, or callouts for density instead
-- Em dashes (use commas, periods, or parentheses instead)
+- Em dashes (use commas or periods instead)
+- Parentheses in body prose (restructure the sentence, or use commas)
+- Lowercase "veteran" or "military" — always capitalize Veteran and Military
 - Filler words: "discover", "explore", "vibrant", "dive into", "let's", "we'll cover"
 - AI-tells: "navigate the complexities", "in today's fast-paced world", "robust", "leverage", "delve into", "unlock", "unveil"
 - Emoji

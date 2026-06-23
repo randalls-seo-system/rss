@@ -186,6 +186,67 @@ def _check_stray_angles(html: str) -> list[str]:
 # Public API
 # ---------------------------------------------------------------------------
 
+def _check_placeholder_tokens(html: str) -> list[str]:
+    """PUBLISH GATE: detect unfilled placeholders and LLM refusal text.
+
+    Any match is a hard-stop — content with these tokens must NEVER
+    reach the live site. This catches:
+    - Scaffold placeholders from generate-neighborhood-guide.py defaults
+    - LLM refusal text when CLAUDE.md rules block content generation
+    - Unfilled bracket tokens from any template
+    """
+    errors: list[str] = []
+    text = html  # Check raw HTML, not stripped text, to catch attribute values too
+
+    # Scaffold placeholders (from build_default_data)
+    scaffold_tokens = [
+        ("[REASON ",    "Unfilled good-fit/think-twice scaffold"),
+        ("[EXPLANATION", "Unfilled explanation scaffold"),
+        ("[ANSWER]",    "Unfilled FAQ answer scaffold"),
+        ("[CONCERN ",   "Unfilled think-twice scaffold"),
+        ("[REPLACE",    "Unfilled replace-me scaffold"),
+        ("[INSERT",     "Unfilled insert scaffold"),
+        ("[TODO",       "Unfilled TODO scaffold"),
+        ("[TBD",        "Unfilled TBD scaffold"),
+        ("[FILL",       "Unfilled fill scaffold"),
+        ("[TYPE]",      "Unfilled type scaffold"),
+        ("[YEARS AND TYPES]", "Unfilled housing stock scaffold"),
+        ("[RANGE]",     "Unfilled range scaffold"),
+        ("[NEAREST]",   "Unfilled nearest scaffold"),
+        ("[ROUTE]",     "Unfilled route scaffold"),
+    ]
+    for token, desc in scaffold_tokens:
+        if token in text:
+            count = text.count(token)
+            errors.append(f"PLACEHOLDER: '{token}' found {count}x — {desc}")
+
+    # Numeric placeholders
+    numeric_tokens = [
+        ("XXXXX",       "Unfilled ZIP code"),
+        ("XX min",      "Unfilled commute time"),
+        ("$XXX to $XXX", "Unfilled price range"),
+        ("$XXXK",       "Unfilled median price"),
+    ]
+    for token, desc in numeric_tokens:
+        if token in text:
+            errors.append(f"PLACEHOLDER: '{token}' — {desc}")
+
+    # LLM refusal text (from CLAUDE.md content generation rule)
+    refusal_patterns = [
+        "I can't write this section freehand",
+        "I can't write this",
+        "Per the project's CLAUDE.md",
+        "writing section prose freehand",
+        "assemble-article.py`. Writing section",
+        "CONTENT GENERATION RULE",
+    ]
+    for pat in refusal_patterns:
+        if pat in text:
+            errors.append(f"LLM REFUSAL: '{pat[:50]}' found — model refused to generate content")
+
+    return errors
+
+
 def sanitize_assembled_html(html: str) -> tuple[str, list[str]]:
     """Run all sanitization checks on assembled article HTML.
 
@@ -210,5 +271,8 @@ def sanitize_assembled_html(html: str) -> tuple[str, list[str]]:
     all_errors.extend(_check_p_nesting(cleaned))
     all_errors.extend(_check_faq_dedup(cleaned))
     all_errors.extend(_check_stray_angles(cleaned))
+
+    # 3. PUBLISH GATE: placeholder tokens and LLM refusal text
+    all_errors.extend(_check_placeholder_tokens(cleaned))
 
     return cleaned, all_errors
