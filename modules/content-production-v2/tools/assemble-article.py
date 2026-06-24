@@ -498,8 +498,13 @@ def _load_h2_override(state: PipelineState) -> list[dict]:
                 "role": "manual_override",
                 "source": "h2_override",
             }
-            if item.get("framing"):
-                entry["framing"] = item["framing"]
+            # Pass through all override fields so structural_element,
+            # template_hint, callout_key, callout_label, and h2_format
+            # survive into phase_c/phase_f instead of being dropped.
+            for key in ("framing", "structural_element", "template_hint",
+                        "h2_format", "callout_key", "callout_label"):
+                if item.get(key):
+                    entry[key] = item[key]
             h2s.append(entry)
 
     eprint(f"  [C.10] Loaded {len(h2s)} H2s from --h2-override")
