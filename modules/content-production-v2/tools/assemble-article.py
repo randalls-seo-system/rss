@@ -62,6 +62,8 @@ from lib.llm_client import LLMClient
 from lib.overlay_loader import load_overlay
 from lib.serp_adapter import SerpData
 from lib.site_config import load_site_config
+from lib.brand_rules import load_brand_rules_block as _load_brand_rules_from_config
+from lib.brand_rules import validate_brand_rules
 from lib.tool_utils import (
     build_topic_context,
     eprint,
@@ -82,6 +84,19 @@ from lib.tool_utils import (
 
 PYTHON = sys.executable
 LLM_CALL_TIMEOUT = 300  # 5 minutes per LLM call
+
+
+def load_site_structure(site_slug: str) -> dict:
+    """Load per-site structural overlay from sites/<slug>-structure.yaml.
+
+    Returns dict of flags controlling which pipeline components to emit.
+    If no overlay file exists, returns empty dict (all defaults = emit everything).
+    """
+    overlay_path = REPO_ROOT / "sites" / f"{site_slug}-structure.yaml"
+    if not overlay_path.exists():
+        return {}
+    import yaml as _yaml
+    return _yaml.safe_load(overlay_path.read_text()) or {}
 
 # Mechanical tasks (H2 normalize, polish) use OpenAI to save Opus for content.
 MECHANICAL_PROVIDER = "openai"
@@ -212,6 +227,7 @@ class PipelineState:
     archetype: str = ""
     brand_voice: str = ""
     overlay: object = None
+    site_structure: dict = field(default_factory=dict)
     provider: str = "claude_cli"
     model: str | None = None
     output_dir: Path = Path(".")
@@ -338,6 +354,14 @@ def phase_a(state: PipelineState) -> None:
                f"Content may invent operational details (prices, hours, zones). "
                f"Create sites/{state.site_slug}-business-facts.md to prevent this.")
 
+    # Step 2c: Load brand rules (competitor policy, price policy, forbidden terms)
+    brand_rules = _load_brand_rules_from_config(state.config)
+    if brand_rules:
+        state.brand_voice += f"\n\n{brand_rules}"
+        eprint(f"  [A.2c] Brand rules loaded ({len(brand_rules)} chars)")
+    else:
+        eprint(f"  [A.2c] No brand rules configured for '{state.site_slug}'")
+
     # Step 3: Detect intent if not provided
     if not state.intent:
         state.intent = detect_intent(state.target_keyword)
@@ -348,6 +372,13 @@ def phase_a(state: PipelineState) -> None:
     # Step 4: Load overlay
     eprint(f"  [A.4] Loading overlay: {state.intent}")
     state.overlay = load_overlay(state.intent)
+
+    # Step 5: Load site structural overlay
+    state.site_structure = load_site_structure(state.site_slug)
+    if state.site_structure:
+        eprint(f"  [A.5] Site structure overlay loaded ({len(state.site_structure)} flags)")
+    else:
+        eprint(f"  [A.5] No site structure overlay — using defaults")
 
     state.phases_completed.append("A")
 
@@ -565,12 +596,23 @@ def phase_c(state: PipelineState) -> None:
         eprint(f"  [C.10] WARNING: {generic_count} generic-template H2s detected, --accept-generic overriding")
 
     # Step 11: Build header prelude (deterministic)
-    eprint("  [C.11] Building header prelude")
-    state.header_html = _build_header_prelude(state)
+    ss = state.site_structure
+    if ss.get("emit_hero_block", True):
+        eprint("  [C.11] Building header prelude")
+        state.header_html = _build_header_prelude(state)
+    else:
+        # Emit standalone H1 only (no hero wrapper, no eyebrow, no CTA)
+        kw = state.target_keyword
+        state.header_html = f'<h1>{kw.title()}</h1>'
+        eprint("  [C.11] Standalone H1 (hero block disabled by site overlay)")
 
     # Step 12: Build jump nav
-    eprint("  [C.12] Building jump nav")
-    state.jump_nav_html = _build_jump_nav(state)
+    if ss.get("emit_toc", True):
+        eprint("  [C.12] Building jump nav")
+        state.jump_nav_html = _build_jump_nav(state)
+    else:
+        state.jump_nav_html = ""
+        eprint("  [C.12] Jump nav disabled by site overlay")
 
     state.phases_completed.append("C")
 
@@ -758,11 +800,17 @@ def _normalize_h2_titles(state: PipelineState, h2s: list[dict]) -> list[dict]:
         format_lines.append(f"  {i+1}. MUST be a {fmt.upper()} — {'ends with ?' if fmt == 'question' else 'no question mark'}")
     format_block = "\n".join(format_lines)
 
-    prompt = f"""You will receive a list of H2 titles and their required formats.
+    # Inject brand rules into the normalize prompt
+    brand_rules_for_h2 = _load_brand_rules_from_config(state.config)
+
+    prompt = f"""{brand_rules_for_h2}
+
+You will receive a list of H2 titles and their required formats.
 
 For each H2:
 - If REQUIRED_FORMAT is 'statement': output as a statement.
 - If REQUIRED_FORMAT is 'question': output as a question ending with '?'.
+- If an H2 title names a competitor or forbidden term, REWRITE it to remove that name entirely. Replace with a generic category (e.g. "Pizza Hut" → "national chains", "Big Lou's" → "other local shops").
 
 CRITICAL: Every H2 with REQUIRED_FORMAT='question' MUST end with '?'. If you output a question-format H2 without '?', you have failed the task.
 
@@ -907,6 +955,35 @@ Return a JSON array of strings, one H2 per array element, same order as input. N
             h2s[i]["title"] = re.sub(r"\bFAQs?\b", "Questions", h["title"], flags=re.IGNORECASE)
             eprint(f"  [C.10b] Stripped FAQ from H2 #{i+1}: {h2s[i]['title']}")
 
+    # Brand rules: drop H2s containing forbidden terms
+    from lib.brand_rules import get_forbidden_terms
+    forbidden = get_forbidden_terms(state.config)
+    if forbidden:
+        clean_h2s = []
+        dropped = []
+        for h in h2s:
+            title_lower = h["title"].lower()
+            hit = next((t for t in forbidden if t.lower() in title_lower), None)
+            if hit:
+                dropped.append(f"'{h['title']}' (matched '{hit}')")
+            else:
+                clean_h2s.append(h)
+        if dropped:
+            eprint(f"  [C.10b] Brand filter: dropped {len(dropped)} H2(s) with forbidden terms:")
+            for d in dropped:
+                eprint(f"           - {d}")
+            h2s = clean_h2s
+
+            # If we dropped below minimum (4), generate replacements
+            if len(h2s) < 4:
+                needed = 6 - len(h2s)
+                existing_titles = [h["title"] for h in h2s]
+                eprint(f"  [C.10b] Only {len(h2s)} H2s remain after brand filter — generating {needed} replacements")
+                replacement_h2s = _generate_fallback_h2s(state, existing_titles, needed)
+                for fb in replacement_h2s:
+                    h2s.append({"title": fb, "role": "brand_replacement", "source": "llm_fallback",
+                                "h2_format": "question", "structural_element": "prose_optional_table"})
+
     return h2s
 
 
@@ -933,7 +1010,6 @@ def _build_header_prelude(state: PipelineState) -> str:
         f'<header class="rl-hero">\n'
         f'  <div class="rl-eyebrow">{state.intent.title()} &middot; Guide</div>\n'
         f'  <h1>{kw.title()}</h1>\n'
-        f'  <a href="{cta_url_with_ref}" class="rl-cta-primary">{cta_text} →</a>\n'
         f'</header>\n'
     )
     return header
@@ -962,6 +1038,7 @@ def _build_jump_nav(state: PipelineState) -> str:
 def phase_d(state: PipelineState) -> None:
     """Build ATF lede, 4 cards, 3 ATF FAQs."""
     eprint("PHASE D: ATF Generation")
+    ss = state.site_structure
 
     client = LLMClient(provider=state.provider, model=state.model)
     serp_json = str(state.serp_json_path) if state.serp_json_path else ""
@@ -971,56 +1048,63 @@ def phase_d(state: PipelineState) -> None:
     state.atf_lede_html = _build_atf_lede(state, client)
 
     # Step 14: Build 4 ATF cards (sequential, with synthesis diversity)
-    eprint("  [D.14] Building 4 ATF cards")
-    state.card_htmls = []
-    prior_cards_synthesis: list[str] = []
-    for i, slot in enumerate(state.overlay.card_slots):
-        eprint(f"  [D.14.{i+1}] Card: {slot.role}")
-        card_tool = TOOLS_DIR / "build-card.py"
-        output_path = state.output_dir / f"{state.post_id}-card-{slot.role}.html"
-        card_args = [
-            "--site", state.site_slug,
-            "--target-keyword", state.target_keyword,
-            "--intent", state.intent,
-            "--card-slot", slot.role,
-            "--serp-json", serp_json,
-            "--output", str(output_path),
-        ]
-        if prior_cards_synthesis:
-            card_args += ["--prior-cards-synthesis", json.dumps(prior_cards_synthesis)]
-        try:
-            _run_tool(str(card_tool), card_args, f"D.14.{i+1}")
-            card_html = output_path.read_text()
-            state.card_htmls.append(card_html)
-            state.llm_calls += 1
-            # Extract synthesis bullet (last <li>) for diversity tracking
-            card_soup = BeautifulSoup(card_html, "html.parser")
-            bullets = card_soup.find_all("li")
-            if bullets:
-                prior_cards_synthesis.append(bullets[-1].get_text(strip=True))
-        except RuntimeError as e:
-            raise RuntimeError(
-                f"Phase D step 14 (ATF cards) failed for card_slot={slot.role}.\n"
-                f"Reason: {e}\n"
-                f"Debug: Re-run with --debug-section card:{slot.role} to iterate."
-            )
+    if not ss.get("emit_atf_cards", True):
+        eprint("  [D.14] ATF cards disabled by site overlay")
+        state.card_htmls = []
+    else:
+        eprint("  [D.14] Building 4 ATF cards")
+        state.card_htmls = []
+        prior_cards_synthesis: list[str] = []
+        for i, slot in enumerate(state.overlay.card_slots):
+            eprint(f"  [D.14.{i+1}] Card: {slot.role}")
+            card_tool = TOOLS_DIR / "build-card.py"
+            output_path = state.output_dir / f"{state.post_id}-card-{slot.role}.html"
+            card_args = [
+                "--site", state.site_slug,
+                "--target-keyword", state.target_keyword,
+                "--intent", state.intent,
+                "--card-slot", slot.role,
+                "--serp-json", serp_json,
+                "--output", str(output_path),
+            ]
+            if prior_cards_synthesis:
+                card_args += ["--prior-cards-synthesis", json.dumps(prior_cards_synthesis)]
+            try:
+                _run_tool(str(card_tool), card_args, f"D.14.{i+1}")
+                card_html = output_path.read_text()
+                state.card_htmls.append(card_html)
+                state.llm_calls += 1
+                card_soup = BeautifulSoup(card_html, "html.parser")
+                bullets = card_soup.find_all("li")
+                if bullets:
+                    prior_cards_synthesis.append(bullets[-1].get_text(strip=True))
+            except RuntimeError as e:
+                raise RuntimeError(
+                    f"Phase D step 14 (ATF cards) failed for card_slot={slot.role}.\n"
+                    f"Reason: {e}\n"
+                    f"Debug: Re-run with --debug-section card:{slot.role} to iterate."
+                )
 
-    # Step 15: Build 3 ATF FAQs
-    eprint("  [D.15] Building ATF FAQs")
-    faqs_tool = TOOLS_DIR / "build-faqs.py"
-    atf_faq_path = state.output_dir / f"{state.post_id}-atf-faqs.html"
-    try:
-        _run_tool(str(faqs_tool), [
-            "--site", state.site_slug,
-            "--target-keyword", state.target_keyword,
-            "--mode", "atf",
-            "--serp-json", serp_json,
-            "--output", str(atf_faq_path),
-        ], "D.15")
-        state.atf_faqs_html = atf_faq_path.read_text()
-        state.llm_calls += 3  # 3 individual FAQ calls
-    except RuntimeError as e:
-        raise RuntimeError(f"Phase D step 15 (ATF FAQs) failed.\nReason: {e}")
+    # Step 15: Build ATF FAQs
+    if not ss.get("emit_inline_faqs", True):
+        eprint("  [D.15] ATF FAQs disabled by site overlay")
+        state.atf_faqs_html = ""
+    else:
+        eprint("  [D.15] Building ATF FAQs")
+        faqs_tool = TOOLS_DIR / "build-faqs.py"
+        atf_faq_path = state.output_dir / f"{state.post_id}-atf-faqs.html"
+        try:
+            _run_tool(str(faqs_tool), [
+                "--site", state.site_slug,
+                "--target-keyword", state.target_keyword,
+                "--mode", "atf",
+                "--serp-json", serp_json,
+                "--output", str(atf_faq_path),
+            ], "D.15")
+            state.atf_faqs_html = atf_faq_path.read_text()
+            state.llm_calls += 3
+        except RuntimeError as e:
+            raise RuntimeError(f"Phase D step 15 (ATF FAQs) failed.\nReason: {e}")
 
     state.phases_completed.append("D")
 
@@ -1061,6 +1145,12 @@ def _build_atf_lede(state: PipelineState, client: LLMClient) -> str:
 def phase_e(state: PipelineState) -> None:
     """Build BLUF if overlay says to include it."""
     eprint("PHASE E: BLUF")
+
+    # Site structure override
+    if not state.site_structure.get("emit_bluf", True):
+        eprint("  [E.16] BLUF disabled by site overlay")
+        state.phases_completed.append("E")
+        return
 
     bluf_setting = state.overlay.bluf_default
     if bluf_setting == "omit":
@@ -1198,9 +1288,15 @@ def phase_g(state: PipelineState) -> None:
     client = LLMClient(provider=state.provider, model=state.model)
     serp_json = str(state.serp_json_path) if state.serp_json_path else "/dev/null"
 
+    ss = state.site_structure
+
     # Step 20: Closing "The Bottom Line"
-    eprint("  [G.20] Building closing Bottom Line")
-    state.closing_html = _build_closing(state, client)
+    if not ss.get("emit_closing_bottom_line", True):
+        eprint("  [G.20] Closing Bottom Line disabled by site overlay")
+        state.closing_html = ""
+    else:
+        eprint("  [G.20] Building closing Bottom Line")
+        state.closing_html = _build_closing(state, client)
 
     # Step 21: BTF FAQs
     eprint("  [G.21] Building BTF FAQs")
@@ -1231,19 +1327,24 @@ def phase_g(state: PipelineState) -> None:
         raise RuntimeError(f"Phase G step 21 (BTF FAQs) failed.\nReason: {e}")
 
     # Step 22: Resources Used
-    eprint("  [G.22] Building Resources")
-    resources_tool = TOOLS_DIR / "build-resources.py"
-    resources_path = state.output_dir / f"{state.post_id}-resources.html"
-    try:
-        _run_tool(str(resources_tool), [
-            "--site", state.site_slug,
-            "--target-keyword", state.target_keyword,
-            "--serp-json", serp_json,
-            "--output", str(resources_path),
-        ], "G.22")
-        state.resources_html = resources_path.read_text()
-    except RuntimeError as e:
-        raise RuntimeError(f"Phase G step 22 (Resources) failed.\nReason: {e}")
+    resources_policy = ss.get("emit_resources_box", True)
+    if resources_policy == "conditional_on_citation" or resources_policy is False:
+        eprint("  [G.22] Resources box omitted (site overlay: conditional/disabled)")
+        state.resources_html = ""
+    else:
+        eprint("  [G.22] Building Resources")
+        resources_tool = TOOLS_DIR / "build-resources.py"
+        resources_path = state.output_dir / f"{state.post_id}-resources.html"
+        try:
+            _run_tool(str(resources_tool), [
+                "--site", state.site_slug,
+                "--target-keyword", state.target_keyword,
+                "--serp-json", serp_json,
+                "--output", str(resources_path),
+            ], "G.22")
+            state.resources_html = resources_path.read_text()
+        except RuntimeError as e:
+            raise RuntimeError(f"Phase G step 22 (Resources) failed.\nReason: {e}")
 
     # Step 23: Hub box (Explore Resources cluster links, spec §7.5 — opt-in only)
     if state.build_hub_box:
@@ -1326,13 +1427,14 @@ def phase_h(state: PipelineState) -> None:
         state.resources_html,
     ])
 
-    assembled = "\n\n".join(p for p in parts if p.strip())
+    inner = "\n\n".join(p for p in parts if p.strip())
+    assembled = f'<div class="rl-page">\n{inner}\n</div>'
     assembled_path = state.output_dir / f"{state.post_id}-assembled-raw.html"
     assembled_path.write_text(assembled)
 
     # Step 24b: Sanitize assembled HTML (catches upstream defects)
     eprint("  [H.24b] Running post-assembly sanitizer")
-    assembled, san_errors = sanitize_assembled_html(assembled)
+    assembled, san_errors = sanitize_assembled_html(assembled, site=state.site_slug)
     if san_errors:
         eprint(f"  [H.24b] SANITIZER HARD STOP — {len(san_errors)} error(s):")
         for err in san_errors:
@@ -1344,7 +1446,16 @@ def phase_h(state: PipelineState) -> None:
             f"Fix upstream section builders.\n"
             + "\n".join(f"  - {e}" for e in san_errors)
         )
-    eprint("  [H.24b] Sanitizer: PASS")
+    assembled_path.write_text(assembled)
+    eprint("  [H.24b] Sanitizer: PASS, wrote sanitized HTML back to " + str(assembled_path))
+
+    # Post-sanitize assertion: fail loud if grid wrapper is missing
+    _check = assembled_path.read_text()
+    if 'rl-quick-card' in _check and 'rl-quick-grid' not in _check:
+        raise SystemExit(
+            "[H.24b] FATAL: rl-quick-card present but rl-quick-grid missing after sanitize "
+            "— refusing to deploy stacked cards. Post: " + str(state.post_id)
+        )
 
     # Step 25: Inject internal links
     eprint("  [H.25] Injecting internal links")
@@ -1453,6 +1564,30 @@ def phase_h(state: PipelineState) -> None:
     else:
         eprint("  [H.27] Claims check: clean (no operational claims detected)")
 
+    # Step 28: Brand rules validation (forbidden terms + price policy)
+    eprint("  [H.28] Brand rules validation")
+    brand_violations = validate_brand_rules(state.assembled_html, state.config)
+    if brand_violations:
+        fail_path = state.output_dir / f"{state.post_id}-brand-violations.log"
+        lines = [
+            f"BRAND RULES VALIDATION FAILED — {state.site_slug} post {state.post_id}",
+            f"Target keyword: {state.target_keyword}",
+            f"Violations ({len(brand_violations)}):",
+            "",
+        ]
+        for v in brand_violations:
+            lines.append(f"  - {v}")
+        fail_path.write_text("\n".join(lines))
+        eprint(f"  [H.28] FAILED: {len(brand_violations)} violation(s) → {fail_path.name}")
+        for v in brand_violations:
+            eprint(f"         {v}")
+        raise RuntimeError(
+            f"Brand rules validation failed with {len(brand_violations)} violation(s). "
+            f"Article contains forbidden terms or specific prices. "
+            f"See {fail_path} for details. Pipeline will NOT deploy."
+        )
+    eprint("  [H.28] Brand rules: PASS (0 violations)")
+
     state.phases_completed.append("H")
 
 
@@ -1478,7 +1613,15 @@ def phase_polish(state: PipelineState, skip: bool = False) -> None:
     pre_polish_path = state.output_dir / f"{state.post_id}-article.pre-polish.html"
     pre_polish_path.write_text(html)
 
-    prompt = f"""You are a senior SEO editor reviewing a finished article before publication. Read the article and fix ONLY these issues:
+    # Build brand rules reminder for the polish pass
+    brand_rules_block = _load_brand_rules_from_config(state.config)
+    brand_rules_reminder = ""
+    if brand_rules_block:
+        brand_rules_reminder = f"\n\n{brand_rules_block}\n\nIMPORTANT: While polishing, if you find any content that violates the BRAND RULES above (competitor names, specific prices, forbidden terms), REMOVE or rewrite those violations. This is your last chance to catch them.\n"
+
+    prompt = f"""You are a senior SEO editor reviewing a finished article before publication.{brand_rules_reminder}
+
+Read the article and fix ONLY these issues:
 
 1. Awkward phrasing or sentences that don't flow
 2. Repeated phrases within close proximity (within 200 words)
@@ -1514,6 +1657,24 @@ ARTICLE:
     else:
         eprint(f"  [Polish] Warning: polished output size mismatch "
                f"({len(html)} → {len(polished)}). Keeping original.")
+
+    # Post-polish brand rules re-check (polish LLM can introduce violations)
+    post_polish_violations = validate_brand_rules(state.assembled_html, state.config)
+    if post_polish_violations:
+        fail_path = state.output_dir / f"{state.post_id}-brand-violations.log"
+        lines = [
+            f"BRAND RULES FAILED (POST-POLISH) — {state.site_slug} post {state.post_id}",
+            f"Violations ({len(post_polish_violations)}):",
+        ]
+        for v in post_polish_violations:
+            lines.append(f"  - {v}")
+        fail_path.write_text("\n".join(lines))
+        eprint(f"  [Polish] BRAND CHECK FAILED: {len(post_polish_violations)} violation(s)")
+        raise RuntimeError(
+            f"Post-polish brand validation failed with {len(post_polish_violations)} "
+            f"violation(s). See {fail_path}."
+        )
+    eprint("  [Polish] Post-polish brand check: PASS")
 
 
 ## _generate_schema removed — FAQPage now rendered by lrg-faq-schema.php
