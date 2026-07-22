@@ -201,6 +201,55 @@ def _filter_subtopics_by_geo(keyword: str, subtopics: list) -> list:
     return kept
 
 
+# ---------------------------------------------------------------------------
+# Slug generation
+# ---------------------------------------------------------------------------
+
+_SLUG_STOP_WORDS = frozenset({
+    "in", "the", "of", "for", "an", "a", "on", "at", "with",
+    "to", "and", "by", "best", "top", "your", "our", "my",
+})
+
+
+def generate_slug(target_keyword: str, site_structure: dict, config: dict = None) -> str:
+    """Generate a short slug from target keyword using site overlay rules.
+
+    Strategy 'keyword_first': strip market geo + stop words, truncate, hyphenate.
+    If no slug config in overlay, returns empty string (caller should skip).
+    """
+    max_words = site_structure.get("slug_max_words", 10)
+    max_chars = site_structure.get("slug_max_chars", 60)
+
+    kw = target_keyword.lower()
+
+    # Strip market geo (e.g., "san antonio" for GFP).
+    # GEO_FOCUS may include state ("San Antonio, TX") — try both full and city-only.
+    if config:
+        geo_raw = config.get("GEO_FOCUS", "").lower().strip()
+        if geo_raw:
+            kw = kw.replace(geo_raw, "").strip()
+            geo_city = geo_raw.split(",")[0].strip()
+            if geo_city and geo_city != geo_raw:
+                kw = kw.replace(geo_city, "").strip()
+
+    words = kw.split()
+    words = [w for w in words if w not in _SLUG_STOP_WORDS]
+    words = words[:max_words]
+
+    slug = "-".join(words)
+
+    # Clean: remove apostrophes, special chars
+    slug = re.sub(r"[']", "", slug)
+    slug = re.sub(r"[^a-z0-9-]", "", slug)
+    slug = re.sub(r"-+", "-", slug).strip("-")
+
+    # Truncate to max chars at word boundary
+    if len(slug) > max_chars:
+        slug = slug[:max_chars].rsplit("-", 1)[0]
+
+    return slug
+
+
 # Intent detection keywords (spec Section 1 table)
 _INTENT_TRIGGERS: dict[str, list[str]] = {
     "cost": ["cost", "fee", "fees", "price", "prices", "rate", "rates", "how much"],
@@ -779,6 +828,21 @@ def _build_h2_inventory(state: PipelineState) -> list[dict]:
             h2["callout_key"] = ""
             h2["callout_label"] = ""
 
+        # Apply site-specific callout label mapping from structure overlay.
+        # If callout_label_map exists: mapped string = relabel, null/unmapped = remove callout.
+        # If callout_label_map absent: keep defaults (backward compatible).
+        callout_label_map = state.site_structure.get("callout_label_map")
+        if callout_label_map is not None and h2.get("callout_key"):
+            mapped_label = callout_label_map.get(h2["callout_key"])
+            if mapped_label:
+                h2["callout_label"] = mapped_label
+                eprint(f"    [callout-map] Relabeled '{h2['callout_key']}' → '{mapped_label}'")
+            else:
+                eprint(f"    [callout-map] Removed callout '{h2['callout_key']}' (null/unmapped)")
+                h2["structural_element"] = "bullets"
+                h2["callout_key"] = ""
+                h2["callout_label"] = ""
+
     return h2s
 
 
@@ -1325,6 +1389,19 @@ def phase_g(state: PipelineState) -> None:
         state.llm_calls += 1
     except RuntimeError as e:
         raise RuntimeError(f"Phase G step 21 (BTF FAQs) failed.\nReason: {e}")
+
+    # Enforce FAQ count cap from site structure overlay
+    faq_max = ss.get("faq_count", ss.get("faq_count_max", 12))
+    faq_min = ss.get("faq_count_min", 4)
+    btf_faq_soup = BeautifulSoup(state.btf_faqs_html, "html.parser")
+    btf_details = btf_faq_soup.find_all("details")
+    if len(btf_details) > faq_max:
+        eprint(f"  [G.21b] Trimming BTF FAQs from {len(btf_details)} to {faq_max} (site overlay cap)")
+        for d in btf_details[faq_max:]:
+            d.decompose()
+        state.btf_faqs_html = str(btf_faq_soup)
+    elif len(btf_details) < faq_min:
+        eprint(f"  [G.21b] WARNING: BTF FAQs has {len(btf_details)} items, minimum is {faq_min}")
 
     # Step 22: Resources Used
     resources_policy = ss.get("emit_resources_box", True)
