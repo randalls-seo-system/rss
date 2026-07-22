@@ -1800,6 +1800,31 @@ def phase_i(state: PipelineState, skip_deploy: bool) -> None:
 # Phase J: Featured Image
 # ---------------------------------------------------------------------------
 
+def _set_thumbnail_via_ssh(state: PipelineState, thumbnail_id: int) -> bool:
+    """Set _thumbnail_id on a WP post via SSH wp eval."""
+    ssh_host = state.config.get("SSH_HOST", "")
+    ssh_user = state.config.get("SSH_USER", "")
+    ssh_key = state.config.get("SSH_KEY_PATH", "").replace("~", str(Path.home()))
+    if not ssh_host or not ssh_user:
+        eprint("  [J.30] WARNING: SSH config incomplete, cannot set thumbnail")
+        return False
+
+    ssh_base = ["ssh"]
+    if ssh_key:
+        ssh_base += ["-i", ssh_key, "-o", "IdentitiesOnly=yes"]
+    ssh_base.append(f"{ssh_user}@{ssh_host}")
+
+    php = f"set_post_thumbnail({state.post_id}, {thumbnail_id}); echo 'OK thumb={thumbnail_id}';"
+    cmd = ssh_base + ["wp", "eval", php]
+
+    r = subprocess.run(cmd, capture_output=True, text=True, timeout=30)
+    if r.returncode != 0 or "OK" not in r.stdout:
+        eprint(f"  [J.30] WARNING: set_post_thumbnail failed: {r.stdout} {r.stderr[:200]}")
+        return False
+    eprint(f"  [J.30] {r.stdout.strip()}")
+    return True
+
+
 def phase_j(state: PipelineState, skip: bool = False) -> None:
     """Generate and upload a branded GPT featured image."""
     eprint("PHASE J: Featured Image")
@@ -1809,6 +1834,34 @@ def phase_j(state: PipelineState, skip: bool = False) -> None:
         state.phases_completed.append("J")
         return
 
+    # --- Pool rotation strategy (e.g. GFP branded photo pool) ---
+    fi_config = state.site_structure.get("featured_image", {})
+    if fi_config.get("strategy") == "rotate_from_pool":
+        _repo_lib = str(REPO_ROOT / "lib")
+        if _repo_lib not in sys.path:
+            sys.path.append(_repo_lib)
+        from featured_image import select_featured_image
+
+        try:
+            thumbnail_id = select_featured_image(state.target_keyword, state.site_structure)
+        except ValueError as e:
+            eprint(f"  [J.30] WARNING: Pool rotation failed: {e}")
+            state.phases_completed.append("J")
+            return
+
+        eprint(f"  [J.30] Pool rotation selected image {thumbnail_id}"
+               f" for keyword '{state.target_keyword}'")
+
+        if state.post_id == 0:
+            eprint(f"  [J.30] post_id=0: thumbnail {thumbnail_id} logged"
+                   f" — set manually after deploy")
+        else:
+            _set_thumbnail_via_ssh(state, thumbnail_id)
+
+        state.phases_completed.append("J")
+        return
+
+    # --- Default: GPT-generated featured image (Phase J original) ---
     feat_tool = TOOLS_DIR / "generate-featured-image.py"
     if not feat_tool.exists():
         eprint(f"  [J.30] Tool not found: {feat_tool}, skipping")
@@ -1819,13 +1872,6 @@ def phase_j(state: PipelineState, skip: bool = False) -> None:
     # Use the actual WP post title if available
     if hasattr(state, "post_title") and state.post_title:
         title = state.post_title
-
-    cmd = [
-        sys.executable, str(feat_tool),
-        "--site", state.site_slug,
-        "--post-id", str(state.post_id),
-        "--title", title,
-    ]
 
     # If post_id is 0 (--skip-deploy), generate locally but skip upload.
     # The image file will be at featured-images/{site}/post-0-final.jpg
