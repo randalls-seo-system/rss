@@ -1,0 +1,69 @@
+#!/bin/sh
+# post-commit hook: logs commit to LRG Dashboard worklog via API.
+# FAIL-SAFE: errors here NEVER block a commit. All paths exit 0.
+trap 'exit 0' ERR
+
+# --- Source token from .env if not already in environment ---
+if [ -z "$LRG_WORKLOG_TOKEN" ]; then
+    ENV_FILE="$(git rev-parse --show-toplevel)/.env"
+    if [ -f "$ENV_FILE" ]; then
+        LRG_WORKLOG_TOKEN=$(grep '^LRG_WORKLOG_TOKEN=' "$ENV_FILE" 2>/dev/null | cut -d= -f2-)
+    fi
+fi
+
+if [ -z "$LRG_WORKLOG_TOKEN" ]; then
+    echo "[worklog] WARNING: LRG_WORKLOG_TOKEN not set in .env. Skipping." >&2
+    exit 0
+fi
+
+# --- Extract commit data ---
+COMMIT_DATE=$(git log -1 --format='%Y-%m-%d')
+COMMIT_SUBJECT=$(git log -1 --format='%s')
+COMMIT_BODY=$(git log -1 --format='%b')
+COMMIT_HASH=$(git log -1 --format='%h')
+
+# --- Infer category from subject prefix ---
+CATEGORY="build"
+case "$(echo "$COMMIT_SUBJECT" | tr '[:upper:]' '[:lower:]')" in
+    fix:*|fix\(*)     CATEGORY="fix" ;;
+    infra:*|infra\(*) CATEGORY="infra" ;;
+    seo:*|seo\(*)     CATEGORY="seo" ;;
+    deploy:*|deploy\(*) CATEGORY="deploy" ;;
+    audit:*|audit\(*) CATEGORY="audit" ;;
+    build:*|build\(*) CATEGORY="build" ;;
+    content:*|content\(*) CATEGORY="content" ;;
+esac
+
+# --- Build description ---
+if [ -n "$COMMIT_BODY" ]; then
+    DESCRIPTION="$COMMIT_BODY [$COMMIT_HASH]"
+else
+    DESCRIPTION="[$COMMIT_HASH]"
+fi
+
+TITLE=$(echo "$COMMIT_SUBJECT" | cut -c1-255)
+DESCRIPTION=$(echo "$DESCRIPTION" | cut -c1-1000)
+
+# --- Escape for JSON ---
+json_escape() {
+    printf '%s' "$1" | python3 -c 'import sys,json; print(json.dumps(sys.stdin.read()), end="")'
+}
+
+TITLE_JSON=$(json_escape "$TITLE")
+DESC_JSON=$(json_escape "$DESCRIPTION")
+
+# --- POST to worklog API ---
+RESPONSE=$(curl -s -m 10 -X POST \
+    "https://lrgrealty.com/dashboard/?route=api&action=worklog-add" \
+    -H "Content-Type: application/json" \
+    -H "X-LRG-WORKLOG-TOKEN: $LRG_WORKLOG_TOKEN" \
+    -d "{\"category\":\"$CATEGORY\",\"title\":$TITLE_JSON,\"description\":$DESC_JSON,\"work_date\":\"$COMMIT_DATE\",\"source\":\"auto-git\"}" \
+    2>/dev/null) || true
+
+if echo "$RESPONSE" | grep -q '"ok":true'; then
+    echo "[worklog] Logged: $COMMIT_SUBJECT"
+else
+    echo "[worklog] WARNING: POST failed. Response: $RESPONSE" >&2
+fi
+
+exit 0
