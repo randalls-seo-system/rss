@@ -17,7 +17,7 @@ if [ -z "$LRG_WORKLOG_TOKEN" ]; then
 fi
 
 # --- Extract commit data ---
-COMMIT_DATE=$(git log -1 --format='%Y-%m-%d')
+COMMIT_DATE=$(git log -1 --date=short --format='%cd')
 COMMIT_SUBJECT=$(git log -1 --format='%s')
 COMMIT_BODY=$(git log -1 --format='%b')
 COMMIT_HASH=$(git log -1 --format='%h')
