@@ -561,7 +561,7 @@ def _load_h2_override(state: PipelineState) -> list[dict]:
     with open(override_path) as f:
         data = json.load(f)
 
-    items = data.get("h2_inventory") or data
+    items = data.get("h2_inventory") if isinstance(data, dict) else data
     if not isinstance(items, list) or len(items) == 0:
         raise RuntimeError(f"--h2-override JSON must contain a non-empty 'h2_inventory' list")
 
@@ -655,13 +655,10 @@ def phase_c(state: PipelineState) -> None:
         state.header_html = f'<h1>{kw.title()}</h1>'
         eprint("  [C.11] Standalone H1 (hero block disabled by site overlay)")
 
-    # Step 12: Build jump nav
-    if ss.get("emit_toc", True):
-        eprint("  [C.12] Building jump nav")
-        state.jump_nav_html = _build_jump_nav(state)
-    else:
-        state.jump_nav_html = ""
-        eprint("  [C.12] Jump nav disabled by site overlay")
+    # Step 12: Jump nav retired — sidebar TOC (rss-toc-manager) handles navigation.
+    # In-body jump nav is prohibited by spec assertion 18.1.5.
+    state.jump_nav_html = ""
+    eprint("  [C.12] Jump nav skipped (sidebar TOC handles navigation)")
 
     state.phases_completed.append("C")
 
@@ -1815,9 +1812,10 @@ def _set_thumbnail_via_ssh(state: PipelineState, thumbnail_id: int) -> bool:
     ssh_base.append(f"{ssh_user}@{ssh_host}")
 
     php = f"set_post_thumbnail({state.post_id}, {thumbnail_id}); echo 'OK thumb={thumbnail_id}';"
-    cmd = ssh_base + ["wp", "eval", php]
+    # Shell-quote the PHP so parentheses aren't interpreted by bash
+    cmd_str = " ".join(ssh_base) + f" 'wp eval \"{php}\"'"
 
-    r = subprocess.run(cmd, capture_output=True, text=True, timeout=30)
+    r = subprocess.run(cmd_str, shell=True, capture_output=True, text=True, timeout=30)
     if r.returncode != 0 or "OK" not in r.stdout:
         eprint(f"  [J.30] WARNING: set_post_thumbnail failed: {r.stdout} {r.stderr[:200]}")
         return False

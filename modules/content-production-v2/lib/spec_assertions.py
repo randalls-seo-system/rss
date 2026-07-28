@@ -139,11 +139,14 @@ def _get_non_anchor_text(soup: BeautifulSoup) -> str:
 # ---------------------------------------------------------------------------
 
 def assert_h1_present(soup: BeautifulSoup, context: dict) -> AssertionResult:
-    """18.1.1 H1 present, exactly one."""
+    """18.1.1 H1 present, exactly one (PASS if postprocessor strips it for theme-rendered H1)."""
     h1s = soup.find_all("h1")
     if len(h1s) == 1:
         return AssertionResult(True, "hard", None, "18.1.1")
-    return AssertionResult(False, "hard", f"Expected 1 H1, found {len(h1s)}", "18.1.1")
+    # H1 stripped by postprocessor (theme renders it from post_title) — acceptable
+    if len(h1s) == 0:
+        return AssertionResult(True, "hard", "H1 absent (theme-rendered)", "18.1.1")
+    return AssertionResult(False, "hard", f"Expected 0-1 H1, found {len(h1s)}", "18.1.1")
 
 
 def assert_eyebrow_format(soup: BeautifulSoup, context: dict) -> AssertionResult:
@@ -195,38 +198,19 @@ def assert_primary_sources_present(soup: BeautifulSoup, context: dict) -> Assert
 
 
 def assert_jump_nav_structure(soup: BeautifulSoup, context: dict) -> AssertionResult:
-    """18.1.5 Jump nav has exactly 5 links, last text == 'FAQs'."""
+    """18.1.5 Article body must NOT contain an in-body jump nav (sidebar TOC handles navigation)."""
     nav = soup.find(class_=re.compile(r"rl-jump-nav|rl-nav|jump-nav"))
-    if nav is None:
-        return AssertionResult(False, "hard", "Jump nav element not found", "18.1.5")
-    links = nav.find_all("a")
-    if len(links) != 5:
-        return AssertionResult(False, "hard", f"Jump nav has {len(links)} links, expected 5", "18.1.5")
-    last_text = _text_of(links[-1]).strip()
-    if last_text.lower() != "faqs":
-        return AssertionResult(False, "hard", f"Jump nav last link text is '{last_text}', expected 'FAQs'", "18.1.5")
+    if nav is not None:
+        return AssertionResult(False, "hard", "Article contains in-body jump nav — remove it (sidebar TOC handles navigation)", "18.1.5")
     return AssertionResult(True, "hard", None, "18.1.5")
 
 
 def assert_jump_nav_anchors_resolve(soup: BeautifulSoup, context: dict) -> AssertionResult:
-    """18.1.6 Jump nav anchors 1-4 resolve to body H2 IDs."""
+    """18.1.6 (Retired — jump nav prohibited by 18.1.5)."""
     nav = soup.find(class_=re.compile(r"rl-jump-nav|rl-nav|jump-nav"))
     if nav is None:
-        return AssertionResult(False, "hard", "Jump nav element not found", "18.1.6")
-    links = nav.find_all("a")
-    if len(links) < 5:
-        return AssertionResult(False, "hard", "Jump nav has fewer than 5 links", "18.1.6")
-    unresolved = []
-    for i, link in enumerate(links[:4]):
-        href = link.get("href", "")
-        if href.startswith("#"):
-            target_id = href[1:]
-            target = soup.find(id=target_id)
-            if target is None:
-                unresolved.append(f"#{target_id}")
-    if unresolved:
-        return AssertionResult(False, "hard", f"Jump nav anchors don't resolve: {unresolved}", "18.1.6")
-    return AssertionResult(True, "hard", None, "18.1.6")
+        return AssertionResult(True, "hard", None, "18.1.6")
+    return AssertionResult(False, "hard", "Jump nav present — see 18.1.5", "18.1.6")
 
 
 def assert_jump_nav_matches_cards(soup: BeautifulSoup, context: dict) -> AssertionResult:
@@ -249,10 +233,18 @@ def assert_atf_lede_word_count(soup: BeautifulSoup, context: dict) -> AssertionR
     """18.1.8 ATF lede paragraph word count 40-110."""
     lede = soup.find(class_=re.compile(r"rl-hero-lead|rl-lede|rl-atf-lede"))
     if lede is None:
-        # Fall back: first <p> after eyebrow/H1 area
+        # Fall back: first <p> after eyebrow/H1 area or after hero/nav/qstats
         h1 = soup.find("h1")
         if h1:
             lede = h1.find_next("p")
+    if lede is None:
+        # Try: first <p> after rl-hero or jump-nav or rl-qstats
+        for marker_class in ["rl-hero", "rl-jump-nav", "rl-qstats"]:
+            marker = soup.find(class_=marker_class)
+            if marker:
+                lede = marker.find_next("p")
+                if lede:
+                    break
     if lede is None:
         return AssertionResult(False, "hard", "ATF lede paragraph not found", "18.1.8")
     wc = _word_count(_text_of(lede))
@@ -285,7 +277,7 @@ def assert_first_cta_present(soup: BeautifulSoup, context: dict) -> AssertionRes
 
 
 def assert_atf_card_count_and_structure(soup: BeautifulSoup, context: dict) -> AssertionResult:
-    """18.1.10 Exactly 4 ATF cards. Each has H3 + 4 bullets."""
+    """18.1.10 Exactly 4 ATF cards. Each has H3 + max 3 bullets."""
     cards = soup.find_all(class_="rl-quick-card")
     if len(cards) != 4:
         return AssertionResult(False, "hard", f"Expected 4 ATF cards, found {len(cards)}", "18.1.10")
@@ -295,8 +287,10 @@ def assert_atf_card_count_and_structure(soup: BeautifulSoup, context: dict) -> A
         if h3 is None:
             issues.append(f"card[{i}] missing H3")
         bullets = card.find_all("li")
-        if len(bullets) != 4:
-            issues.append(f"card[{i}] has {len(bullets)} bullets, expected 4")
+        if len(bullets) > 3:
+            issues.append(f"card[{i}] has {len(bullets)} bullets, max 3 allowed")
+        elif len(bullets) < 1:
+            issues.append(f"card[{i}] has no bullets")
     if issues:
         return AssertionResult(False, "hard", "; ".join(issues), "18.1.10")
     return AssertionResult(True, "hard", None, "18.1.10")
@@ -368,11 +362,16 @@ def assert_bluf_structure_if_present(soup: BeautifulSoup, context: dict) -> Asse
         if not (70 <= body_wc <= 100):
             issues.append(f"BLUF body is {body_wc} words, expected 70-100")
 
-    # Exactly 5 capstone bullets
+    # Exactly 5 capstone bullets (or 5 rl-kcards)
     ul = bluf.find("ul")
-    if ul is None:
-        issues.append("BLUF missing capstone bullet list")
-    else:
+    kcards = bluf.find(class_="rl-kcards")
+    if ul is None and kcards is None:
+        issues.append("BLUF missing capstone bullet list or rl-kcards")
+    elif kcards is not None:
+        kcard_items = kcards.find_all(class_="rl-kcard")
+        if len(kcard_items) != 5:
+            issues.append(f"BLUF rl-kcards has {len(kcard_items)} cards, expected 5")
+    elif ul is not None:
         bullets = ul.find_all("li")
         if len(bullets) != 5:
             issues.append(f"BLUF has {len(bullets)} capstone bullets, expected 5")
@@ -381,6 +380,10 @@ def assert_bluf_structure_if_present(soup: BeautifulSoup, context: dict) -> Asse
                 wc = _word_count(_text_of(li))
                 if not (12 <= wc <= 20):
                     issues.append(f"BLUF bullet[{i}] is {wc} words, expected 12-20")
+
+    # Negative check: BLUF must NOT contain ATF quick-card classes
+    if bluf.find(class_="rl-quick-grid") or bluf.find(class_="rl-quick-card"):
+        issues.append("BLUF contains rl-quick-grid/rl-quick-card — must use <ul><li> or rl-kcards only")
 
     if issues:
         return AssertionResult(False, "hard", "; ".join(issues), "18.1.12")
@@ -405,7 +408,8 @@ def assert_each_h2_has_structural_element(soup: BeautifulSoup, context: dict) ->
         has_p = any(t.name == "p" for t in content)
         has_structural = any(
             t.name in ("table", "ul", "ol")
-            or (t.name == "div" and "rl-callout" in " ".join(t.get("class", [])))
+            or (t.name == "div" and any(c in " ".join(t.get("class", [])) for c in ("rl-callout", "rl-kcards", "rl-qstats", "bullet-section")))
+            or (t.name == "div" and t.find(["ul", "ol", "table"]))
             for t in content
         )
         if not has_p:
@@ -535,7 +539,7 @@ def assert_external_anchor_format(soup: BeautifulSoup, context: dict) -> Asserti
     for link in resources.find_all("a", href=True):
         text = _text_of(link).strip()
         # Check for em-dash or colon separator with capitalized source
-        if not re.match(r"^[A-Z].+?\s*[—:\u2014]\s*.+$", text):
+        if not re.match(r"^[A-Z].+?\s*[—:,\u2014]\s*.+$", text):
             bad_anchors.append(text[:60])
 
     if bad_anchors:
@@ -723,7 +727,8 @@ def assert_no_missing_structural_element(soup: BeautifulSoup, context: dict) -> 
     for h2, content in sections:
         has_structural = any(
             t.name in ("table", "ul", "ol")
-            or (isinstance(t, Tag) and "rl-callout" in " ".join(t.get("class", [])))
+            or (isinstance(t, Tag) and any(c in " ".join(t.get("class", [])) for c in ("rl-callout", "rl-kcards", "rl-qstats", "bullet-section")))
+            or (isinstance(t, Tag) and t.name == "div" and t.find(["ul", "ol", "table"]))
             for t in content
         )
         if not has_structural:
@@ -924,6 +929,264 @@ def assert_btf_faq_no_duplicate_topics(soup: BeautifulSoup, context: dict) -> As
     return AssertionResult(True, "soft", None, "18.5.4")
 
 
+def assert_no_enumeration_as_prose(soup: BeautifulSoup, context: dict) -> AssertionResult:
+    """18.5.5 Flag paragraphs containing 3+ enumerated items (list candidates).
+
+    Detects grade/tier sequences, ordinal markers, and repeated parallel
+    sentence openings.  Returns WARN — some enumerations are fine in prose,
+    human decides.
+    """
+    # Only check body H2 sections + BLUF
+    sections = _get_body_h2_sections(soup)
+    # Also check BLUF paragraphs
+    bluf = soup.find(class_="rl-bluf")
+    extra_ps = list(bluf.find_all("p")) if bluf else []
+
+    flags: list[str] = []
+
+    def _check_paragraph(p_tag: Tag, location: str) -> None:
+        text = _text_of(p_tag)
+        if _word_count(text) < 20:
+            return
+        sentences = re.split(r'(?<=[.!?])\s+', text)
+        if len(sentences) < 3:
+            return
+
+        # Pattern 1: Grade/tier/level/type sequences
+        tier_pat = re.compile(
+            r'\b(budget|basic|standard|mid[- ]?(?:grade|range|tier)|'
+            r'premium|high[- ]?end|economy|entry[- ]?level|top[- ]?tier)\b',
+            re.IGNORECASE
+        )
+        tier_hits = tier_pat.findall(text)
+        if len(tier_hits) >= 3:
+            items = ", ".join(dict.fromkeys(h.lower() for h in tier_hits))
+            flags.append(f"[{location}] Grade/tier enum ({len(tier_hits)} items): {items}")
+            return
+
+        # Pattern 2: Sequence markers
+        seq_pat = re.compile(
+            r'\b(first|second|third|fourth|fifth|then|next|finally|'
+            r'step\s*\d|phase\s*\d)\b', re.IGNORECASE
+        )
+        seq_hits = seq_pat.findall(text)
+        if len(seq_hits) >= 3:
+            items = ", ".join(dict.fromkeys(h.lower() for h in seq_hits))
+            flags.append(f"[{location}] Sequence enum ({len(seq_hits)} markers): {items}")
+            return
+
+        # Pattern 3: Repeated parallel subject openings (3+ sentences
+        # starting with the same 1-2 word pattern)
+        openers = []
+        for s in sentences:
+            s = s.strip()
+            if s:
+                words = s.split()[:2]
+                openers.append(" ".join(words).lower().rstrip(".,;:"))
+        from collections import Counter
+        opener_counts = Counter(openers)
+        for opener, cnt in opener_counts.items():
+            if cnt >= 3 and len(opener.split()) <= 3:
+                flags.append(
+                    f"[{location}] Parallel opener \"{opener}\" x{cnt}"
+                )
+                break
+
+    for h2, content in sections:
+        h2_label = _text_of(h2)[:35]
+        for tag in content:
+            if tag.name == "p":
+                _check_paragraph(tag, h2_label)
+            # Also check <p> inside non-callout divs (section wrappers)
+            elif tag.name in ("div", "section"):
+                if not any("callout" in c.lower() for c in tag.get("class", [])):
+                    for p in tag.find_all("p", recursive=False):
+                        _check_paragraph(p, h2_label)
+
+    for p in extra_ps:
+        _check_paragraph(p, "BLUF")
+
+    if flags:
+        return AssertionResult(False, "soft",
+            f"{len(flags)} enumeration-as-prose flag(s):\n" + "\n".join(flags),
+            "18.5.5")
+    return AssertionResult(True, "soft", None, "18.5.5")
+
+
+def assert_bullet_min_word_count(soup: BeautifulSoup, context: dict) -> AssertionResult:
+    """18.5.6 Every <li> in body sections must be >= 18 words.
+
+    Checks all <li> elements inside body H2 sections, BLUF, and ATF cards.
+    Reports count + verbatim text of short bullets.
+    """
+    sections = _get_body_h2_sections(soup)
+    # Collect all relevant <li> elements
+    short_bullets: list[str] = []
+
+    def _check_li_list(container_tags: list[Tag], location: str) -> None:
+        for tag in container_tags:
+            for li in tag.find_all("li"):
+                text = _text_of(li)
+                wc = _word_count(text)
+                if wc < 18:
+                    short_bullets.append(f"[{location}] {wc}w: \"{text[:80]}\"")
+
+    # Body sections
+    for h2, content in sections:
+        h2_label = _text_of(h2)[:35]
+        _check_li_list(content, h2_label)
+
+    # BLUF
+    bluf = soup.find(class_="rl-bluf")
+    if bluf:
+        _check_li_list([bluf], "BLUF")
+
+    # ATF cards
+    for card in soup.find_all(class_="rl-quick-card"):
+        _check_li_list([card], "ATF card")
+    # Also check cnp-class cards (post-processed)
+    for card in soup.find_all(class_="cnpQuickCard"):
+        _check_li_list([card], "ATF card")
+
+    if short_bullets:
+        return AssertionResult(False, "soft",
+            f"{len(short_bullets)} bullet(s) under 18 words:\n" + "\n".join(short_bullets),
+            "18.5.6")
+    return AssertionResult(True, "soft", None, "18.5.6")
+
+
+def assert_content_h2_min_eight(soup: BeautifulSoup, context: dict) -> AssertionResult:
+    """18.1.13b Content H2 hard gate: minimum 8 content H2s."""
+    sections = _get_body_h2_sections(soup)
+    count = len(sections)
+    # Defer to override count when h2_inventory is present
+    override_count = context.get("h2_override_count", 0)
+    min_required = max(override_count, 6) if override_count else 8
+    if count >= min_required:
+        return AssertionResult(True, "hard", None, "18.1.13b")
+    return AssertionResult(False, "hard",
+        f"Only {count} content H2s, minimum is {min_required}", "18.1.13b")
+
+
+def assert_faq_topic_relevance(soup: BeautifulSoup, context: dict) -> AssertionResult:
+    """18.5.7 FAQ questions should match the article's primary topic/keyword."""
+    keyword = context.get("target_keyword", "") or ""
+    if not keyword:
+        return AssertionResult(True, "soft", None, "18.5.7")
+
+    kw_words = set(re.findall(r"\w+", keyword.lower()))
+    # Remove ultra-generic stopwords
+    stopwords = {"in", "a", "an", "the", "of", "for", "to", "and", "is",
+                 "how", "what", "do", "does", "much", "you", "your", "texas"}
+    kw_core = kw_words - stopwords
+    if len(kw_core) < 2:
+        return AssertionResult(True, "soft", None, "18.5.7")
+
+    off_topic: list[str] = []
+    # Check both ATF and BTF FAQs
+    for faq_container in soup.find_all(class_=re.compile(r"rl-faq|cnpFaq")):
+        for detail in faq_container.find_all("details"):
+            summary = detail.find("summary")
+            if not summary:
+                continue
+            q_text = _text_of(summary).lower()
+            q_words = set(re.findall(r"\w+", q_text)) - stopwords
+            overlap = len(kw_core & q_words)
+            # Flag if fewer than 2 core keyword words appear in the question
+            if overlap < 2:
+                off_topic.append(_text_of(summary)[:80])
+
+    if off_topic:
+        return AssertionResult(False, "soft",
+            f"{len(off_topic)} FAQ question(s) off-topic vs keyword "
+            f"'{keyword}':\n" + "\n".join(f"  - {q}" for q in off_topic),
+            "18.5.7")
+    return AssertionResult(True, "soft", None, "18.5.7")
+
+
+def assert_no_near_duplicate_sections(soup: BeautifulSoup, context: dict) -> AssertionResult:
+    """18.5.8 Flag H2 pairs that cover the same material (>60% word overlap)."""
+    sections = _get_body_h2_sections(soup)
+    if len(sections) < 2:
+        return AssertionResult(True, "soft", None, "18.5.8")
+
+    stopwords = {"in", "a", "an", "the", "of", "for", "to", "and", "is",
+                 "how", "what", "do", "does", "much", "you", "your", "texas"}
+    titles = []
+    for h2, _ in sections:
+        text = _text_of(h2).lower()
+        words = set(re.findall(r"\w+", text)) - stopwords
+        titles.append((_text_of(h2), words))
+
+    dupes: list[str] = []
+    for i in range(len(titles)):
+        for j in range(i + 1, len(titles)):
+            if not titles[i][1] or not titles[j][1]:
+                continue
+            overlap = len(titles[i][1] & titles[j][1])
+            smaller = min(len(titles[i][1]), len(titles[j][1]))
+            if smaller > 0 and overlap / smaller > 0.6:
+                dupes.append(
+                    f"\"{titles[i][0][:50]}\" vs \"{titles[j][0][:50]}\" "
+                    f"({overlap}/{smaller} overlap)")
+
+    if dupes:
+        return AssertionResult(False, "soft",
+            f"{len(dupes)} near-duplicate section pair(s):\n" +
+            "\n".join(f"  - {d}" for d in dupes), "18.5.8")
+    return AssertionResult(True, "soft", None, "18.5.8")
+
+
+def assert_no_excessive_repetition(soup: BeautifulSoup, context: dict) -> AssertionResult:
+    """18.5.9 Flag phrases/facts repeated 4+ times AND paragraph-join-without-space."""
+    full_text = _text_of(soup)
+    issues: list[str] = []
+
+    # --- Phrase repetition (3+ word phrases appearing 4+ times) ---
+    words = re.findall(r"\b[\w'-]+\b", full_text.lower())
+    # Check 3-to-6-gram phrases
+    from collections import Counter
+    for n in (5, 4, 3):
+        ngram_counts: Counter = Counter()
+        for i in range(len(words) - n + 1):
+            gram = " ".join(words[i:i + n])
+            ngram_counts[gram] += 1
+        for gram, cnt in ngram_counts.most_common(20):
+            if cnt >= 4:
+                # Skip very generic phrases
+                gram_words = set(gram.split())
+                generic = {"the", "in", "a", "of", "to", "and", "is", "for",
+                           "your", "you", "that", "with", "on", "it", "or"}
+                if len(gram_words - generic) >= 2:
+                    issues.append(f"Phrase \"{gram}\" repeated {cnt}x")
+
+    # Deduplicate: if a 5-gram contains a flagged 3-gram, keep only the longer
+    seen_short: set[str] = set()
+    filtered: list[str] = []
+    for issue in sorted(issues, key=lambda x: -len(x)):
+        phrase = issue.split('"')[1]
+        if not any(phrase in longer for longer in seen_short):
+            filtered.append(issue)
+            seen_short.add(phrase)
+    issues = filtered[:5]  # cap report at 5
+
+    # --- Paragraph-join-without-space ---
+    # Sentence-ending punctuation immediately followed by uppercase letter
+    joins = re.findall(r'[.!?][A-Z]', full_text)
+    if joins:
+        # Show context for each
+        for j in joins[:5]:
+            pos = full_text.find(j)
+            ctx = full_text[max(0, pos - 15):pos + 20]
+            issues.append(f"Paragraph-join: \"...{ctx}...\"")
+
+    if issues:
+        return AssertionResult(False, "soft",
+            f"{len(issues)} repetition/join flag(s):\n" +
+            "\n".join(f"  - {i}" for i in issues), "18.5.9")
+    return AssertionResult(True, "soft", None, "18.5.9")
+
+
 # ---------------------------------------------------------------------------
 # Export lists
 # ---------------------------------------------------------------------------
@@ -943,6 +1206,7 @@ ALL_HARD_ASSERTIONS: list[Callable] = [
     assert_atf_faq_count_and_structure,
     assert_bluf_structure_if_present,
     assert_body_h2_count,
+    assert_content_h2_min_eight,
     assert_each_h2_has_structural_element,
     assert_mid_article_cta_present,
     assert_closing_bottom_line_format,
@@ -974,4 +1238,9 @@ ALL_SOFT_ASSERTIONS: list[Callable] = [
     assert_internal_link_density,
     assert_body_word_count_soft_target,
     assert_btf_faq_no_duplicate_topics,
+    assert_no_enumeration_as_prose,
+    assert_bullet_min_word_count,
+    assert_faq_topic_relevance,
+    assert_no_near_duplicate_sections,
+    assert_no_excessive_repetition,
 ]
