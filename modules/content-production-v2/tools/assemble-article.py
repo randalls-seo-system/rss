@@ -102,6 +102,53 @@ def load_site_structure(site_slug: str) -> dict:
 MECHANICAL_PROVIDER = "openai"
 MECHANICAL_MODEL = "gpt-5.4-mini"
 
+
+def _validate_community_data(data: dict) -> None:
+    """Validate community-data.json schema. Fail loud on missing required fields."""
+    errors = []
+    if not isinstance(data, dict):
+        raise RuntimeError("community-data.json root must be a JSON object")
+
+    if not data.get("community_name"):
+        errors.append("Missing required field: community_name")
+
+    builders = data.get("builders", [])
+    if not isinstance(builders, list) or len(builders) == 0:
+        errors.append("Missing or empty required field: builders (need >=1 builder)")
+    else:
+        for i, b in enumerate(builders):
+            for field in ("name", "price_low", "price_high", "plan_count", "sqft_low", "sqft_high",
+                          "source_url", "captured_date"):
+                if field not in b or b[field] is None:
+                    errors.append(f"builders[{i}] missing required field: {field}")
+
+    tax = data.get("tax", {})
+    if not isinstance(tax, dict) or not tax:
+        errors.append("Missing required field: tax")
+    else:
+        for field in ("base_rate", "county", "source_url", "captured_date"):
+            if field not in tax or not tax[field]:
+                errors.append(f"tax missing required field: {field}")
+        # MUD/PID: mud_name and mud_rate may be null (no district), but keys must exist
+        if "mud_name" not in tax:
+            errors.append("tax missing required field: mud_name (set to null if no MUD/PID)")
+        if "mud_rate" not in tax:
+            errors.append("tax missing required field: mud_rate (set to null if no MUD/PID)")
+
+    schools = data.get("schools", {})
+    if not isinstance(schools, dict) or not schools:
+        errors.append("Missing required field: schools")
+    else:
+        for field in ("district", "source_url", "captured_date"):
+            if field not in schools or not schools[field]:
+                errors.append(f"schools missing required field: {field}")
+
+    if errors:
+        raise RuntimeError(
+            f"community-data.json schema validation failed ({len(errors)} errors):\n"
+            + "\n".join(f"  - {e}" for e in errors)
+        )
+
 # ---------------------------------------------------------------------------
 # Geo-scope filter — prevents multi-locale H2 drift on locale-specific articles
 # ---------------------------------------------------------------------------
@@ -282,6 +329,9 @@ class PipelineState:
     output_dir: Path = Path(".")
     status: str = "draft"
 
+    # Community data (community-guide intent)
+    community_data: dict = field(default_factory=dict)
+
     # Phase B
     serp: object = None
     serp_json_path: Path | None = None
@@ -428,6 +478,25 @@ def phase_a(state: PipelineState) -> None:
         eprint(f"  [A.5] Site structure overlay loaded ({len(state.site_structure)} flags)")
     else:
         eprint(f"  [A.5] No site structure overlay — using defaults")
+
+    # Step 6: Community data validation (community-guide only)
+    if state.intent == "community-guide":
+        cd_path = getattr(state, "community_data_path", None)
+        if not cd_path:
+            raise RuntimeError(
+                "FATAL: --community-data is required for community-guide intent. "
+                "Provide a community-data.json file with builders, tax, and schools blocks."
+            )
+        cd_file = Path(cd_path)
+        if not cd_file.exists():
+            raise RuntimeError(f"FATAL: community-data.json not found: {cd_file}")
+        try:
+            state.community_data = json.loads(cd_file.read_text())
+        except json.JSONDecodeError as e:
+            raise RuntimeError(f"FATAL: community-data.json is invalid JSON: {e}")
+        # Schema validation
+        _validate_community_data(state.community_data)
+        eprint(f"  [A.6] Community data loaded and validated: {cd_file}")
 
     state.phases_completed.append("A")
 
@@ -1069,7 +1138,7 @@ def _build_header_prelude(state: PipelineState) -> str:
 
     header = (
         f'<header class="rl-hero">\n'
-        f'  <div class="rl-eyebrow">{state.intent.title()} &middot; Guide</div>\n'
+        f'  <div class="rl-eyebrow">{state.intent.replace("-", " ").title()} &middot; Guide</div>\n'
         f'  <h1>{kw.title()}</h1>\n'
         f'</header>\n'
     )
@@ -1497,6 +1566,7 @@ def phase_h(state: PipelineState) -> None:
     parts.extend(state.body_section_htmls)  # includes mid CTA
     parts.extend([
         state.closing_html,
+        state.mid_cta_html,  # second CTA before FAQ section
         state.btf_faqs_html,
         state.resources_html,
     ])
@@ -1962,6 +2032,30 @@ def _write_manifest(state: PipelineState) -> dict:
         "phases_completed": state.phases_completed,
     }
 
+    # Community-guide: include volatile_data from community-data.json
+    if state.intent == "community-guide" and state.community_data:
+        volatile = []
+        for b in state.community_data.get("builders", []):
+            bname = b.get("name", "unknown")
+            for fld in ("price_low", "price_high", "plan_count", "sqft_low", "sqft_high"):
+                if b.get(fld) is not None:
+                    volatile.append({
+                        "field": f"{bname}.{fld}",
+                        "value": b[fld],
+                        "source_url": b.get("source_url", ""),
+                        "captured_date": b.get("captured_date", ""),
+                    })
+        tax = state.community_data.get("tax", {})
+        for fld in ("base_rate", "mud_rate", "hoa_monthly"):
+            if tax.get(fld) is not None:
+                volatile.append({
+                    "field": f"tax.{fld}",
+                    "value": tax[fld],
+                    "source_url": tax.get("source_url", ""),
+                    "captured_date": tax.get("captured_date", ""),
+                })
+        manifest["volatile_data"] = volatile
+
     manifest_path = state.output_dir / f"{state.post_id}-manifest.json"
     manifest_path.write_text(json.dumps(manifest, indent=2))
     eprint(f"\nManifest written: {manifest_path}")
@@ -1994,7 +2088,7 @@ def main():
     parser.add_argument("--target-keyword", required=True, help="Target keyword")
     parser.add_argument(
         "--intent",
-        choices=["definition", "process", "decision", "cost", "comparison", "employer-relocation"],
+        choices=["definition", "process", "decision", "cost", "comparison", "employer-relocation", "community-guide"],
         help="Intent type (auto-detected if omitted)",
     )
     parser.add_argument(
@@ -2013,6 +2107,7 @@ def main():
     parser.add_argument("--h2-override", help="JSON file with manual H2 inventory (skips SERP-driven H2 generation)")
     parser.add_argument("--accept-generic", action="store_true", help="Override generic-template H2 safety check (not recommended)")
     parser.add_argument("--skip-featured-image", action="store_true", help="Skip GPT-generated branded featured image (Phase J)")
+    parser.add_argument("--community-data", help="Path to community-data.json (required for community-guide intent)")
     args = parser.parse_args()
 
     # P1: Single-agent lockfile — abort if another instance is running
@@ -2028,6 +2123,7 @@ def main():
     state.build_hub_box = args.build_hub_box
     state.accept_generic = args.accept_generic
     state.h2_override_path = args.h2_override
+    state.community_data_path = getattr(args, "community_data", None)
     state.start_time = time.time()
 
     # Output directory

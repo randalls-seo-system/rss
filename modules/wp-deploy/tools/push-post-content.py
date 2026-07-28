@@ -231,9 +231,13 @@ echo 'MODIFIED_GMT='.$after->post_modified_gmt.'|';
         return False, details
 
     if parsed.get('OK') == '1':
-        details['status'] = 'ok'
         details['post_status'] = parsed.get('STATUS', '')
         details['content_length'] = parsed.get('LEN', '')
+        if details['post_status'] != status:
+            details['status'] = 'error'
+            details['error'] = f"Status mismatch: requested '{status}' but got '{details['post_status']}' (check lrg-ensure-featured.php)"
+            return False, details
+        details['status'] = 'ok'
         ssh.log(f"OK post={post_id} status={status} len={parsed.get('LEN', '?')}")
         return True, details
 
