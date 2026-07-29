@@ -187,10 +187,205 @@ def build_endcta(nb, cta_ref, listings_url, city):
 
 
 # ---------------------------------------------------------------------------
+# Verified-Data Validation (Tier 1 — accuracy gate)
+# ---------------------------------------------------------------------------
+
+VERIFIED_REQUIRED_FIELDS = {
+    "schools": ["feeder_elementary", "feeder_middle", "feeder_high", "district"],
+    "costs": ["property_tax_rate", "hoa_dues"],
+}
+
+
+def validate_verified_data(data):
+    """Hard-fail if the verified block is missing or has placeholder tokens.
+
+    The 'verified' key in the data JSON must contain real, human-researched
+    values for schools and costs. LLM must NOT supply these.
+    """
+    verified = data.get("verified")
+    if not verified:
+        return ["VERIFIED block missing from data JSON. Provide 'verified' with schools + costs."]
+
+    errors = []
+    placeholders = {"[", "___", "XXX", "REPLACE", "TBD", "TODO", "UNKNOWN"}
+
+    schools = verified.get("schools", {})
+    for field in VERIFIED_REQUIRED_FIELDS["schools"]:
+        val = schools.get(field, "")
+        if not val or any(tok in str(val) for tok in placeholders):
+            errors.append(f"verified.schools.{field} is missing or placeholder: '{val}'")
+
+    costs = verified.get("costs", {})
+    for field in VERIFIED_REQUIRED_FIELDS["costs"]:
+        val = costs.get(field, "")
+        if not val or any(tok in str(val) for tok in placeholders):
+            errors.append(f"verified.costs.{field} is missing or placeholder: '{val}'")
+
+    return errors
+
+
+def build_verified_facts_string(data):
+    """Build an authoritative facts string from the verified block for LLM prompts.
+
+    The LLM must use these values verbatim — it does not supply them.
+    """
+    verified = data.get("verified", {})
+    schools = verified.get("schools", {})
+    costs = verified.get("costs", {})
+
+    lines = []
+    if schools:
+        lines.append("AUTHORITATIVE SCHOOL DATA (use verbatim, do NOT substitute):")
+        lines.append(f"  District: {schools.get('district', '')}")
+        lines.append(f"  Feeder elementary: {schools.get('feeder_elementary', '')}")
+        lines.append(f"  Feeder middle: {schools.get('feeder_middle', '')}")
+        lines.append(f"  Feeder high school: {schools.get('feeder_high', '')}")
+        if schools.get("rating_source_url"):
+            lines.append(f"  Rating source: {schools['rating_source_url']}")
+        if schools.get("notes"):
+            lines.append(f"  Notes: {schools['notes']}")
+    if costs:
+        lines.append("AUTHORITATIVE COST DATA (use verbatim, do NOT substitute):")
+        lines.append(f"  Property tax rate: {costs.get('property_tax_rate', '')}")
+        lines.append(f"  HOA dues: {costs.get('hoa_dues', '')}")
+        if costs.get("hoa_mgmt"):
+            lines.append(f"  HOA management: {costs['hoa_mgmt']}")
+        if costs.get("insurance_context"):
+            lines.append(f"  Insurance context: {costs['insurance_context']}")
+
+    return "\n".join(lines)
+
+
+def fix_school_contradictions(html, data):
+    """Post-build correction: replace any contradictory high school names
+    with the verified feeder high school.
+
+    Returns (corrected_html, list_of_fixes_applied).
+    """
+    verified = data.get("verified", {})
+    schools = verified.get("schools", {})
+    feeder_high = schools.get("feeder_high", "")
+    if not feeder_high:
+        return html, []
+
+    import re as _re
+    hs_short = feeder_high.split(" High")[0].strip() if " High" in feeder_high else feeder_high
+    fixes = []
+
+    # Find all "X High School" mentions that don't match verified
+    # Pattern handles names with apostrophes, hyphens, and multi-word prefixes
+    skip_words = {"the", "a", "any", "each", "every", "your", "their", "our", "no", "one"}
+    for match in _re.finditer(r"([\w'-]+(?:\s+[\w'-]+)?)\s+High\s+School", html):
+        full_name = match.group(0)  # e.g. "Brennan High School" or "O'Connor High School"
+        # Skip if this IS the verified name
+        if feeder_high.lower() in full_name.lower():
+            continue
+        name_part = match.group(1)
+        if name_part.lower() not in skip_words:
+            html = html.replace(full_name, feeder_high)
+            fixes.append(f"Corrected '{full_name}' → '{feeder_high}'")
+
+    return html, fixes
+
+
+def assert_school_consistency(html, data):
+    """Post-build assertion: feeder high school name appears consistently.
+
+    Runs AFTER fix_school_contradictions — catches anything the fix missed.
+    """
+    verified = data.get("verified", {})
+    schools = verified.get("schools", {})
+    feeder_high = schools.get("feeder_high", "")
+    if not feeder_high:
+        return []
+
+    errors = []
+    hs_short = feeder_high.split(" High")[0].strip() if " High" in feeder_high else feeder_high
+
+    if hs_short.lower() not in html.lower():
+        errors.append(f"Feeder high school '{feeder_high}' not found anywhere in output HTML")
+
+    import re as _re
+    skip_words = {"the", "a", "any", "each", "every", "your", "their", "our", "no", "one"}
+    for match in _re.finditer(r"([\w'-]+(?:\s+[\w'-]+)?)\s+High\s+School", html):
+        full_name = match.group(0)
+        if feeder_high.lower() in full_name.lower():
+            continue
+        name_part = match.group(1)
+        if name_part.lower() not in skip_words:
+            errors.append(f"CONTRADICTION: Found '{full_name}' but verified feeder is '{feeder_high}'")
+
+    return errors
+
+
+# ---------------------------------------------------------------------------
+# Comparison Table Builder (Tier 2 — structure)
+# ---------------------------------------------------------------------------
+
+def build_comparison_table(comparison_data):
+    """Build an nh-tbl-wrap comparison table from structured data.
+
+    comparison_data = {
+        "title": "How Heights at Stone Oak compares",
+        "columns": ["Feature", "Heights at Stone Oak", "The Dominion", "Rogers Ranch"],
+        "rows": [
+            ["Price range", "$350K–$700K", "$700K–$10M+", "$350K–$600K"],
+            ["Security", "24/7 guard gate", "24/7 guard + patrol", "Staffed gate"],
+            ...
+        ]
+    }
+    """
+    if not comparison_data or not comparison_data.get("rows"):
+        return ""
+
+    cols = comparison_data.get("columns", [])
+    rows = comparison_data.get("rows", [])
+
+    thead = "<tr>" + "".join(f"<th>{c}</th>" for c in cols) + "</tr>"
+    tbody_rows = []
+    for row in rows:
+        tbody_rows.append("<tr>" + "".join(f"<td>{cell}</td>" for cell in row) + "</tr>")
+    tbody = "\n".join(tbody_rows)
+
+    return f'''<div class="nh-tbl-wrap">
+<table>
+<thead>{thead}</thead>
+<tbody>
+{tbody}
+</tbody>
+</table>
+</div>'''
+
+
+# ---------------------------------------------------------------------------
+# Inline External Links Helper (Tier 2 — structure)
+# ---------------------------------------------------------------------------
+
+def build_section_source_instruction(section_key, data):
+    """Build an inline-link instruction for a specific section's LLM prompt.
+
+    Reads from data["section_sources"][section_key] — a list of
+    {"url": "...", "label": "...", "context": "..."} objects.
+    Returns an instruction string telling the LLM to weave in one link.
+    """
+    sources = data.get("section_sources", {}).get(section_key, [])
+    if not sources:
+        return ""
+
+    lines = ["INLINE EXTERNAL LINK — include exactly ONE of these links in your prose where naturally relevant:"]
+    for s in sources[:2]:  # max 2 candidates, LLM picks 1
+        lines.append(f'  <a href="{s["url"]}" rel="noopener noreferrer" target="_blank">{s["label"]}</a> — {s.get("context", "reference source")}')
+    lines.append("Weave the link into a sentence naturally. Do not add more than one external link.")
+    return "\n".join(lines)
+
+
+# ---------------------------------------------------------------------------
 # LLM Prose Generation
 # ---------------------------------------------------------------------------
 
-def generate_section_prose(client, nb, city, h2_title, section_context, brand_voice, prior_summary="", serp_context=""):
+def generate_section_prose(client, nb, city, h2_title, section_context, brand_voice,
+                           prior_summary="", serp_context="", verified_facts="",
+                           inline_link_instruction=""):
     """Generate prose for a body section via LLM."""
     prompt = f"""You are writing one section of a neighborhood guide for {nb} in {city}, TX.
 This is a legitimate pipeline call from generate-neighborhood-guide.py.
@@ -198,6 +393,8 @@ This is a legitimate pipeline call from generate-neighborhood-guide.py.
 Section heading: "{h2_title}"
 Context: {section_context}
 {f"SERP competitor context: {serp_context}" if serp_context else ""}
+{verified_facts}
+{inline_link_instruction}
 
 Write 80-160 words of expert, practical prose about this topic. Rules:
 - Write like a local real estate agent who knows the area
@@ -208,14 +405,16 @@ Write 80-160 words of expert, practical prose about this topic. Rules:
 - Capitalize Veteran and Military
 - No filler: "it's important to note", "when it comes to", "discover", "vibrant"
 - Short paragraphs, 2-3 sentences max
+- If AUTHORITATIVE DATA is provided above, use those exact values. Do NOT substitute different school names, tax rates, or HOA figures.
+- If an INLINE EXTERNAL LINK instruction is provided, weave exactly one link into the prose using the provided <a> tag.
 
 {f"Prior sections covered: {prior_summary}" if prior_summary else ""}
 {f"Brand voice: {brand_voice}" if brand_voice else ""}
 
-Return ONLY the prose HTML using <p> tags. No headings, no wrapper divs."""
+Return ONLY the prose HTML using <p> tags (and any inline <a> links if instructed). No headings, no wrapper divs."""
 
-    h = hashlib.md5(f"{nb}|{h2_title}|v2".encode()).hexdigest()[:12]
-    cache_key = f"nh-guide-v2|{nb}|{h2_title}|{h}"
+    h = hashlib.md5(f"{nb}|{h2_title}|v3|{section_context[:80]}|{verified_facts[:40]}".encode()).hexdigest()[:12]
+    cache_key = f"nh-guide-v3|{nb}|{h2_title}|{h}"
     response = client.call(prompt, cache_key=cache_key)
     return extract_html(response.text)
 
@@ -239,8 +438,8 @@ Return ONLY a JSON array of 4 strings. Example:
 
 Return ONLY the JSON array. No markdown fences."""
 
-    h = hashlib.md5(f"{nb}|{section_key}|callout-v2".encode()).hexdigest()[:12]
-    cache_key = f"nh-callout-v2|{nb}|{section_key}|{h}"
+    h = hashlib.md5(f"{nb}|{section_key}|callout-v3|{section_context[:80]}".encode()).hexdigest()[:12]
+    cache_key = f"nh-callout-v3|{nb}|{section_key}|{h}"
     response = client.call(prompt, cache_key=cache_key)
 
     raw = response.text.strip()
@@ -269,6 +468,11 @@ def generate_all_prose(client, nb, city, metro, data, brand_voice, serp_context=
     callouts = {}
     prior = ""
 
+    # Build verified-facts string once — injected into sections that need it
+    verified_facts = build_verified_facts_string(data)
+    # Sections that receive authoritative verified data
+    VERIFIED_SECTIONS = {"schools", "buyer_checklist", "bottom_line"}
+
     # Callout color rotation matching Stone Oak: gray, beige, blue, green, gray, beige
     CALLOUT_COLORS = ["gray", "beige", "blue", "green", "gray", "beige"]
     # Sections that get callouts (all prose sections except bottom_line)
@@ -287,7 +491,12 @@ def generate_all_prose(client, nb, city, metro, data, brand_voice, serp_context=
     from bs4 import BeautifulSoup
     for key, h2, context in sections_to_generate:
         eprint(f"  Generating prose: {key}")
-        html = generate_section_prose(client, nb, city, h2, context, brand_voice, prior, serp_context)
+        # Inject verified facts for sections that need authoritative data
+        section_verified = verified_facts if key in VERIFIED_SECTIONS else ""
+        # Inject inline link instruction if section has sources
+        section_links = build_section_source_instruction(key, data)
+        html = generate_section_prose(client, nb, city, h2, context, brand_voice,
+                                      prior, serp_context, section_verified, section_links)
         prose[key] = html
         text = BeautifulSoup(html, "html.parser").get_text(strip=True)[:150]
         prior += f"[{key}]: {text}\n"
@@ -330,12 +539,23 @@ def assemble_guide(nb, city, metro, data, prose, callouts, cta_ref, listings_url
     # 1. Hero
     parts.append(build_hero(nb, city, metro, data, cta_ref, listings_url))
 
-    # 2. About section (scorecard + meters + prose + callout gray)
-    scorecard = build_scorecard(data.get("scorecard", []))
+    # 2. About section (detail strip + meters + prose + callout gray)
+    # Detail strip: MEDIAN | TAX RATE | HOA | HOUSING ERA — from verified data, distinct from hero
+    verified = data.get("verified", {})
+    costs = verified.get("costs", {})
+    detail_items = [
+        {"val": costs.get("price_range", "See guide"), "label": "Median Price Range"},
+        {"val": costs.get("property_tax_rate", "Verify"), "label": "Tax Rate"},
+        {"val": costs.get("hoa_dues", "Varies") or "None", "label": "HOA"},
+        {"val": data.get("housing_era", "See below"), "label": "Housing Stock"},
+    ]
+    detail_strip = build_scorecard(detail_items)
     meters = build_meters(data.get("meters", []))
     about_block = _prose_with_callout("about", prose["about"])
-    about_content = f'{scorecard}\n{meters}\n{about_block}'
-    parts.append(build_section("About the Neighborhood", data.get("h2_about", f"{city}'s {nb} corridor"), about_content))
+    about_content = f'{detail_strip}\n{meters}\n{about_block}'
+    # A4: handle city==name collision
+    default_h2 = f"What defines {nb}" if nb.lower() in city.lower() or city.lower() in nb.lower() else f"{city}'s {nb} corridor"
+    parts.append(build_section("About the Neighborhood", data.get("h2_about", default_h2), about_content))
 
     # 3. Facts section (no callout — data tables only)
     facts_html = build_facts(data.get("fact_cards", []))
@@ -344,6 +564,13 @@ def assemble_guide(nb, city, metro, data, prose, callouts, cta_ref, listings_url
     # 4. Homes section (prose + callout beige)
     homes_block = _prose_with_callout("homes", prose["homes"])
     parts.append(build_section("Homes & Property Types", data.get("h2_homes", f"What {nb} offers buyers"), homes_block))
+
+    # 4b. Comparison table (optional — only if comparison data provided)
+    comparison = data.get("comparison")
+    if comparison and comparison.get("rows"):
+        comp_table = build_comparison_table(comparison)
+        comp_title = comparison.get("title", f"How {nb} compares")
+        parts.append(build_section("How It Compares", comp_title, comp_table, alt=True))
 
     # 5. Sub-communities (prose + callout blue)
     sub_block = _prose_with_callout("subcommunities", prose["subcommunities"])
@@ -367,7 +594,7 @@ def assemble_guide(nb, city, metro, data, prose, callouts, cta_ref, listings_url
 
     # 9. Buyer checklist (prose + callout beige)
     checklist_block = _prose_with_callout("buyer_checklist", prose["buyer_checklist"])
-    parts.append(build_section("Buyer Checklist", data.get("h2_checklist", f"How to buy well in {nb}"), checklist_block, alt=True))
+    parts.append(build_section("Buyer Checklist", data.get("h2_checklist", f"What to verify before you buy in {nb}"), checklist_block, alt=True))
 
     # 10. Bottom line + endcta (no callout)
     bottom_prose = f'<div class="nh-prose">{prose["bottom_line"]}</div>'
@@ -420,11 +647,9 @@ def build_default_data(nb, city, metro):
             {"val": "—", "label": "School District"},
         ],
         "meters": [
-            {"label": "Schools", "score": 7.0, "color": "green"},
             {"label": "Walkability", "score": 5.0, "color": "navy"},
-            {"label": "Amenities", "score": 7.0, "color": "gold"},
+            {"label": "Dining/Retail", "score": 7.0, "color": "gold"},
             {"label": "Value", "score": 6.0, "color": "green"},
-            {"label": "Safety", "score": 7.0, "color": "green"},
             {"label": "Commute", "score": 6.0, "color": "navy"},
         ],
         "fact_cards": [
@@ -610,6 +835,17 @@ def main():
         override = load_guide_data(args.data_json)
         data.update(override)
 
+    # VERIFIED DATA GATE: hard-fail if verified block is missing or has placeholders
+    verified_errors = validate_verified_data(data)
+    if verified_errors:
+        eprint(f"\nVERIFIED DATA GATE FAILED — {len(verified_errors)} error(s):")
+        for err in verified_errors:
+            eprint(f"  BLOCKED: {err}")
+        eprint("\nProvide a 'verified' block in --data-json with real school/tax/HOA data.")
+        eprint("The generator will NOT proceed with LLM-freehand values for these fields.")
+        sys.exit(1)
+    eprint("Verified data gate: PASS")
+
     # LLM-populate the data scaffold (fact cards, fit panels, FAQs, hero)
     # unless --data-json already provided real data or --skip-llm is set
     if not args.skip_llm:
@@ -685,6 +921,23 @@ def main():
             related.append({"url": data["listing_page_url"], "label": f"{nb} Homes for Sale"})
         data["related_guides"] = related
 
+    # Populate section_sources for in-body contextual links (A5)
+    if "section_sources" not in data:
+        data["section_sources"] = {}
+    directory_url = "/san-antonio-neighborhoods/"
+    city_slug = _slug(city)
+    listings_page = data.get("listings_url") or f"/listings/homes-for-sale-{city_slug}/"
+    related = data.get("related_guides", [])
+    related_url = related[0]["url"] if related else f"/lrg-blog/top-5-neighborhoods-in-san-antonio/"
+    related_label = related[0]["label"] if related else "San Antonio Neighborhood Guide"
+    # Distribute links across sections: about gets directory, homes gets listings, commute gets related
+    data["section_sources"].setdefault("about", []).append(
+        {"url": directory_url, "label": "San Antonio neighborhood directory", "context": "compare all neighborhoods"})
+    data["section_sources"].setdefault("homes", []).append(
+        {"url": listings_page, "label": f"{nb} homes for sale", "context": "current listings"})
+    data["section_sources"].setdefault("commute", []).append(
+        {"url": related_url, "label": related_label, "context": "related neighborhood guide"})
+
     # Generate prose + callouts
     callouts = {}
     if args.skip_llm:
@@ -712,6 +965,33 @@ def main():
         eprint("Fix the data (provide --data-json) or re-run LLM prose generation.")
         sys.exit(1)
     eprint("Publish gate: PASS")
+
+    # POST-BUILD CORRECTION: fix LLM school hallucinations using verified data
+    html, school_fixes = fix_school_contradictions(html, data)
+    if school_fixes:
+        eprint(f"\nSchool corrections applied ({len(school_fixes)}):")
+        for fix in school_fixes:
+            eprint(f"  FIXED: {fix}")
+
+    # SCHOOL CONSISTENCY ASSERTION
+    school_errors = assert_school_consistency(html, data)
+    if school_errors:
+        eprint(f"\nSCHOOL CONSISTENCY CHECK FAILED — {len(school_errors)} error(s):")
+        for err in school_errors:
+            eprint(f"  BLOCKED: {err}")
+        eprint("\nThe LLM generated a different high school name than the verified block.")
+        eprint("Re-run or fix the prose manually.")
+        sys.exit(1)
+    eprint("School consistency: PASS")
+
+    # IN-BODY LINKS ASSERTION: at least 3 <a> tags inside <p> or <li> prose tags
+    import re as _re
+    prose_links = _re.findall(r'<(?:p|li)[^>]*>(?:(?!</(?:p|li)>).)*<a\s[^>]+href="[^"]*"[^>]*>', html, _re.DOTALL)
+    if len(prose_links) < 3:
+        eprint(f"\nIN-BODY LINKS ASSERTION FAILED: found {len(prose_links)} in-body links (minimum 3)")
+        eprint("Add contextual links to the directory page, listings page, and a related guide.")
+        sys.exit(1)
+    eprint(f"In-body links: PASS ({len(prose_links)} found)")
 
     # Write output
     article_path = out_dir / f"{post_id}-nh-guide.html"
