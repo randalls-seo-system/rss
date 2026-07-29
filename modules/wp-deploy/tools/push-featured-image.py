@@ -33,7 +33,7 @@ sys.path.insert(0, str(MODULE_ROOT / 'lib'))
 from ssh_session import SSHSession
 
 
-def push_image(ssh, post_id, image_path, execute=False):
+def push_image(ssh, post_id, image_path, execute=False, expect_slug=None):
     """Push a single featured image to a WordPress post.
 
     Returns dict with status and details.
@@ -41,6 +41,15 @@ def push_image(ssh, post_id, image_path, execute=False):
     image_path = Path(image_path)
     if not image_path.exists():
         return {"post_id": post_id, "status": "error", "message": f"Image file not found: {image_path}"}
+
+    # Safety: verify the target post exists and slug matches expectation
+    slug_check = ssh.run(f"wp post get {post_id} --field=post_name", timeout=30, check=False)
+    actual_slug = slug_check.stdout.strip() if slug_check and slug_check.returncode == 0 else ""
+    if not actual_slug:
+        return {"post_id": post_id, "status": "error", "message": f"Post {post_id} does not exist on target install"}
+    if expect_slug and actual_slug != expect_slug:
+        return {"post_id": post_id, "status": "error",
+                "message": f"Slug mismatch: expected '{expect_slug}', got '{actual_slug}'. Wrong post ID?"}
 
     filename = image_path.name
     file_size = image_path.stat().st_size
@@ -149,6 +158,7 @@ def main():
     parser.add_argument("--image-file", help="Path to image file")
     parser.add_argument("--batch-ids", help="Comma-separated post IDs for batch mode")
     parser.add_argument("--image-dir", help="Directory containing post-{id}-final.jpg files")
+    parser.add_argument("--expect-slug", help="Expected post slug (safety check, fails if mismatch)")
     parser.add_argument("--execute", action="store_true", help="Actually execute (default is dry-run)")
     args = parser.parse_args()
 
@@ -169,7 +179,7 @@ def main():
             print(f"  [{r['status']}] Post {pid}: {r['message']}")
             results.append(r)
     elif args.post_id and args.image_file:
-        r = push_image(ssh, args.post_id, args.image_file, execute=args.execute)
+        r = push_image(ssh, args.post_id, args.image_file, execute=args.execute, expect_slug=args.expect_slug)
         print(f"  [{r['status']}] Post {args.post_id}: {r['message']}")
         results.append(r)
     else:
