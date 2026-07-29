@@ -65,7 +65,29 @@ def _build_context(args, soup: BeautifulSoup) -> dict:
         "anchor_pool": None,
         "intent": args.intent,
         "atf_faqs_text": [],
+        "manifest": None,
     }
+
+    # Manifest (required for community-guide, optional for others)
+    if getattr(args, "manifest_json", None):
+        manifest_path = Path(args.manifest_json)
+        if manifest_path.exists():
+            try:
+                context["manifest"] = json.loads(manifest_path.read_text())
+            except Exception as e:
+                eprint(f"Warning: failed to load manifest JSON: {e}")
+        else:
+            eprint(f"Warning: manifest JSON not found: {manifest_path}")
+
+    # Community data (for geography assertion)
+    if getattr(args, "community_data", None):
+        cd_path = Path(args.community_data)
+        if cd_path.exists():
+            try:
+                cd = json.loads(cd_path.read_text())
+                context["wrong_geo"] = cd.get("wrong_geo", [])
+            except Exception as e:
+                eprint(f"Warning: failed to load community data: {e}")
 
     # Site config
     try:
@@ -292,12 +314,14 @@ def main():
     parser.add_argument("--html-file", required=True, help="Path to article HTML")
     parser.add_argument(
         "--intent", required=True,
-        choices=["cost", "decision", "definition", "process", "comparison"],
+        choices=["cost", "decision", "definition", "process", "comparison", "employer-relocation", "community-guide"],
         help="Article intent type",
     )
     parser.add_argument("--site", required=True, help="Site slug (e.g., lrg, valn)")
     parser.add_argument("--serp-json", help="Path to SERP JSON (optional)")
     parser.add_argument("--atf-faqs-json", help="Path to ATF FAQ question list JSON")
+    parser.add_argument("--manifest-json", help="Path to pipeline manifest JSON (required for community-guide)")
+    parser.add_argument("--community-data", help="Path to community-data.json (for geography assertion)")
     parser.add_argument(
         "--output-format", default="text", choices=["text", "json", "markdown"],
         help="Output format (default: text)",

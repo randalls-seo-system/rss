@@ -103,6 +103,21 @@ MECHANICAL_PROVIDER = "openai"
 MECHANICAL_MODEL = "gpt-5.4-mini"
 
 
+def _build_entity_disambiguation(cd: dict) -> str:
+    """Build adversarial entity disambiguation block for community-guide LLM calls."""
+    builders = cd.get("builders", [])
+    b_names = ", ".join(b["name"] for b in builders)
+    return (
+        f"SUBJECT: {cd.get('community_name', '')}, a master-planned residential community "
+        f"in {cd.get('city', '')} ({cd.get('zip', '')}), {cd.get('county', '')} County, "
+        f"built by {b_names}. "
+        f"Located {cd.get('geo_anchor', cd.get('city', ''))}. "
+        f"This is NOT a restaurant, bar, venue, or business of the same name. "
+        f"Do not reference any establishment, neighborhood, or geography other than "
+        f"the one described."
+    )
+
+
 def _validate_community_data(data: dict) -> None:
     """Validate community-data.json schema. Fail loud on missing required fields."""
     errors = []
@@ -142,6 +157,29 @@ def _validate_community_data(data: dict) -> None:
         for field in ("district", "source_url", "captured_date"):
             if field not in schools or not schools[field]:
                 errors.append(f"schools missing required field: {field}")
+
+    # worked_examples: optional, but if present all fields required
+    worked = data.get("worked_examples", [])
+    if worked:
+        if not isinstance(worked, list):
+            errors.append("worked_examples must be a list")
+        else:
+            for i, ex in enumerate(worked):
+                if not isinstance(ex, dict):
+                    errors.append(f"worked_examples[{i}] must be a dict")
+                    continue
+                if "example_price" not in ex or ex["example_price"] is None:
+                    errors.append(f"worked_examples[{i}] missing required field: example_price")
+                derived = ex.get("derived", [])
+                if not isinstance(derived, list) or len(derived) == 0:
+                    errors.append(f"worked_examples[{i}] missing or empty required field: derived")
+                else:
+                    for j, d in enumerate(derived):
+                        for field in ("label", "value"):
+                            if field not in d or d[field] is None:
+                                errors.append(f"worked_examples[{i}].derived[{j}] missing: {field}")
+                if "captured_date" not in ex or not ex["captured_date"]:
+                    errors.append(f"worked_examples[{i}] missing required field: captured_date")
 
     if errors:
         raise RuntimeError(
@@ -601,6 +639,28 @@ def phase_b(state: PipelineState, allow_no_serp: bool = False) -> None:
     # If SERP unavailable, write a minimal valid SERP JSON for downstream tools
     if state.serp_json_path is None:
         empty_serp_path = state.output_dir / f"{state.post_id}-empty-serp.json"
+        # Community-guide: inject community data summary as AI overview
+        # so downstream tools (build-faqs, build-bluf) have context
+        ai_overview = None
+        if state.intent == "community-guide" and state.community_data:
+            cd = state.community_data
+            builders = cd.get("builders", [])
+            b_names = [b["name"] for b in builders]
+            prices = [b["price_low"] for b in builders] + [b["price_high"] for b in builders]
+            disambig = _build_entity_disambiguation(cd)
+            summary_text = (
+                f"{disambig} "
+                f"Price range: ${min(prices):,} to ${max(prices):,}. "
+                f"School district: {cd.get('schools', {}).get('district', 'N/A')}. "
+                f"Tax rate: {cd.get('tax', {}).get('base_rate', 'N/A')}. "
+                f"{'No MUD or PID applies. ' if cd.get('tax', {}).get('mud_name') is None else ''}"
+                f"This article is a community guide covering builder comparisons, "
+                f"costs, schools, and buyer fit."
+            )
+            ai_overview = {
+                "text_blocks": [{"type": "paragraph", "snippet": summary_text}],
+                "references": [],
+            }
         empty_serp_path.write_text(json.dumps({
             "keyword": state.target_keyword,
             "providers_used": [],
@@ -609,10 +669,10 @@ def phase_b(state: PipelineState, allow_no_serp: bool = False) -> None:
             "top_results": [],
             "paa": [],
             "related_searches": [],
-            "ai_overview": None,
+            "ai_overview": ai_overview,
         }))
         state.serp_json_path = empty_serp_path
-        eprint(f"  [B.10] Wrote empty SERP fallback: {empty_serp_path}")
+        eprint(f"  [B.10] Wrote {'enriched' if ai_overview else 'empty'} SERP fallback: {empty_serp_path}")
 
     state.phases_completed.append("B")
 
@@ -787,6 +847,165 @@ def _build_h2_inventory(state: PipelineState) -> list[dict]:
     # Build a lookup from 0-based body index → template section
     # Template uses 1-based index where 1 = BLUF, so body section i maps to index i+2
     template_by_index = {s["index"]: s for s in template_sections}
+
+    # Community-guide: seed H2s from template roles, not SERP gaps.
+    # The template sections define the article structure; SERP gaps merge
+    # in as title refinements where present, but the section list is fixed.
+    if state.intent == "community-guide" and template_sections:
+        # Build data blocks to inject into hints so the LLM sees actual values
+        cd = state.community_data
+        builder_data_block = ""
+        if cd.get("builders"):
+            lines = []
+            for b in cd["builders"]:
+                lines.append(f"  {b['name']}: ${b['price_low']:,}-${b['price_high']:,}, "
+                             f"{b['plan_count']} plans, {b['sqft_low']:,}-{b['sqft_high']:,} sqft")
+            builder_data_block = "VERIFIED BUILDER DATA (use verbatim):\n" + "\n".join(lines)
+
+        tax_data_block = ""
+        tax = cd.get("tax", {})
+        if tax:
+            parts = [f"Base rate: {tax.get('base_rate', 'N/A')} ({tax.get('county', '')} County)"]
+            if tax.get("rate_detail"):
+                parts.append(f"Breakdown: {tax['rate_detail']}")
+            if tax.get("mud_name"):
+                parts.append(f"MUD/PID: {tax['mud_name']} at {tax.get('mud_rate', 'N/A')}")
+            else:
+                parts.append("No MUD or PID applies to this community.")
+            if tax.get("hoa_annual"):
+                parts.append(f"HOA: {tax['hoa_annual']}/year ({tax.get('hoa_monthly', 'N/A')}/month)")
+            tax_data_block = "VERIFIED TAX/COST DATA (use verbatim):\n  " + "\n  ".join(parts)
+
+        # Worked examples: pre-computed derived amounts for the cost section
+        worked_examples = cd.get("worked_examples", [])
+        if worked_examples:
+            we_lines = []
+            for ex in worked_examples:
+                we_lines.append(f"WORKED EXAMPLE (use these figures verbatim, do not recompute):")
+                we_lines.append(f"  Example home price: ${ex['example_price']:,}")
+                for d in ex.get("derived", []):
+                    val = d["value"]
+                    formatted = f"${val:,.2f}" if isinstance(val, (int, float)) else str(val)
+                    we_lines.append(f"  {d['label']}: {formatted}")
+            tax_data_block += "\n" + "\n".join(we_lines)
+
+        school_data_block = ""
+        schools = cd.get("schools", {})
+        if schools:
+            school_data_block = (
+                f"VERIFIED SCHOOL DATA (use verbatim):\n"
+                f"  District: {schools.get('district', 'N/A')}\n"
+                f"  Elementary: {schools.get('elementary', 'N/A')}\n"
+                f"  Middle: {schools.get('middle', 'N/A')}\n"
+                f"  High: {schools.get('high', 'N/A')}"
+            )
+
+        mil_block = ""
+        mil = cd.get("military_proximity", {})
+        if mil:
+            parts = []
+            if mil.get("lackland_afb_miles"):
+                parts.append(f"Lackland AFB: ~{mil['lackland_afb_miles']} miles")
+            if mil.get("fort_sam_houston_miles"):
+                parts.append(f"Fort Sam Houston: ~{mil['fort_sam_houston_miles']} miles")
+            if mil.get("jbsa_note"):
+                parts.append(mil["jbsa_note"])
+            if parts:
+                mil_block = "MILITARY PROXIMITY DATA:\n  " + "\n  ".join(parts)
+
+        # Market data block
+        market_block = ""
+        market = cd.get("market", {})
+        if market:
+            market_block = (
+                f"VERIFIED MARKET DATA (use verbatim, do not invent market figures):\n"
+                f"  MSA: {market.get('msa', 'N/A')}\n"
+                f"  Period: {market.get('period', 'N/A')}\n"
+                f"  Median sale price: ${market.get('median_price', 0):,}\n"
+                f"  Closed sales: {market.get('closed_sales', 'N/A'):,}\n"
+                f"  Months of inventory: {market.get('months_inventory', 'N/A')}\n"
+            )
+            if market.get("active_listings"):
+                market_block += f"  Active listings: {market['active_listings']:,}\n"
+            market_block += f"  Source: {market.get('source_name', '')}"
+
+        # BAH data block
+        bah_block = ""
+        bah = cd.get("bah", {})
+        if bah and bah.get("with_dependents"):
+            wd = bah["with_dependents"]
+            bah_block = (
+                f"VERIFIED BAH DATA (use verbatim, do not invent BAH figures):\n"
+                f"  Installation: {bah.get('installation', 'N/A')}, {bah.get('year', 'N/A')}\n"
+                f"  E-5 with dependents: ${wd.get('E-5', 0):,}/month\n"
+                f"  E-6 with dependents: ${wd.get('E-6', 0):,}/month\n"
+                f"  E-7 with dependents: ${wd.get('E-7', 0):,}/month"
+            )
+
+        # Plans block (single-builder per-plan data)
+        plans_block = ""
+        plans = cd.get("plans", [])
+        if plans:
+            lines = ["VERIFIED PLAN DATA (use verbatim for the plan-level comparison table):"]
+            for p in plans:
+                lines.append(f"  {p['name']}: ${p['price']:,}, {p['sqft']:,} sqft, {p['beds']} bed/{p['baths']} bath")
+            plans_block = "\n".join(lines)
+
+        # Map roles to their data enrichment
+        _role_data = {
+            "builder_comparison": (plans_block if plans_block else builder_data_block),
+            "cost_reality": tax_data_block,
+            "data_strip": market_block,
+            "schools_commute": school_data_block + ("\n" + mil_block if mil_block else ""),
+            "military_buyer_fit": (bah_block + "\n" if bah_block else "") + mil_block + ("\n" + builder_data_block if builder_data_block else ""),
+            "community_overview": f"Community: {cd.get('community_name', '')}, {cd.get('address', '')}\n"
+                                  f"Amenities: {', '.join(cd.get('amenities', []))}",
+            "verify_checklist": tax_data_block,
+            "community_verdict": builder_data_block + "\n" + tax_data_block,
+        }
+
+        for tmpl in template_sections:
+            role = tmpl.get("role", "body")
+            hint = tmpl.get("hint", "")
+            # Enrich hint with actual data for this role
+            data_enrichment = _role_data.get(role, "")
+            if data_enrichment:
+                hint = hint + "\n\n" + data_enrichment
+            seed_title = role.replace("_", " ").title()
+            # Builder comparison H2: include builder names for SERP relevance
+            if role == "builder_comparison" and cd.get("builders"):
+                b_names_short = [b["name"] for b in cd["builders"]]
+                if len(b_names_short) == 1:
+                    seed_title = f"What {b_names_short[0]} Builds at {cd.get('community_name', '')}"
+                elif len(b_names_short) == 2:
+                    seed_title = f"What {b_names_short[0]} and {b_names_short[1]} Build at {cd.get('community_name', '')}"
+                else:
+                    seed_title = f"What {b_names_short[0]}, {b_names_short[1]}, and Others Build at {cd.get('community_name', '')}"
+            h2s.append({
+                "title": seed_title,
+                "role": role,
+                "source": "template_seed",
+                "structural_element": tmpl["type"] if tmpl["type"] != "prose_optional_table" else "prose_optional_table",
+                "template_role": role,
+                "template_hint": hint,
+                "h2_format": tmpl.get("h2_format", "statement"),
+                "callout_key": "",
+                "callout_label": "",
+            })
+        # Assign callout key/label for callout-type sections
+        for h2 in h2s:
+            if h2["structural_element"] == "callout":
+                callout_prefs = overlay.callout_preferences
+                role = h2.get("template_role", "")
+                if role in callout_prefs:
+                    keys = callout_prefs[role]
+                    h2["callout_key"] = keys[0] if keys else "reality_check"
+                    h2["callout_label"] = keys[0].replace("_", " ").title() if keys else "Reality Check"
+                else:
+                    h2["callout_key"] = "reality_check"
+                    h2["callout_label"] = "Reality Check"
+        eprint(f"  [C.10] Community-guide: seeded {len(h2s)} H2s from structural template (data-enriched)")
+        return h2s
 
     # Start from SERP gap analysis: high-coverage subtopics
     high_cov = state.subtopic_gaps.get("high_coverage", [])
@@ -1250,12 +1469,17 @@ def _build_atf_lede(state: PipelineState, client: LLMClient) -> str:
         serp_ledes = "\n".join(f"- {r.title}: {r.snippet}" for r in top)
         ai_overview = state.serp.ai_overview_text or ""
 
+    # Community-guide: inject entity disambiguation directly into the prompt
+    entity_preamble = ""
+    if state.intent == "community-guide" and state.community_data:
+        entity_preamble = _build_entity_disambiguation(state.community_data) + "\n\n"
+
     prompt = render_prompt(template, {
         "TARGET_KEYWORD": state.target_keyword,
         "TOPIC_NOUN": state.target_keyword,
         "SERP_TOP_RESULT_LEDES": serp_ledes or "(unavailable)",
         "AI_OVERVIEW_TEXT": ai_overview or "(unavailable)",
-        "INJECT_BRAND_VOICE": state.brand_voice,
+        "INJECT_BRAND_VOICE": entity_preamble + state.brand_voice,
     })
 
     cache_key = f"{state.site_slug}|{state.target_keyword}|atf-lede"
@@ -1298,6 +1522,24 @@ def phase_e(state: PipelineState) -> None:
     # Write topic context to temp file for build-bluf
     context_path = state.output_dir / f"{state.post_id}-topic-context.json"
     topic_ctx = build_topic_context(state.serp, state.target_keyword) if state.serp else ""
+    # Community-guide: inject entity disambiguation into topic context
+    # so ALL downstream builders (BLUF, FAQs, lede) know the subject.
+    if state.intent == "community-guide" and state.community_data:
+        cd = state.community_data
+        cd_summary = _build_entity_disambiguation(cd)
+        builders = cd.get("builders", [])
+        if builders:
+            prices = [b["price_low"] for b in builders] + [b["price_high"] for b in builders]
+            cd_summary += f" Price range: ${min(prices):,}-${max(prices):,}."
+        schools = cd.get("schools", {})
+        if schools.get("district"):
+            cd_summary += f" School district: {schools['district']}."
+        tax = cd.get("tax", {})
+        if tax.get("base_rate"):
+            cd_summary += f" Property tax rate: {tax['base_rate']}."
+            if tax.get("mud_name") is None:
+                cd_summary += " No MUD or PID applies."
+        topic_ctx = cd_summary + (topic_ctx or "")
     context_path.write_text(json.dumps({"context": topic_ctx}))
 
     serp_json = str(state.serp_json_path) if state.serp_json_path else "/dev/null"
@@ -1478,13 +1720,43 @@ def phase_g(state: PipelineState) -> None:
         eprint("  [G.22] Building Resources")
         resources_tool = TOOLS_DIR / "build-resources.py"
         resources_path = state.output_dir / f"{state.post_id}-resources.html"
+
+        resources_args = [
+            "--site", state.site_slug,
+            "--target-keyword", state.target_keyword,
+            "--serp-json", serp_json,
+            "--output", str(resources_path),
+        ]
+
+        # Community-guide: build resources list from community-data.json sources
+        if state.intent == "community-guide" and state.community_data:
+            res_items = state.community_data.get("resources", [])
+            # Auto-generate from builder/tax/school source URLs if no explicit resources
+            if not res_items:
+                seen_urls = set()
+                for b in state.community_data.get("builders", []):
+                    url = b.get("source_url", "")
+                    if url and url not in seen_urls:
+                        res_items.append({"title": f"{b['name']} — {state.community_data.get('community_name', '')} Community Page", "url": url})
+                        seen_urls.add(url)
+                tax_url = state.community_data.get("tax", {}).get("source_url", "")
+                if tax_url and tax_url not in seen_urls:
+                    county = state.community_data.get("tax", {}).get("county", "")
+                    res_items.append({"title": f"{county} County — Official Tax Rates", "url": tax_url})
+                    seen_urls.add(tax_url)
+                schools_url = state.community_data.get("schools", {}).get("source_url", "")
+                if schools_url and schools_url not in seen_urls:
+                    district = state.community_data.get("schools", {}).get("district", "")
+                    res_items.append({"title": f"{district} — District Information", "url": schools_url})
+                    seen_urls.add(schools_url)
+            if res_items:
+                res_list_path = state.output_dir / f"{state.post_id}-resources-list.json"
+                res_list_path.write_text(json.dumps(res_items, indent=2))
+                resources_args += ["--resources-list", str(res_list_path)]
+                eprint(f"  [G.22] Community-guide: {len(res_items)} resources from community-data.json")
+
         try:
-            _run_tool(str(resources_tool), [
-                "--site", state.site_slug,
-                "--target-keyword", state.target_keyword,
-                "--serp-json", serp_json,
-                "--output", str(resources_path),
-            ], "G.22")
+            _run_tool(str(resources_tool), resources_args, "G.22")
             state.resources_html = resources_path.read_text()
         except RuntimeError as e:
             raise RuntimeError(f"Phase G step 22 (Resources) failed.\nReason: {e}")
@@ -1734,6 +2006,11 @@ def phase_h(state: PipelineState) -> None:
 
     state.phases_completed.append("H")
 
+    # Write manifest now — Phase I (deploy) needs it to exist.
+    # Phase I and J will re-write with updated phases_completed.
+    _write_manifest(state)
+    eprint(f"  [H.29] Pre-deploy manifest written")
+
 
 # ---------------------------------------------------------------------------
 # Phase H2: Polish Pass
@@ -1861,6 +2138,7 @@ def phase_i(state: PipelineState, skip_deploy: bool) -> None:
         raise RuntimeError(f"Phase I step 29 (deploy) failed.\nReason: {e}")
 
     state.phases_completed.append("I")
+    _write_manifest(state)  # update manifest with deploy phase
 
 
 # ---------------------------------------------------------------------------
@@ -1970,6 +2248,7 @@ def phase_j(state: PipelineState, skip: bool = False) -> None:
         eprint(f"  [J.30] Article deployed successfully, image can be set manually")
 
     state.phases_completed.append("J")
+    _write_manifest(state)  # update manifest with featured image phase
 
 
 # ---------------------------------------------------------------------------
@@ -2054,6 +2333,47 @@ def _write_manifest(state: PipelineState) -> dict:
                     "source_url": tax.get("source_url", ""),
                     "captured_date": tax.get("captured_date", ""),
                 })
+        # Worked examples: pre-computed derived amounts
+        for ex in state.community_data.get("worked_examples", []):
+            ex_price = ex.get("example_price")
+            src = ex.get("source_url", tax.get("source_url", ""))
+            cap = ex.get("captured_date", tax.get("captured_date", ""))
+            if ex_price is not None:
+                volatile.append({
+                    "field": "worked_example.example_price",
+                    "value": ex_price,
+                    "source_url": src,
+                    "captured_date": cap,
+                })
+            for d in ex.get("derived", []):
+                volatile.append({
+                    "field": f"worked_example.{d['label']}",
+                    "value": d["value"],
+                    "source_url": src,
+                    "captured_date": cap,
+                })
+        # Market data
+        market = state.community_data.get("market", {})
+        if market:
+            msrc = market.get("source_url", "")
+            mcap = market.get("captured_date", "")
+            for fld in ("median_price", "closed_sales", "months_inventory", "active_listings"):
+                if market.get(fld) is not None:
+                    volatile.append({"field": f"market.{fld}", "value": market[fld],
+                                     "source_url": msrc, "captured_date": mcap})
+        # BAH data
+        bah = state.community_data.get("bah", {})
+        if bah and bah.get("with_dependents"):
+            bsrc = bah.get("source_url", "")
+            bcap = bah.get("captured_date", "")
+            for grade, val in bah["with_dependents"].items():
+                volatile.append({"field": f"bah.{grade}", "value": val,
+                                 "source_url": bsrc, "captured_date": bcap})
+        # Per-plan data
+        for plan in state.community_data.get("plans", []):
+            volatile.append({"field": f"plan.{plan['name']}.price", "value": plan["price"],
+                             "source_url": state.community_data["builders"][0].get("source_url", ""),
+                             "captured_date": state.community_data["builders"][0].get("captured_date", "")})
         manifest["volatile_data"] = volatile
 
     manifest_path = state.output_dir / f"{state.post_id}-manifest.json"

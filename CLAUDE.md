@@ -305,3 +305,137 @@ This leaves an obvious trail in the deploy log.
 DO NOT use raw SSH+SQL for content deploys even in bypass cases
 — always go through push-post-content.py so the bypass is
 documented.
+
+## SOURCING: OPEN IT OR CUT IT
+
+Naming a document is not sourcing it. Putting a document name in a report is a claim that you opened it.
+
+A number, date, rate, threshold, or statutory citation ships ONLY if you fetched the document, read it, and can quote the line. Three artifacts, every time:
+1. The URL you fetched
+2. The quoted line containing the fact
+3. The location: page, paragraph, section, or form number
+
+CANNOT FETCH IT: cut the number. Describe the concept in words instead. Report what you tried and that it failed. Cut always beats guess.
+
+NEVER:
+- Substitute a second unopened document for the first. Could not open VA Pamphlet 26-7, so cited VA Circular 26-24-04, also unopened. That is the same violation twice.
+- Cite a prior session's verification. "Confirmed in the July 14 session" is not a source. Re-open or cut.
+- Use "industry standard", "widely cited", "established", "commonly known", or "[Authority] references it as standard" as a source.
+- Attach "approximate", "roughly", "~", or "verify before publish" to an unopened number. A hedge on a fabrication is still a fabrication.
+- Report a number as sourced because you know it is true. Knowing is not sourcing.
+- Report CLEAN from a local file when the live page is what ships. Verify from live.
+
+THE STANDARD, this is what right looks like:
+  Fetched trec.texas.gov, downloaded Form 20-19, read page 7, quoted Paragraph 14 verbatim, cited form number and effective date.
+
+WHAT FAILED, every one of these shipped or nearly shipped:
+  "VA Pamphlet 26-7, Chapter 8"
+  "FEMA SFHA definition"
+  "Historical SA fact"
+  "Industry standard post-NAR settlement"
+  "TX Comptroller" / "Bexar County tax assessor"
+  "MLS closed-sale records"
+  "same verification from the July 14 session"
+  "VA.gov references it as standard"
+
+## NUMBER AUDITS: EVERY NUMERAL, NOT % AND $
+
+A number audit that greps for % and $ is not an audit. It passed "45 to 50 days to close", "beyond 20 days", "Nine states", "E-7", and "30 to 40 percent of shooting days" while reporting zero numbers found.
+
+Audit every numeral, every spelled-out number, every timeframe, every rating, every count, every date. Report each with the URL you opened or flag it for cut.
+
+Do not report an article clean unless you can show the check that would have caught "45 to 50 days".
+
+## PUBLISH TO PROD IS ALLOWED. SILENCE IS NOT.
+
+Publishing an article to prod for immediate review is fine. Randall reviews within minutes and we fix live.
+
+WHEN YOU PUBLISH, SAY SO. First line of the report, unmissable:
+  PUBLISHED LIVE: [URL] — awaiting review
+
+The failure has never been publishing. It has been publishing quietly. Home Rescue sat live for days with an unverified foreclosure hotline because nobody said it published. 9080 was live and only surfaced because a preview URL returned 200.
+Never publish and mention it later. Never report a published page as draft. If you are unsure whether something is live, check post_status and report it.
+
+NO STAGING REVIEW. Staging does not render like prod. The Worker proxies prod only, and staging host-gates caused the four-layer blog outage. Reviewing on staging gives false confidence about a page that does not exist.
+
+STAYS DRAFT UNTIL RANDALL SAYS PUBLISH, no exceptions:
+- Anything with crisis resources: foreclosure, legal aid, VA, HUD, suicide, housing instability. A wrong hotline reaches a real person in minutes.
+- Anything with lead capture that has not been proven wired from LIVE html.
+- YMYL claims that cannot be cut and cannot be sourced.
+- Tools and pages, as opposed to articles.
+An article whose facts are all sourced is not in this category. Publish it and announce it.
+
+## --h2-override SILENTLY BREAKS ARTICLE STRUCTURE
+
+--h2-override is permitted ONLY with dict-format h2_inventory JSON files
+carrying full structural metadata (structural_element, h2_format,
+template_hint, callout_key per section). The full command line and
+override JSON must be shown and approved before every run. Bare-string
+overrides are banned — they silently default to prose/statement.
+
+## Pipeline article deploy rules (standing, no exceptions)
+
+1. Every pipeline article deploys with `_lrg_no_wpautop 1` set at
+   post creation. wpautop + Divi 5 truncates rl-page content.
+2. Every deploy report includes a rendered-page curl check (H2 count,
+   details, tables, components, internal links, Resources) against
+   the source content. DB-only verification is never sufficient.
+3. Claim audit is a mandatory Phase 2 step on every pipeline build
+   until source_data wiring into build-h2-section.py ships
+   (Phase A backlog item 1). Every number in the output must map to
+   a verified quote with URL; unsourced numbers are CUT, not hedged.
+4. Article source material is injected as verbatim quotes with URLs
+   into the article's topic-context JSON before any build. Summaries
+   are never sufficient. A proper source_data override field wired
+   into all builders is the target mechanism (Phase A backlog);
+   topic-context enrichment is the required interim step.
+5. Validator conformance follows the approved article design, not the
+   reverse. When a component or layout change is approved, the
+   matching spec_assertions.py update ships in the same batch.
+
+## LRG default component layout (every article)
+
+1. **rl-qstats strip** (stat strip): REQUIRED when the Gate 1 spec
+   includes 4 verified stats. Placed after the ATF lede, before the
+   quick-card grid. Omitted entirely when no defensible stats exist
+   (stated explicitly in Phase 0). Phase 0 must propose the 4
+   {value, label} pairs with sources as part of every outline.
+   Values are spec-approved verbatim from verified sources, never
+   LLM-generated. Single-line markup only.
+2. **BLUF renders as rl-kcards** (5 cards) by DEFAULT on all LRG
+   articles. The pipeline emits kcards natively. Leads are generated
+   from the bullets and listed in the Gate 2 report for redline.
+   The plain-ul BLUF is the exception, not the rule. Validator
+   18.1.12 accepts both.
+3. **Body-section kcards** remain opt-in per section via the override
+   (parallel-takeaway bullets only). Never nested in a
+   bullet-section wrapper — kcards sit directly on the section
+   background.
+
+Component CSS lives in lrg-article-styles.php. Reuse the existing
+classes; never re-derive from the neighborhood mu-plugin.
+
+Validator assertions (T4 = hard stop):
+- When spec carries qstats: exactly 1 strip with 4 boxes in the
+  stated position; mismatch = T4
+- BLUF kcards: exactly 5 cards with non-empty leads; mismatch = T4
+- Nesting rule: no rl-kcards inside any bullet-section wrapper,
+  article-wide; violation = T4
+
+GSC retrofit program note: the top-50 retrofit (queued) covers BOTH
+components per article — strip where 4 sourced stats exist, BLUF
+kcards conversion where the article has a BLUF. Tracked with
+per-article NO-STRIP/NO-KCARDS reasons where they don't apply.
+
+## Prod credentials
+
+Prod SSH credentials (key ~/.ssh/wpengine_valn to lrgrealtyblog) are
+only used in a session where a prod action is explicitly authorized
+in the current instruction. Never connect to prod speculatively.
+
+## Substitutions and plan deviations
+
+When an approved internal link plan, H2 outline, or source list
+specifies items and the build substitutes or omits any of them, the
+deviation must be named in the Gate 2 report with the reason.
+A silent substitution is a defect.

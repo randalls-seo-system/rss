@@ -34,6 +34,7 @@ from lib.tool_utils import (
     eprint,
     extract_html,
     load_brand_voice,
+    load_brand_rules_block,
     load_prompt_template,
     render_prompt,
     validate_or_retry,
@@ -44,6 +45,7 @@ from lib.tool_utils import (
 def validate_card(html: str) -> list[str]:
     """Validate quick-card HTML per spec Section 6."""
     errors = []
+    warnings = []
     soup = BeautifulSoup(html, "html.parser")
 
     card = soup.find("article", class_="rl-quick-card")
@@ -56,17 +58,20 @@ def validate_card(html: str) -> list[str]:
         errors.append("Card missing H3 title (spec 6.2)")
 
     bullets = card.find_all("li")
-    if len(bullets) != 4:
-        errors.append(f"Card has {len(bullets)} bullets, expected exactly 4 (spec 6.1)")
+    if len(bullets) > 3:
+        errors.append(f"Card has {len(bullets)} bullets, max 3 allowed (spec 6.4.2)")
+    elif len(bullets) < 1:
+        errors.append("Card has no bullets (spec 6.4.2)")
 
+    # Soft warn if any bullet contains a run-in <strong> label (regression check)
     for i, li in enumerate(bullets):
         strong = li.find("strong")
-        if strong is None:
-            errors.append(f"Bullet {i+1} missing <strong> label (spec 6.4.2)")
+        if strong:
+            eprint(f"  WARN: Bullet {i+1} contains <strong> run-in label (spec 6.4.1 wants plain prose)")
 
     links = card.find_all("a")
     if links:
-        errors.append(f"Card contains {len(links)} links; zero allowed (spec 6.5.2)")
+        errors.append(f"Card contains {len(links)} links; zero allowed (spec 6.5.1)")
 
     return errors
 
@@ -79,7 +84,7 @@ def main():
     parser.add_argument("--target-keyword", required=True, help="Target keyword")
     parser.add_argument(
         "--intent", required=True,
-        choices=["definition", "process", "decision", "cost", "comparison"],
+        choices=["definition", "process", "decision", "cost", "comparison", "employer-relocation", "community-guide"],
         help="Intent type",
     )
     parser.add_argument("--card-slot", required=True, help="Card slot role from overlay")
@@ -119,8 +124,11 @@ def main():
     topic_filter = f"{slot.h3_pattern} {slot.role} {args.target_keyword}"
     topic_context = build_topic_context(serp, topic_filter)
 
-    # Load brand voice
+    # Load brand voice + brand rules
     brand_voice = load_brand_voice(archetype) if archetype else ""
+    brand_rules = load_brand_rules_block(args.site)
+    if brand_rules:
+        brand_voice += f"\n\n{brand_rules}"
 
     # Parse prior card synthesis bullets for diversity
     prior_synthesis = ""

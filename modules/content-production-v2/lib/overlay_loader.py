@@ -36,9 +36,10 @@ VALID_OVERLAY_VARIABLES = frozenset({
     "Topic", "Term", "Year",
     "Option A", "Option B",
     "Winner", "Second", "Niche", "Niche Use Case",
+    "Employer", "Area",
 })
 
-VALID_INTENTS = frozenset({"definition", "process", "decision", "cost", "comparison"})
+VALID_INTENTS = frozenset({"definition", "process", "decision", "cost", "comparison", "employer-relocation", "community-guide"})
 VALID_BLUF = frozenset({"include", "omit", "conditional"})
 VALID_BODY = frozenset({"tables_dominant", "bullets_dominant", "mixed"})
 
@@ -125,10 +126,10 @@ def _validate_overlay(raw: dict, intent: str) -> OverlayConfig:
             errors.append(f"card_slots[{i}] missing fields: {sorted(slot_missing)}")
             continue
 
-        # (c) Each card_slot has exactly 4 bullet_label_hints
+        # (c) Each card_slot has exactly 3 bullet_label_hints
         hints = slot.get("bullet_label_hints", [])
-        if len(hints) != 4:
-            errors.append(f"card_slots[{i}] ({slot.get('role', '?')}): expected 4 bullet_label_hints, got {len(hints)}")
+        if len(hints) != 3:
+            errors.append(f"card_slots[{i}] ({slot.get('role', '?')}): expected 3 bullet_label_hints, got {len(hints)}")
 
         # (f) Variable validation on h3_pattern
         _validate_variables(slot["h3_pattern"], f"card_slots[{i}].h3_pattern", intent)

@@ -1,0 +1,51 @@
+intent: community-guide
+display_name: "Community Guide"
+spec_reference: "docs/article-spec.md Section 1; SERP-recon community-guide intent"
+
+# When to include BLUF (Section 8.1)
+bluf_default: include
+
+# Body structural element preference (Section 9.4)
+body_default: mixed
+
+# Card slot definitions — 4 cards, 3 hints each
+card_slots:
+  - role: price_card
+    h3_pattern: "Price Snapshot"
+    bullet_label_hints:
+      - "starting price and top price"
+      - "price position vs county median"
+      - "incentives or rate buydowns offered"
+  - role: location_card
+    h3_pattern: "Location and Access"
+    bullet_label_hints:
+      - "nearest highway and drive to downtown"
+      - "military base proximity"
+      - "nearest major employers"
+  - role: fit_card
+    h3_pattern: "Best Fit Buyer"
+    bullet_label_hints:
+      - "ideal buyer profile"
+      - "who should think twice"
+      - "comparable community alternative"
+  - role: cost_card
+    h3_pattern: "True Cost of Ownership"
+    bullet_label_hints:
+      - "property tax rate and county"
+      - "HOA or special district overlay"
+      - "insurance context"
+
+# Callout preferences
+callout_preferences:
+  cost_reality: ["numerical_proof", "reality_check"]
+  military_buyer_fit: ["authority_note", "situational_example"]
+
+# Default ATF FAQ patterns — exactly 3
+default_atf_faq_patterns:
+  - "Is {Topic} a good community for first-time buyers?"
+  - "How do prices at {Topic} compare to the rest of {Area}?"
+  - "What school district serves {Topic}?"
+
+# H2 question floors
+question_h2_floor_when_paa_sparse: 2
+question_h2_floor_when_paa_rich: 3

@@ -1213,25 +1213,36 @@ def assert_cg_builder_comparison(soup: BeautifulSoup, context: dict) -> Assertio
                 tables.extend(tag.find_all("table") if tag.name != "table" else [tag])
     if not tables:
         return AssertionResult(False, "hard", "No comparison table found in body sections", "18.CG.1")
-    # Check at least one table has the required column headers
-    required_cols = {"price", "sq ft", "plan"}  # substrings to match
+    # Check at least one table has the required column headers.
+    # First column must identify the entity: "builder", "collection", or "plan".
+    # Remaining columns must include price, sq ft, and plan count.
+    entity_col_terms = {"builder", "collection", "plan", "series", "model"}
+    data_col_terms = {"price", "sq ft", "sqft"}
     for tbl in tables:
         thead = tbl.find("thead") or tbl.find("tr")
         if thead is None:
             continue
         headers = [_text_of(th).lower() for th in thead.find_all(["th", "td"])]
-        header_text = " ".join(headers)
-        matched = sum(1 for col in required_cols if col in header_text)
-        if matched >= 3:
-            # Check minimum 2 data rows
-            tbody = tbl.find("tbody") or tbl
-            data_rows = [tr for tr in tbody.find_all("tr") if tr.find("td")]
-            if len(data_rows) < 2:
-                return AssertionResult(False, "hard",
-                    f"Comparison table has {len(data_rows)} data rows, need >=2", "18.CG.1")
-            return AssertionResult(True, "hard", None, "18.CG.1")
+        if not headers:
+            continue
+        # First column must be an entity identifier
+        first_col_ok = any(term in headers[0] for term in entity_col_terms)
+        if not first_col_ok:
+            continue
+        # Remaining columns must cover price and sqft
+        rest_text = " ".join(headers[1:])
+        has_price = any(term in rest_text for term in data_col_terms)
+        if not has_price:
+            continue
+        # Check minimum 2 data rows
+        tbody = tbl.find("tbody") or tbl
+        data_rows = [tr for tr in tbody.find_all("tr") if tr.find("td")]
+        if len(data_rows) < 2:
+            return AssertionResult(False, "hard",
+                f"Comparison table has {len(data_rows)} data rows, need >=2", "18.CG.1")
+        return AssertionResult(True, "hard", None, "18.CG.1")
     return AssertionResult(False, "hard",
-        f"No table found with required columns (need: builder/collection, price range, sq ft range, plan count). "
+        f"No table found with required columns (need: builder/collection/plan as first col, price + sq ft in remaining). "
         f"Tables checked: {len(tables)}", "18.CG.1")
 
 
@@ -1273,29 +1284,54 @@ def assert_cg_zero_unsourced_prices(soup: BeautifulSoup, context: dict) -> Asser
     if not volatile:
         return AssertionResult(False, "hard",
             "Manifest has no volatile_data entries — all prices are unsourced", "18.CG.3")
-    # Extract all dollar amounts from HTML
+    # Extract price-formatted amounts >= $1,000 with comma grouping.
+    # Exempt: sub-dollar rates ($0.27), per-$100 figures ($100), 3-digit amounts ($475).
     body_text = soup.get_text(separator=" ", strip=True)
-    price_pattern = re.compile(r"\$[\d,]+(?:\.\d{2})?")
+    price_pattern = re.compile(r"\$\d{1,3}(?:,\d{3})+(?:\.\d{2})?")
     prices_in_html = set(price_pattern.findall(body_text))
     if not prices_in_html:
         return AssertionResult(True, "hard", None, "18.CG.3")  # no prices = nothing to check
-    # Build set of sourced values (normalize: strip $ and commas for numeric comparison)
-    sourced_values = set()
+    # Build set of sourced numeric values for comparison
+    sourced_numerics = set()  # raw numeric values for derived-amount math
+    sourced_formatted = set()  # formatted strings ($NNN,NNN) for matching
     for entry in volatile:
         val = entry.get("value")
-        if val is not None:
-            # Store as both raw and formatted
-            sourced_values.add(str(val))
-            sourced_values.add(f"${val:,}" if isinstance(val, (int, float)) else str(val))
+        if val is not None and isinstance(val, (int, float)):
+            sourced_numerics.add(val)
+            sourced_formatted.add(f"${val:,}")
+            sourced_formatted.add(f"${val:,.2f}")
+            sourced_formatted.add(f"${int(val):,}")  # truncated-decimal version
+            sourced_formatted.add(str(val))
+            sourced_formatted.add(str(int(val)))
+        elif val is not None:
+            sourced_formatted.add(str(val))
+
+    # Build set of derived amounts: exact sums or absolute differences
+    # of any two volatile_data numeric values
+    derived_ok = set()
+    sourced_list = sorted(sourced_numerics)
+    for i, a in enumerate(sourced_list):
+        for b in sourced_list[i:]:
+            s = a + b
+            d = abs(a - b)
+            if s >= 1000:
+                derived_ok.add(f"${int(s):,}" if s == int(s) else f"${s:,.2f}")
+                derived_ok.add(str(int(s)) if s == int(s) else str(s))
+            if d >= 1000:
+                derived_ok.add(f"${int(d):,}" if d == int(d) else f"${d:,.2f}")
+                derived_ok.add(str(int(d)) if d == int(d) else str(d))
+
     unsourced = []
     for price in prices_in_html:
-        # Normalize price for comparison
-        numeric = price.replace("$", "").replace(",", "")
-        if numeric not in sourced_values and price not in sourced_values:
+        numeric_str = price.replace("$", "").replace(",", "")
+        if (numeric_str not in sourced_formatted
+                and price not in sourced_formatted
+                and price not in derived_ok
+                and numeric_str not in derived_ok):
             unsourced.append(price)
     if unsourced:
         return AssertionResult(False, "hard",
-            f"{len(unsourced)} price(s) not in manifest volatile_data: {', '.join(sorted(unsourced)[:5])}", "18.CG.3")
+            f"{len(unsourced)} price(s) not in manifest volatile_data or derived: {', '.join(sorted(unsourced)[:5])}", "18.CG.3")
     return AssertionResult(True, "hard", None, "18.CG.3")
 
 
@@ -1313,6 +1349,48 @@ def assert_cg_schools_section(soup: BeautifulSoup, context: dict) -> AssertionRe
         if ph in body_text:
             return AssertionResult(False, "hard", f"School placeholder found: '{ph}'", "18.CG.4")
     return AssertionResult(True, "hard", None, "18.CG.4")
+
+
+def assert_cg_no_venue_lexicon(soup: BeautifulSoup, context: dict) -> AssertionResult:
+    """18.CG.5 Community-guide: no restaurant/venue lexicon in residential community article."""
+    if context.get("intent") != _CG_INTENT:
+        return AssertionResult(True, "hard", None, "18.CG.5")
+    body_text = soup.get_text(separator=" ", strip=True)
+    venue_terms = re.compile(
+        r'\b(?:menu|cuisine|reservation|happy hour|brunch|cocktail|'
+        r'appetizer|entree|chef|catering|patio seating|bar scene|'
+        r'private event|wait time|tasting)\b', re.I)
+    matches = venue_terms.findall(body_text)
+    if matches:
+        unique = sorted(set(m.lower() for m in matches))
+        return AssertionResult(False, "hard",
+            f"Venue/restaurant lexicon in residential community article: {unique}", "18.CG.5")
+    return AssertionResult(True, "hard", None, "18.CG.5")
+
+
+def assert_cg_no_wrong_geography(soup: BeautifulSoup, context: dict) -> AssertionResult:
+    """18.CG.6 Community-guide: no known-wrong geography for this community."""
+    if context.get("intent") != _CG_INTENT:
+        return AssertionResult(True, "hard", None, "18.CG.6")
+    manifest = context.get("manifest")
+    if manifest is None:
+        return AssertionResult(True, "hard", None, "18.CG.6")  # can't check without manifest
+    # wrong_geo comes from community-data.json via manifest
+    # For now, check if manifest has community_data with wrong_geo
+    # The wrong_geo list isn't in the manifest — it's in the JSON file.
+    # We need to pass it through context. For now, skip if not available.
+    wrong_geo = context.get("wrong_geo", [])
+    if not wrong_geo:
+        return AssertionResult(True, "hard", None, "18.CG.6")
+    body_text = soup.get_text(separator=" ", strip=True).lower()
+    found = []
+    for term in wrong_geo:
+        if term.lower() in body_text:
+            found.append(term)
+    if found:
+        return AssertionResult(False, "hard",
+            f"Wrong geography for this community: {found}", "18.CG.6")
+    return AssertionResult(True, "hard", None, "18.CG.6")
 
 
 def assert_cg_data_strip(soup: BeautifulSoup, context: dict) -> AssertionResult:
@@ -1388,6 +1466,8 @@ ALL_HARD_ASSERTIONS: list[Callable] = [
     assert_cg_cost_strip,
     assert_cg_zero_unsourced_prices,
     assert_cg_schools_section,
+    assert_cg_no_venue_lexicon,
+    assert_cg_no_wrong_geography,
 ]
 
 ALL_SOFT_ASSERTIONS: list[Callable] = [

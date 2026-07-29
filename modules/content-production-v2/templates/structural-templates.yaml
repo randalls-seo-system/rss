@@ -55,6 +55,57 @@ eligibility:
     - {index: 6, type: callout,  role: operator_note,    h2_format: statement, hint: "Operator note on borderline cases"}
     - {index: 7, type: bullets,  role: next_steps,       h2_format: question,  hint: "Next steps for borrowers"}
 
+employer-relocation:
+  description: "Moving to {Area} for {Employer} — relocation guide anchored on employer + job site"
+  sections:
+    - {index: 2, type: prose_optional_table, role: commute_reality,   h2_format: statement, hint: "The {Employer} commute reality — real drive times, routes, label approximate"}
+    - {index: 3, type: table,    role: where_buying,       h2_format: statement, hint: "Where employees are buying — area, price band, drive time comparison table"}
+    - {index: 4, type: bullets,  role: new_construction,   h2_format: statement, hint: "New construction and master-planned options in the area"}
+    - {index: 5, type: callout,  role: out_of_state,       h2_format: question,  hint: "Relocating from out of state — no income tax vs property tax, homestead, insurance"}
+    - {index: 6, type: callout,  role: salary_reality,     h2_format: question,  hint: "Salary-to-price reality — what the income honestly buys in this area"}
+    - {index: 7, type: bullets,  role: fit_assessment,     h2_format: question,  hint: "Is {Area} right for you — good fit vs think twice"}
+    - {index: 8, type: bullets,  role: checklist,          h2_format: statement, hint: "Relocation checklist — 6 action items for incoming employees"}
+    - {index: 9, type: prose_optional_table, role: bottom_line, h2_format: statement, hint: "Bottom line — direct one-paragraph conclusion"}
+
+neighborhood-guide:
+  description: "Neighborhood guide — location, housing, schools, commute, fit assessment. Uses nh-* HTML classes."
+  # Scannable element rotation: after every prose section, emit ONE scannable
+  # element, rotating the type so it varies down the page.
+  # Cycle: bullet_tinted → compare → stat_strip → bullet_tinted → ...
+  scannable_rotation: [bullet_tinted, compare, stat_strip]
+  # Tint rotation for bullet-section callout boxes (class on .nh-callout).
+  # Cycle: gray → blue → green → beige → gray → ...
+  tint_rotation: [gray, blue, green, beige]
+  # Every section gets a bold .nh-takeaway one-liner directly under the H2,
+  # before the prose. The answer in one sentence so a scanner gets it without
+  # reading the paragraph. Prose paragraphs capped at 2-3 sentences.
+  takeaway: true
+  prose_max_sentences: 3
+  sections:
+    - {index: 2,  type: prose_takeaway,   role: about,         h2_format: statement, scannable: bullet_tinted, tint: gray,  hint: "About the neighborhood — what it is, why buyers look here"}
+    - {index: 3,  type: fact_cards,       role: key_facts,     h2_format: statement, hint: "Key facts grid — profile card + schools/location card"}
+    - {index: 4,  type: prose_takeaway,   role: homes,         h2_format: statement, scannable: compare,       hint: "Homes and property types — what is available, hidden cost factors"}
+    - {index: 5,  type: prose_takeaway,   role: sub_areas,     h2_format: statement, scannable: stat_strip,    hint: "Sub-communities or districts — where to focus inside the area"}
+    - {index: 6,  type: prose_takeaway,   role: schools,       h2_format: statement, scannable: bullet_tinted, tint: blue,  hint: "Schools — district, notable campuses, verification advice"}
+    - {index: 7,  type: prose_takeaway,   role: commute,       h2_format: statement, scannable: compare,       hint: "Location and commute — access, rush hour reality, commute test"}
+    - {index: 8,  type: fit_panels,       role: who_fits,      h2_format: question,  hint: "Is it right for you — good fit vs think twice, two-column .nh-fit"}
+    - {index: 9,  type: prose_takeaway,   role: checklist,     h2_format: statement, scannable: bullet_tinted, tint: beige, hint: "Buyer checklist — how to buy well in this area"}
+    - {index: 10, type: prose_takeaway,   role: bottom_line,   h2_format: statement, hint: "Bottom line — one-paragraph conclusion + CTA"}
+    - {index: 11, type: faq,              role: faqs,          h2_format: statement, hint: "5 common questions with concise answers, details/summary accordion"}
+    - {index: 12, type: related_links,    role: related,       h2_format: statement, hint: "Related resources + sources with external links"}
+
+community-guide:
+  description: "Builder community guide — multi-builder comparison, costs, schools, military fit"
+  sections:
+    - {index: 2,  type: table,                role: builder_comparison,  h2_format: statement, hint: "Multi-builder: comparison table with columns Builder, Price Range, Sq Ft Range, Plan Count. One row per builder, min 2 rows. Single-builder: plan-level table with columns Plan, Price, Sq Ft, Beds/Baths. One row per floor plan from the plans array in the data block. Use all values verbatim from the data block, do not invent prices."}
+    - {index: 3,  type: prose_optional_table,  role: community_overview,  h2_format: statement, hint: "Community location, character, and planned amenities. What the community IS and where it sits. Mention proximity to highways, employment centers, lifestyle. Use only dollar figures supplied in community data; do not compute, approximate, or invent new dollar amounts."}
+    - {index: 4,  type: callout,               role: cost_reality,        h2_format: question,  hint: "Total cost of ownership: base property tax rate + MUD/PID overlay + HOA + insurance context. Use the worked-example figures verbatim from the data block below — do not compute new dollar amounts or round the provided values. If no MUD or PID applies, state explicitly that no MUD or PID applies to this community. Silence on special districts is not acceptable."}
+    - {index: 5,  type: table,                 role: data_strip,          h2_format: statement, hint: "County-level market context: median home price, active inventory, days on market, YoY price change. Use only the market figures supplied in the data block below. Do not invent, approximate, or compute new dollar amounts. Label all numbers with source and date."}
+    - {index: 6,  type: bullets,               role: schools_commute,     h2_format: statement, hint: "School district assignment (feeder pattern: elementary to middle to high), drive times to military bases and major employers. Use school data from community-data.json verified block."}
+    - {index: 7,  type: callout,               role: military_buyer_fit,  h2_format: question,  hint: "BAH alignment at E-5/E-6/E-7, VA loan compatibility, base proximity, PCS timing considerations. Use only BAH and price figures supplied in the data block below; do not compute, approximate, or invent new dollar amounts. Archetype voice."}
+    - {index: 8,  type: bullets,               role: verify_checklist,    h2_format: statement, hint: "6-8 action items a buyer should verify before contract: HOA docs, MUD disclosure, builder warranty terms, lot premium, completion timeline, utility provider, flood zone, school zone confirmation. Use only dollar figures supplied in community data; do not invent new amounts."}
+    - {index: 9,  type: prose_optional_table,   role: community_verdict,   h2_format: statement, hint: "One-paragraph conclusion + CTA. Direct verdict on who this community fits best. Do NOT title this section 'The Bottom Line' — use a community-specific verdict heading instead. Use only dollar figures supplied in community data; do not invent new amounts."}
+
 default:
   description: "Fallback template for intents not in this file"
   sections:
