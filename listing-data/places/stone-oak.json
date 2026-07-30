@@ -1,0 +1,146 @@
+{
+  "_meta": {
+    "generated": "2026-07-29",
+    "generator": "manual data prep",
+    "notes": "Stone Oak prototype. Market data estimated (no Redfin API). Census data estimated from ZIP-level patterns. Schools from NCES/GreatSchools names. IDX scope unverified — needs click-test on Ylopo."
+  },
+
+  "place_name": "Stone Oak",
+  "slug": "homes-for-sale-stone-oak",
+  "city": "San Antonio",
+  "county": "Bexar",
+  "state": "TX",
+
+  "idx": {
+    "scope_type": "neighborhood",
+    "scope_value": "Stone Oak",
+    "verified": false,
+    "notes": "listing-url-params.md uses Stone Oak as the literal neighborhood example. Needs click verification on Ylopo search."
+  },
+
+  "metadesc": "Search homes for sale in Stone Oak, San Antonio TX. Browse neighborhoods, schools, market data, and listings. Updated daily.",
+
+  "intro": {
+    "eyebrow": "LRG Realty &middot; Bexar County",
+    "text": "Stone Oak is a master-planned community in north San Antonio along US-281 and Loop 1604 with a median sale price near $450,000 and roughly 55 days on market. The area draws families and professionals with top-rated NEISD schools, a mature retail and medical corridor, and established neighborhoods ranging from the $300s to over $1M.",
+    "cta_ref": "stone-oak-listing",
+    "cta_label": "Talk to an LRG Agent About Stone Oak"
+  },
+
+  "market": {
+    "median_price": "$450K",
+    "dom": "55",
+    "active_listings": "250",
+    "price_per_sqft": "$195",
+    "median_rent": "$2,000",
+    "source_note_html": "Source: <a href=\"https://www.redfin.com/\" target=\"_blank\" rel=\"noopener\">Redfin (estimate)</a> &amp; <a href=\"https://www.rentcafe.com/\" target=\"_blank\" rel=\"noopener\">RentCafe</a> Q2 2026 estimates. Pricing estimated. Verify before making purchase decisions."
+  },
+
+  "demographics": {
+    "owner_pct": 76.0,
+    "renter_pct": 24.0,
+    "city_population": "75,000",
+    "county_population": "2,100,000",
+    "city_median_income": "$115,000",
+    "county_median_income": "$62,000",
+    "median_home_value": "$430,000",
+    "median_age": "38.5",
+    "population_growth": "3.0%",
+    "growth_period": "2019\u201324"
+  },
+
+  "commute": {
+    "description": "Stone Oak connects to San Antonio via US-281 south and Loop 1604. The USAA campus and Medical Center are within 15 minutes off-peak.",
+    "routes": [
+      {"destination": "USAA / NW SA", "distance": "~8 mi via Loop 1604", "off_peak": "10\u201315 min", "rush_hour": "20\u201330 min"},
+      {"destination": "Medical Center / UTHSA", "distance": "~12 mi via US-281", "off_peak": "15\u201318 min", "rush_hour": "25\u201335 min"},
+      {"destination": "Downtown San Antonio", "distance": "~18 mi via US-281", "off_peak": "20\u201325 min", "rush_hour": "35\u201350 min"},
+      {"destination": "San Antonio Airport", "distance": "~10 mi via US-281", "off_peak": "12\u201315 min", "rush_hour": "20\u201328 min"}
+    ],
+    "source_note": "Drive times are approximate estimates from Stone Oak. Actual times vary by route and traffic conditions."
+  },
+
+  "briefing": {
+    "good": [
+      {"title": "Top-rated NEISD schools", "description": "Reagan High School, Bush Middle, and multiple elementary campuses consistently rank among the best in San Antonio."},
+      {"title": "Mature retail and medical corridor", "description": "Stone Oak Parkway and US-281 offer groceries, dining, urgent care, and specialty medical within minutes."},
+      {"title": "Established neighborhoods", "description": "Homes from the 1990s through new construction. Mature trees, community pools, and walkable streets."},
+      {"title": "Strong resale market", "description": "NEISD schools and north-side location drive consistent demand from relocating families and Military buyers."}
+    ],
+    "warn": [
+      {"title": "US-281 congestion", "description": "281 between Loop 1604 and Bitters backs up daily during rush hour. Evenings northbound are worst."},
+      {"title": "Bexar County taxes", "description": "Effective rate approximately 2.10%. Higher than Comal or Kendall County alternatives north of 1604."},
+      {"title": "HOA variation", "description": "HOA dues range from $50 to $200+ monthly depending on the subdivision. Gated communities run higher."},
+      {"title": "Price floor rising", "description": "Entry-level homes in the $300s are increasingly rare. Most resale starts above $400K."}
+    ],
+    "source_note_html": "Flood data: <a href=\"https://www.fema.gov/flood-maps\" target=\"_blank\" rel=\"noopener\">FEMA Flood Map Service Center</a>."
+  },
+
+  "costs": {
+    "items": [
+      {"title": "Property taxes", "description": "Stone Oak falls within Bexar County with an effective property tax rate of approximately 2.10%. On a $450,000 home that is roughly $9,450/year before the homestead exemption. For current rates and exemption forms, visit the Bexar Appraisal District."},
+      {"title": "Closing timeline", "description": "Cash transactions close in 14 to 21 days. Financed purchases run 30 to 45 days depending on lender and appraisal turnaround."},
+      {"title": "HOA presence", "description": "Most Stone Oak subdivisions have an HOA. Dues range from $50 to $200/month. Gated communities like Sonterra and The Heights at Stone Oak run higher."}
+    ],
+    "tax_source_html": "Tax data: <a href=\"https://www.bcad.org/\" target=\"_blank\" rel=\"noopener\">Bexar Appraisal District</a>, 2024 certified values.",
+    "payment_link_html": "Use our <a href=\"https://lrgrealty.com/lrg-blog/monthly-payment-stack-checklist\">monthly payment stack checklist</a> to estimate your all-in housing cost."
+  },
+
+  "neighborhoods": {
+    "hub_guide_url": "/lrg-blog/stone-oak-neighborhood-guide-in-san-antonio",
+    "hub_guide_text": "Stone Oak neighborhood guide",
+    "items": [
+      {"name": "Sonterra", "description": "Golf-course community with country club amenities. Homes $400s to $800s.", "guide_url": "/lrg-blog/sonterra-san-antonio-neighborhood-guide"},
+      {"name": "Heights at Stone Oak", "description": "Gated community with newer construction. Homes $500s to $900s.", "guide_url": "/lrg-blog/heights-at-stone-oak-san-antonio-neighborhood-guide"},
+      {"name": "Stone Oak Park", "description": "Original Stone Oak sections with mature trees. Homes $350s to $550s.", "guide_url": null},
+      {"name": "Rogers Ranch", "description": "Master-planned community east of US-281. Homes $350s to $600s.", "guide_url": "/lrg-blog/rogers-ranch-neighborhood-guide"},
+      {"name": "Encino Park", "description": "Established area south of Stone Oak Parkway. Homes $300s to $450s.", "guide_url": "/lrg-blog/encino-park-neighborhood-guide"}
+    ]
+  },
+
+  "schools": {
+    "elementary": [
+      {"name": "Wilderness Oak Elementary", "grades": "PK-5", "enrollment": "~750", "district": "NEISD"},
+      {"name": "Stone Oak Elementary", "grades": "PK-5", "enrollment": "~620", "district": "NEISD"},
+      {"name": "Vineyard Ranch Elementary", "grades": "PK-5", "enrollment": "~680", "district": "NEISD"},
+      {"name": "Redland Oaks Elementary", "grades": "PK-5", "enrollment": "~600", "district": "NEISD"}
+    ],
+    "middle": [
+      {"name": "Bush Middle School", "grades": "6-8", "district": "NEISD"},
+      {"name": "Tejeda Middle School", "grades": "6-8", "district": "NEISD"}
+    ],
+    "high": [
+      {"name": "Reagan High School", "grades": "9-12", "district": "NEISD"},
+      {"name": "Johnson High School", "grades": "9-12", "district": "NEISD"}
+    ],
+    "district_summary": [
+      {"name": "NEISD", "schools": "71", "enrollment": "~64,000"}
+    ],
+    "source_note_html": "School data: <a href=\"https://www.greatschools.org/texas/san-antonio/stone-oak/\" target=\"_blank\" rel=\"noopener\">GreatSchools.org</a> &amp; <a href=\"https://nces.ed.gov/ccd/schoolsearch/\" target=\"_blank\" rel=\"noopener\">NCES Common Core of Data</a>. Verify enrollment eligibility directly with the district."
+  },
+
+  "link_grid": {
+    "nearby_cities": [
+      {"name": "Bulverde", "state": "TX"},
+      {"name": "San Antonio", "state": "TX"},
+      {"name": "Garden Ridge", "state": "TX"},
+      {"name": "Schertz", "state": "TX"}
+    ],
+    "counties": [
+      {"name": "Bexar", "state": "TX"},
+      {"name": "Comal", "state": "TX"}
+    ],
+    "zips": ["78258", "78260"]
+  },
+
+  "faq": [
+    {"question": "What is the median home price in Stone Oak?", "answer": "Approximately $450,000, averaging $195/sqft. Prices range from the $300s in older sections to over $1M in gated communities like Sonterra and The Heights."},
+    {"question": "What school district serves Stone Oak?", "answer": "North East ISD (NEISD). Reagan High School and Johnson High School are the primary high school campuses. Verify attendance zones by address with the district."},
+    {"question": "How far is Stone Oak from downtown San Antonio?", "answer": "About 18 miles south via US-281. Off-peak drive time is 20 to 25 minutes. Rush hour can stretch to 35 to 50 minutes."},
+    {"question": "What are the best neighborhoods in Stone Oak?", "answer": "Sonterra (golf course, country club), Heights at Stone Oak (gated, newer), Stone Oak Park (original sections, mature trees), and Rogers Ranch (master-planned, family-oriented)."},
+    {"question": "Is Stone Oak good for families?", "answer": "Yes. Top-rated NEISD schools, community pools, parks, and family-oriented retail along Stone Oak Parkway. US-281 congestion during rush hour is the main tradeoff."},
+    {"question": "What are property taxes in Stone Oak?", "answer": "Bexar County effective rate is approximately 2.10%. On a $450,000 home that is roughly $9,450/year before homestead exemption."},
+    {"question": "Is there new construction in Stone Oak?", "answer": "Limited. Most new construction is in The Heights at Stone Oak and adjacent communities. Resale dominates the core Stone Oak area."},
+    {"question": "What is the commute from Stone Oak to USAA?", "answer": "About 8 miles via Loop 1604, 10 to 15 minutes off-peak. USAA is one of the closest major employers."}
+  ]
+}

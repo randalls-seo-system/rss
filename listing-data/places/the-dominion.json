@@ -1,0 +1,38 @@
+{
+  "_meta": {
+    "generated": "2026-07-29",
+    "generator": "skeleton data prep",
+    "notes": "Luxury gated. subdivision scope. Scope unverified."
+  },
+  "place_name": "The Dominion",
+  "slug": "homes-for-sale-the-dominion",
+  "city": "San Antonio",
+  "county": "Bexar",
+  "state": "TX",
+  "idx": {
+    "scope_type": "subdivision",
+    "scope_value": "The Dominion",
+    "verified": false
+  },
+  "intro": null,
+  "market": null,
+  "demographics": null,
+  "commute": null,
+  "briefing": null,
+  "costs": null,
+  "neighborhoods": null,
+  "schools": null,
+  "link_grid": {
+    "nearby_cities": [],
+    "counties": [
+      {
+        "name": "Bexar",
+        "state": "TX"
+      }
+    ],
+    "zips": [
+      "78257"
+    ]
+  },
+  "faq": null
+}

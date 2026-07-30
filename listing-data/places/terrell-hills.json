@@ -1,0 +1,39 @@
+{
+  "_meta": {
+    "generated": "2026-07-29",
+    "generator": "skeleton data prep",
+    "notes": "Independent city adjacent to AH. city scope should work."
+  },
+  "place_name": "Terrell Hills",
+  "slug": "homes-for-sale-terrell-hills",
+  "city": "Terrell Hills",
+  "county": "Bexar",
+  "state": "TX",
+  "idx": {
+    "scope_type": "city",
+    "scope_value": "Terrell Hills",
+    "verified": false
+  },
+  "intro": null,
+  "market": null,
+  "demographics": null,
+  "commute": null,
+  "briefing": null,
+  "costs": null,
+  "neighborhoods": null,
+  "schools": null,
+  "link_grid": {
+    "nearby_cities": [],
+    "counties": [
+      {
+        "name": "Bexar",
+        "state": "TX"
+      }
+    ],
+    "zips": [
+      "78209",
+      "78218"
+    ]
+  },
+  "faq": null
+}

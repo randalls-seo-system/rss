@@ -1,0 +1,38 @@
+{
+  "_meta": {
+    "generated": "2026-07-29",
+    "generator": "skeleton data prep",
+    "notes": "SA neighborhood. Scope unverified."
+  },
+  "place_name": "Alamo Ranch",
+  "slug": "homes-for-sale-alamo-ranch",
+  "city": "San Antonio",
+  "county": "Bexar",
+  "state": "TX",
+  "idx": {
+    "scope_type": "neighborhood",
+    "scope_value": "Alamo Ranch",
+    "verified": false
+  },
+  "intro": null,
+  "market": null,
+  "demographics": null,
+  "commute": null,
+  "briefing": null,
+  "costs": null,
+  "neighborhoods": null,
+  "schools": null,
+  "link_grid": {
+    "nearby_cities": [],
+    "counties": [
+      {
+        "name": "Bexar",
+        "state": "TX"
+      }
+    ],
+    "zips": [
+      "78253"
+    ]
+  },
+  "faq": null
+}

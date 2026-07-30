@@ -1,0 +1,39 @@
+{
+  "_meta": {
+    "generated": "2026-07-29",
+    "generator": "skeleton data prep",
+    "notes": "Luxury Hill Country. subdivision scope unverified."
+  },
+  "place_name": "Cordillera Ranch",
+  "slug": "homes-for-sale-cordillera-ranch",
+  "city": "Boerne",
+  "county": "Kendall",
+  "state": "TX",
+  "idx": {
+    "scope_type": "subdivision",
+    "scope_value": "Cordillera Ranch",
+    "verified": false
+  },
+  "intro": null,
+  "market": null,
+  "demographics": null,
+  "commute": null,
+  "briefing": null,
+  "costs": null,
+  "neighborhoods": null,
+  "schools": null,
+  "link_grid": {
+    "nearby_cities": [],
+    "counties": [
+      {
+        "name": "Kendall",
+        "state": "TX"
+      }
+    ],
+    "zips": [
+      "78006",
+      "78015"
+    ]
+  },
+  "faq": null
+}
