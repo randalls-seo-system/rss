@@ -256,6 +256,133 @@ def build_verified_facts_string(data):
     return "\n".join(lines)
 
 
+def inject_section_links(html, data):
+    """Post-assembly: inject section_sources links into rendered prose.
+
+    For each section_sources entry, finds the target section by kicker text,
+    searches the prose <p> elements for the label text, and wraps the first
+    occurrence as an <a> tag.  If the label is not found verbatim, appends a
+    natural trailing link sentence to the last <p> in the section.
+
+    Returns (modified_html, list_of_injection_descriptions).
+    """
+    from bs4 import BeautifulSoup, NavigableString
+
+    SECTION_KICKERS = {
+        "about": "About the Neighborhood",
+        "homes": "Homes & Property Types",
+        "subcommunities": "Top Sub-Communities",
+        "schools": "Schools",
+        "commute": "Location & Commute",
+        "buyer_checklist": "Buyer Checklist",
+    }
+    TRAILING = {
+        "about": "For a side-by-side comparison, browse the",
+        "homes": "View current inventory on the",
+        "commute": "For a broader perspective, see the",
+        "schools": "Verify assignments with the",
+        "buyer_checklist": "Start your research at the",
+        "subcommunities": "Compare options in the",
+    }
+
+    sources = data.get("section_sources", {})
+    if not sources:
+        return html, []
+
+    soup = BeautifulSoup(html, "html.parser")
+    injected = []
+
+    for section_key, source_list in sources.items():
+        kicker_text = SECTION_KICKERS.get(section_key)
+        if not kicker_text or not source_list:
+            continue
+
+        source = source_list[0]
+        url = source.get("url", "")
+        label = source.get("label", "")
+        if not url or not label:
+            continue
+
+        kicker_div = soup.find("div", class_="nh-sec-kicker", string=kicker_text)
+        if not kicker_div:
+            eprint(f"  LINK SKIP: no section with kicker '{kicker_text}'")
+            continue
+
+        section_el = kicker_div.find_parent("section")
+        if not section_el:
+            continue
+
+        prose_div = section_el.find("div", class_="nh-prose")
+        if not prose_div:
+            eprint(f"  LINK SKIP: no nh-prose in '{section_key}'")
+            continue
+
+        paragraphs = prose_div.find_all("p")
+        if not paragraphs:
+            eprint(f"  LINK SKIP: no <p> in '{section_key}'")
+            continue
+
+        # Phase 1: find the label text in an existing text node and wrap it
+        linked = False
+        lower_label = label.lower()
+        for p_el in paragraphs:
+            if linked:
+                break
+            for text_node in list(p_el.find_all(string=True)):
+                if not isinstance(text_node, NavigableString):
+                    continue
+                if text_node.parent.name == "a":
+                    continue
+                text_str = str(text_node)
+                idx = text_str.lower().find(lower_label)
+                if idx < 0:
+                    continue
+                before = text_str[:idx]
+                matched = text_str[idx:idx + len(label)]
+                after = text_str[idx + len(label):]
+                link_tag = soup.new_tag("a", href=url)
+                link_tag.string = matched
+                new_before = NavigableString(before)
+                new_after = NavigableString(after)
+                text_node.replace_with(new_before)
+                new_before.insert_after(link_tag)
+                link_tag.insert_after(new_after)
+                injected.append(f"{section_key}: wrapped '{matched}' as link (phase 1)")
+                linked = True
+                break
+
+        if linked:
+            continue
+
+        # Phase 1b: check if the section already has a link to the same destination
+        from urllib.parse import urlparse
+        target_path = urlparse(url).path.rstrip("/")
+        existing_links = prose_div.find_all("a", href=True)
+        already_linked = any(
+            urlparse(a["href"]).path.rstrip("/") == target_path
+            for a in existing_links
+        )
+        if already_linked:
+            injected.append(f"{section_key}: skipped, section already links to {target_path}")
+            continue
+
+        # Phase 2: append trailing link sentence to last <p>
+        last_p = paragraphs[-1]
+        trailing = TRAILING.get(section_key, "Learn more at the")
+        full_text = last_p.get_text(strip=True)
+        sep = " " if full_text.endswith(".") else ". "
+        last_p.append(NavigableString(f"{sep}{trailing} "))
+        link_tag = soup.new_tag("a", href=url)
+        link_tag.string = label
+        last_p.append(link_tag)
+        last_p.append(NavigableString("."))
+        injected.append(f"{section_key}: appended trailing link to last <p> (phase 2)")
+
+    # Return inner content only — BS4 wraps fragments in <html><body>
+    body = soup.find("body")
+    return (body.decode_contents() if body else str(soup)), injected
+
+
 def fix_school_contradictions(html, data):
     """Post-build correction: replace any contradictory high school names
     with the verified feeder high school.
@@ -924,15 +1051,23 @@ def main():
     # Populate section_sources for in-body contextual links (A5)
     if "section_sources" not in data:
         data["section_sources"] = {}
-    directory_url = "/san-antonio-neighborhoods/"
+    metro_slug = _slug(metro)
+    directory_url = f"/{metro_slug}-neighborhoods/"
+    metro_label = f"{metro} neighborhood directory"
     city_slug = _slug(city)
     listings_page = data.get("listings_url") or f"/listings/homes-for-sale-{city_slug}/"
+    _fallback_guides = {
+        "san-antonio": {"url": "/lrg-blog/top-5-neighborhoods-in-san-antonio/", "label": "San Antonio Neighborhood Guide"},
+        "austin": {"url": "/lrg-blog/top-5-neighborhoods-to-live-in-austin-tx/", "label": "Austin Neighborhood Guide"},
+        "killeen": {"url": "/lrg-blog/top-5-neighborhoods-to-live-in-killeen-tx/", "label": "Killeen Neighborhood Guide"},
+    }
     related = data.get("related_guides", [])
-    related_url = related[0]["url"] if related else f"/lrg-blog/top-5-neighborhoods-in-san-antonio/"
-    related_label = related[0]["label"] if related else "San Antonio Neighborhood Guide"
+    _fb = _fallback_guides.get(metro_slug, _fallback_guides["san-antonio"])
+    related_url = related[0]["url"] if related else _fb["url"]
+    related_label = related[0]["label"] if related else _fb["label"]
     # Distribute links across sections: about gets directory, homes gets listings, commute gets related
     data["section_sources"].setdefault("about", []).append(
-        {"url": directory_url, "label": "San Antonio neighborhood directory", "context": "compare all neighborhoods"})
+        {"url": directory_url, "label": metro_label, "context": "compare all neighborhoods"})
     data["section_sources"].setdefault("homes", []).append(
         {"url": listings_page, "label": f"{nb} homes for sale", "context": "current listings"})
     data["section_sources"].setdefault("commute", []).append(
@@ -984,9 +1119,18 @@ def main():
         sys.exit(1)
     eprint("School consistency: PASS")
 
+    # POST-BUILD LINK INJECTION: inject section_sources links into prose
+    html, link_injections = inject_section_links(html, data)
+    if link_injections:
+        eprint(f"\nLink injections ({len(link_injections)}):")
+        for inj in link_injections:
+            eprint(f"  INJECTED: {inj}")
+    else:
+        eprint("\nNo link injections applied (no section_sources or no host paragraphs)")
+
     # IN-BODY LINKS ASSERTION: at least 3 <a> tags inside <p> or <li> prose tags
     import re as _re
-    prose_links = _re.findall(r'<(?:p|li)[^>]*>(?:(?!</(?:p|li)>).)*<a\s[^>]+href="[^"]*"[^>]*>', html, _re.DOTALL)
+    prose_links = _re.findall(r'<(?:p|li)[^>]*>(?:(?!</(?:p|li)>).)*<a\s[^>]*href="[^"]*"[^>]*>', html, _re.DOTALL)
     if len(prose_links) < 3:
         eprint(f"\nIN-BODY LINKS ASSERTION FAILED: found {len(prose_links)} in-body links (minimum 3)")
         eprint("Add contextual links to the directory page, listings page, and a related guide.")
