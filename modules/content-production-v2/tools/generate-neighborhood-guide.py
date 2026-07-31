@@ -392,7 +392,7 @@ def fix_school_contradictions(html, data):
     verified = data.get("verified", {})
     schools = verified.get("schools", {})
     feeder_high = schools.get("feeder_high", "")
-    if not feeder_high:
+    if not feeder_high or feeder_high.lower().startswith("varies"):
         return html, []
 
     import re as _re
@@ -423,7 +423,7 @@ def assert_school_consistency(html, data):
     verified = data.get("verified", {})
     schools = verified.get("schools", {})
     feeder_high = schools.get("feeder_high", "")
-    if not feeder_high:
+    if not feeder_high or feeder_high.lower().startswith("varies"):
         return []
 
     errors = []
