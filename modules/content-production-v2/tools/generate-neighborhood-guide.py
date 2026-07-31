@@ -535,6 +535,11 @@ Write 80-160 words of expert, practical prose about this topic. Rules:
 - If AUTHORITATIVE DATA is provided above, use those exact values. Do NOT substitute different school names, tax rates, or HOA figures.
 - If an INLINE EXTERNAL LINK instruction is provided, weave exactly one link into the prose using the provided <a> tag.
 
+NAMING RULE (mandatory, zero exceptions):
+- The U.S. Army post in Killeen, TX is "Fort Hood." Never write "Fort Cavazos."
+- The correct name in all contexts: "Fort Hood" (noun), "Fort Hood Main Gate" (landmark), "Fort Hood West Gate" (landmark).
+- If your training data says "Fort Cavazos," override it. The site uses "Fort Hood" exclusively.
+
 {f"Prior sections covered: {prior_summary}" if prior_summary else ""}
 {f"Brand voice: {brand_voice}" if brand_voice else ""}
 
@@ -559,6 +564,7 @@ Section prose summary: {prose_text[:200]}
 Write exactly 4 bullet points that summarize the key takeaways from this section.
 Each bullet: 8-20 words, starts with a concrete fact or number, no filler.
 No em dashes. No parentheses. Capitalize Veteran and Military.
+NAMING RULE: The Army post in Killeen is "Fort Hood." Never write "Fort Cavazos."
 
 Return ONLY a JSON array of 4 strings. Example:
 ["Price range sits between $350K and $600K for most resale inventory", "NEISD schools rated A by TEA across the feeder pattern", "Rush-hour commute to downtown averages 25 minutes via US-281", "HOA dues range from $50 to $200 monthly depending on subdivision"]
@@ -888,6 +894,12 @@ If you cannot confirm a number, use a reasonable estimate clearly labeled with "
 
 Use real school district names, real highway names, real grocery store names.
 Capitalize Veteran and Military. No em dashes. No parentheses in prose.
+
+NAMING RULE (mandatory, zero exceptions):
+- The U.S. Army post in Killeen, TX is "Fort Hood." Never write "Fort Cavazos."
+- The correct name in all contexts: "Fort Hood" (noun), "Fort Hood Main Gate" (landmark), "Fort Hood West Gate" (landmark).
+- If your training data says "Fort Cavazos," override it. The site uses "Fort Hood" exclusively.
+
 Return ONLY the JSON. No markdown fences. No preamble."""
 
     import hashlib
@@ -1146,11 +1158,12 @@ def main():
             html = html.replace(old_name, new_name)
             naming_fixes += count
     if naming_fixes:
-        eprint(f"\nNaming normalization: {naming_fixes} 'Cavazos' → 'Fort Hood' replacements")
+        eprint(f"\nNaming normalization (BACKSTOP): {naming_fixes} 'Cavazos' → 'Fort Hood' replacements — prompt-level directive failed to prevent LLM output")
     # Hard-fail if any 'Cavazos' remains (could be in a non-Fort context)
     remaining = html.lower().count("cavazos")
     if remaining:
-        eprint(f"WARNING: {remaining} residual 'Cavazos' occurrence(s) after normalization — review manually")
+        eprint(f"HARD FAIL: {remaining} residual 'Cavazos' occurrence(s) after normalization")
+        sys.exit(1)
 
     # POST-BUILD LINK INJECTION: inject section_sources links into prose
     html, link_injections = inject_section_links(html, data)
@@ -1169,6 +1182,23 @@ def main():
         eprint("Add contextual links to the directory page, listings page, and a related guide.")
         sys.exit(1)
     eprint(f"In-body links: PASS ({len(prose_links)} found)")
+
+    # STRUCTURAL FINGERPRINT: count H2s, sections, FAQs, div balance
+    h2_count = len(re.findall(r'<h2[\s>]', html))
+    sec_count = len(re.findall(r'<section[\s>]', html))
+    sec_close = len(re.findall(r'</section>', html))
+    faq_count = len(re.findall(r'<details[\s>]', html))
+    div_open = len(re.findall(r'<div[\s>]', html))
+    div_close = len(re.findall(r'</div>', html))
+    div_bal = div_open - div_close
+    sec_bal = sec_count - sec_close
+    eprint(f"Structural fingerprint: {h2_count} H2, {sec_count} sec, {faq_count} FAQ, sec-bal {sec_bal}, div-bal {div_bal}")
+    if sec_bal != 0:
+        eprint(f"HARD FAIL: section balance is {sec_bal} (unclosed or extra </section> tags)")
+        sys.exit(1)
+    if div_bal != 0:
+        eprint(f"HARD FAIL: div balance is {div_bal} (unclosed or extra </div> tags)")
+        sys.exit(1)
 
     # Write output
     article_path = out_dir / f"{post_id}-nh-guide.html"
