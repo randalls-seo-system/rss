@@ -50,26 +50,14 @@ def _slug(text):
     return re.sub(r"[^a-z0-9]+", "-", text.lower()).strip("-")
 
 def build_hero(nb, city, metro, data, cta_ref, listings_url):
-    """Hero: BLUF answer + dual CTA + 4 stat cards."""
+    """Hero: BLUF answer + dual CTA."""
     answer = data.get("hero_answer", f"{nb} is a neighborhood in {city}, TX.")
-    stats = data.get("hero_stats", [
-        {"val": "$400K–$600K", "label": "Price Range"},
-        {"val": "—", "label": "School District"},
-        {"val": "20 min", "label": "To Downtown"},
-        {"val": "8.0", "label": "Walk Score"},
-    ])
-
-    stat_html = "\n".join(
-        f'<div class="nh-qs"><div class="v">{s["val"]}</div><div class="l">{s["label"]}</div></div>'
-        for s in stats[:4]
-    )
 
     return f'''<div class="nh-hero">
 <div class="nh-wrap">
 <p class="nh-answer">{answer}</p>
 <a href="/lrg-blog/connect-with-lrg/?ref={cta_ref}" class="nh-cta">Talk to a {metro} Agent &rarr;</a>
 <a href="{listings_url}" class="nh-cta ghost">Search {city} Homes for Sale</a>
-<div class="nh-qstats">{stat_html}</div>
 </div>
 </div>'''
 
