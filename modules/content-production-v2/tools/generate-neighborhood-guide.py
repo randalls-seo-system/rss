@@ -904,10 +904,23 @@ Return ONLY the JSON. No markdown fences. No preamble."""
 
     try:
         populated = json.loads(raw)
-    except json.JSONDecodeError as e:
-        eprint(f"  WARNING: LLM data JSON parse failed: {e}")
-        eprint(f"  Raw response (first 300): {raw[:300]}")
-        return data  # Return unmodified — publish gate will catch placeholders
+    except json.JSONDecodeError:
+        # LLM may prefix JSON with preamble text — extract the outermost { ... }
+        brace_start = raw.find("{")
+        brace_end = raw.rfind("}")
+        if brace_start >= 0 and brace_end > brace_start:
+            extracted = raw[brace_start:brace_end + 1]
+            try:
+                populated = json.loads(extracted)
+                eprint("  Recovered JSON after stripping preamble text")
+            except json.JSONDecodeError as e2:
+                eprint(f"  WARNING: LLM data JSON parse failed even after preamble strip: {e2}")
+                eprint(f"  Raw response (first 300): {raw[:300]}")
+                return data
+        else:
+            eprint(f"  WARNING: LLM data JSON parse failed — no braces found")
+            eprint(f"  Raw response (first 300): {raw[:300]}")
+            return data  # Return unmodified — publish gate will catch placeholders
 
     # Merge populated data into the scaffold
     for key in ["hero_answer", "hero_stats", "fact_cards", "good_fit", "think_twice", "faqs"]:
@@ -1118,6 +1131,26 @@ def main():
         eprint("Re-run or fix the prose manually.")
         sys.exit(1)
     eprint("School consistency: PASS")
+
+    # NAMING NORMALIZATION: Fort Cavazos → Fort Hood (restored 2025)
+    naming_pairs = [
+        ("Fort Cavazos", "Fort Hood"),
+        ("fort cavazos", "Fort Hood"),
+        ("Ft. Cavazos", "Fort Hood"),
+        ("Ft Cavazos", "Fort Hood"),
+    ]
+    naming_fixes = 0
+    for old_name, new_name in naming_pairs:
+        count = html.count(old_name)
+        if count:
+            html = html.replace(old_name, new_name)
+            naming_fixes += count
+    if naming_fixes:
+        eprint(f"\nNaming normalization: {naming_fixes} 'Cavazos' → 'Fort Hood' replacements")
+    # Hard-fail if any 'Cavazos' remains (could be in a non-Fort context)
+    remaining = html.lower().count("cavazos")
+    if remaining:
+        eprint(f"WARNING: {remaining} residual 'Cavazos' occurrence(s) after normalization — review manually")
 
     # POST-BUILD LINK INJECTION: inject section_sources links into prose
     html, link_injections = inject_section_links(html, data)
