@@ -38,7 +38,7 @@ The 14-section skeleton, in order. Required vs optional explicitly marked.
 | 2 | Jump nav (5 anchor links, last is "FAQs") | REQUIRED | Exactly 5 links; last text == "FAQs"; first 4 anchors resolve to H2s |
 | 3 | ATF lede (50-60 word answer-first paragraph) | REQUIRED | Word count 40-110; first sentence has no `?` |
 | 4 | First CTA pill | REQUIRED | Link href matches `CTA_URL` from site config |
-| 5 | ATF quick-card grid (4 cards) | REQUIRED | Exactly 4 cards; each has H3 and 4 bullets |
+| 5 | ATF quick-card grid (4 cards) | REQUIRED | Exactly 4 cards; each has H3 and 3 plain prose bullets |
 | 6 | ATF FAQs (3 items) | REQUIRED | Exactly 3 items; answers 35-60 words; no inline links |
 | 7 | Tool embed | OPTIONAL | Skip in v0 |
 | 8 | Bottom Line Up Front (BLUF) | OPTIONAL | Word counts: lead 50-70, body 70-100, capstone 5 bullets |
@@ -150,17 +150,16 @@ This enforces the **jump-nav ↔ card-label ↔ H2-label triangle** that VALN ar
 This is the section the current RSS gets most wrong. Spec replaces hardcoded labels with **structure-derived labels.**
 
 ### 6.1 Cardinality
-Exactly 4 cards per article. Not 2 (current decision intent), not "2 if news else 4" (current validator). 4.
+Exactly 4 cards per article, each with exactly 3 bullets. Not 4 bullets, not 2. Three plain prose bullets per card.
 
 ### 6.2 Card structure
 ```html
 <article class="rl-quick-card">
   <h3>{Card title}</h3>
   <ul>
-    <li><strong>{Bullet label 1}:</strong> {Bullet content, 14-30 words}</li>
-    <li><strong>{Bullet label 2}:</strong> {Bullet content, 14-30 words}</li>
-    <li><strong>{Bullet label 3}:</strong> {Bullet content, 14-30 words}</li>
-    <li><strong>{Bullet label 4 — synthesis bullet}:</strong> {Synthesis content, often with concrete number, 18-35 words}</li>
+    <li>{Plain prose bullet, 14-30 words}</li>
+    <li>{Plain prose bullet, 14-30 words}</li>
+    <li>{Plain prose bullet, 14-30 words}</li>
   </ul>
 </article>
 ```
@@ -176,17 +175,15 @@ The 4 card titles are derived from one of two sources:
 
 **Rule 6.3.2:** Card titles do NOT use generic intent labels like "Best for" / "Key advantage" / "Watch out". These are bullet labels, not card titles. The current prompts confuse these levels.
 
-### 6.4 Bullet label rules
-- 6.4.1 Bullet labels describe the bullet's content, not the card's content. Examples: "Common exemptions:", "Alternative pay status counts:", "Retroactive refund path:", "Timing matters:".
-- 6.4.2 Bullet labels are 1-4 words, end in colon, formatted with `<strong>`.
-- 6.4.3 Bullet labels are unique within a card.
-- 6.4.4 The 4th bullet is a "synthesis" bullet — usually contains the concrete number, threshold, or consequence-rule that ties the card together. Often labeled "Bottom line:", "Break-even:", "Main takeaway:", "Worth noting:" — synthesis-flavored.
+### 6.4 Bullet rules
+- 6.4.1 Bullets are plain prose. NO run-in `<strong>` labels. No "Label:" prefix pattern. Each bullet is a complete sentence or statement that reads naturally without a bolded lead-in.
+- 6.4.2 Exactly 3 bullets per card. Not 4, not 2.
+- 6.4.3 Each bullet is 14-30 words.
+- 6.4.4 Concrete numbers preferred. "On a $300,000 purchase" > "On a typical purchase."
 
 ### 6.5 Bullet content rules
-- 6.5.1 Word count: bullets 1-3 are 14-30 words. Synthesis bullet is 18-35 words.
-- 6.5.2 No links inside bullets. (Links go in body H2 sections.)
-- 6.5.3 Concrete numbers preferred. "On a $300,000 purchase" > "On a typical purchase."
-- 6.5.4 No filler verbs ("dive into", "explore"). No emojis. No em dashes.
+- 6.5.1 No links inside bullets. (Links go in body H2 sections.)
+- 6.5.2 No filler verbs ("dive into", "explore"). No emojis. No em dashes.
 
 ### 6.6 Intent overlay reference
 The actual labels for cards in v0 come from these intent overlays. These are STARTING POINTS. The LLM derives the article-specific labels from these slots + the SERP gap analysis.
@@ -545,6 +542,7 @@ This is enforceable: the linking module maintains a sitewide list of "internal a
 - 11.4.4 Closing Bottom Line: 0 internal links.
 - 11.4.5 ATF lede: 0 internal links.
 - 11.4.6 Inside cards, inside ATF FAQs, inside BTF FAQs: 0 internal links.
+- 11.4.6b **ATF ZONE HARD RULE:** Zero internal links anywhere in the ATF zone — intro paragraph, qstats strip, quick-card grid, ATF FAQs. This applies to both pipeline-injected links AND manual cross-link injection. Manual link operations (SQL REPLACE, preg_replace, or any non-pipeline edit) MUST skip the ATF zone by starting link placement after the closing `</div>` of the `rl-quick-grid`. The pipeline linker enforces this via `_find_first_body_h2_offset`; manual edits have no such guard and MUST enforce it operationally.
 - 11.4.7 **Article-level target** (enforced by link injector, not by section builders):
   Under 1,000 body words: 3-6 internal links.
   1,000-1,800 body words: 5-10 internal links.
@@ -728,7 +726,7 @@ Replaces the current `validate-structure.py` checks. New validator runs all of t
 - 18.1.7 Jump nav text 1-4 matches (substring or full match) ATF card H3 text 1-4.
 - 18.1.8 ATF lede paragraph word count 40-110.
 - 18.1.9 First CTA pill present, href == `CTA_URL`.
-- 18.1.10 Exactly 4 ATF cards. Each has H3 + 4 bullets.
+- 18.1.10 Exactly 4 ATF cards. Each has H3 + max 3 plain prose bullets.
 - 18.1.11 Exactly 3 ATF FAQs. Each answer 35-60 words. No links inside answers.
 - 18.1.12 BLUF: if present, lead bold, body unboldsed, exactly 5 capstone bullets, all word counts in spec.
 - 18.1.13 Body H2 count: 6-15 (excluding BLUF/BTF FAQ/Bottom Line/Resources headings).
