@@ -525,6 +525,8 @@ COMMUTE REALISM: Use real intersections and bottlenecks from the SERP data. Do N
 
 BANNED PHRASES (auto-reject): "the numbers back it up," "the tradeoff is straightforward," "resident feedback trends positive," "the phrase [X] appears repeatedly," "the table below stacks," "as seen in the chart," "whether you're looking to," "nestled in the heart of," "resident feedback indicates," "reviews mention," "it's important to note," "when it comes to," "discover," "vibrant," "navigate the complexities," "robust," "leverage," "delve into"
 
+AMENITY RESTRAINT: Never assert specific physical amenities (playgrounds, splash pads, pool types, courts, gated access, trail surfaces, trail lengths, specific park features) unless that amenity is explicitly stated in the SERP RESEARCH CONTEXT or AUTHORITATIVE DATA above. If a business or landmark is mentioned, use its full canonical name as it appears in the source data. Omission is better than invention.
+
 ADDITIONAL RULES:
 - Lead with the key insight, not background
 - No em dashes, use commas or periods instead

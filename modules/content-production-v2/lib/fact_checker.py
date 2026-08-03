@@ -122,11 +122,25 @@ def extract_claims(html: str, neighborhood: str, city: str) -> list[Claim]:
     nb_lower = neighborhood.lower()
     city_lower = city.lower()
 
-    # Schools
+    # Schools — distinguish "serves this neighborhood" from comparison mentions
+    # Strip comparison table content to avoid flagging other neighborhoods' ISDs
+    comparison_text = ""
+    table_match = re.search(r'<table[^>]*>.*?</table>', html, re.DOTALL)
+    if table_match:
+        comparison_text = re.sub(r'<[^>]+>', ' ', table_match.group()).lower()
+
     for m in _SCHOOL_PATTERN.finditer(text):
         name = m.group(1)
         if name.lower() not in (nb_lower, city_lower):
-            _add(name, "school", "high", "district boundary tool / TEA")
+            # Check if this school/ISD appears ONLY in comparison table context
+            name_lower = name.lower()
+            in_comparison = (name_lower in comparison_text and
+                             name_lower not in neighborhood.lower() and
+                             text.lower().count(name_lower) <= comparison_text.count(name_lower) + 1)
+            if in_comparison:
+                _add(name, "school_comparison", "low", "comparison context — skip verification")
+            else:
+                _add(name, "school", "high", "district boundary tool / TEA")
 
     # Statutory references
     for m in _STATUTE_PATTERN.finditer(text):
@@ -134,9 +148,18 @@ def extract_claims(html: str, neighborhood: str, city: str) -> list[Claim]:
 
     # Year claims (opened, built, etc.)
     for m in _YEAR_CLAIM_PATTERN.finditer(text):
-        context_start = max(0, m.start() - 60)
+        context_start = max(0, m.start() - 80)
         context = text[context_start:m.end()]
-        _add(context.strip(), "year", "high", "official records / Wikipedia")
+        # Extract the entity name (proper noun sequence before the verb)
+        entity_match = re.search(
+            r'([A-Z][a-z]+(?:\s+[A-Z][a-z]+){1,4})\s+'
+            r'(?:opened|built|established|founded|constructed)',
+            context, re.IGNORECASE
+        )
+        entity_name = entity_match.group(1) if entity_match else ""
+        year = m.group(1)
+        claim_text = f"{entity_name} {'opened' if 'open' in context.lower() else 'founded'} {year}" if entity_name else context.strip()
+        _add(claim_text, "year", "high", "official records / Wikipedia")
 
     # ZIP codes
     for m in _ZIP_PATTERN.finditer(text):

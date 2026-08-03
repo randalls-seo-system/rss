@@ -172,6 +172,10 @@ Numbers in content fall into two categories. Treat them differently:
 
 When you are unsure whether a number is volatile or fixed, default to durable phrasing.
 
+## AMENITY RESTRAINT
+
+Never assert specific physical amenities (playgrounds, splash pads, pool types, courts, gated access, trail surfaces, trail lengths, specific park features) unless that amenity is explicitly stated in the SERP context, topic context, or verified data injected above. If a business or landmark is mentioned, use its full canonical name as it appears in the source data. Omission is better than invention. A park exists? Say it exists. It has "playgrounds, pavilions, and sports fields"? Only if the source data says so.
+
 ## Anti-patterns
 
 Do NOT produce any of the following:
