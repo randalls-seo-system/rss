@@ -950,12 +950,26 @@ def main():
     parser.add_argument("--output-dir", help="Output directory")
     parser.add_argument("--skip-deploy", action="store_true")
     parser.add_argument("--skip-llm", action="store_true", help="Use placeholder prose (for testing skeleton)")
+    parser.add_argument("--force-new", action="store_true",
+                        help="Proceed even if a guide already exists for this neighborhood (creates duplicate)")
     args = parser.parse_args()
 
     nb = args.neighborhood
     city = args.city
     metro = args.metro
     post_id = args.post_id
+
+    # ── DUPE GUARD (must run before any LLM calls or content generation) ──
+    from lib.dupe_guard import run_dupe_guard_neighborhood
+    existing_id = run_dupe_guard_neighborhood(
+        site_slug=args.site,
+        neighborhood=nb,
+        post_id=post_id,
+        force_new=args.force_new,
+    )
+    if existing_id is not None:
+        # Duplicate found, hard stop. run_dupe_guard_neighborhood already printed details.
+        sys.exit(1)
 
     # Config
     config = load_site_config(args.site)

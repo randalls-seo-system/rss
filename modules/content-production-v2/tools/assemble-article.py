@@ -83,7 +83,7 @@ from lib.tool_utils import (
 # ---------------------------------------------------------------------------
 
 PYTHON = sys.executable
-LLM_CALL_TIMEOUT = 300  # 5 minutes per LLM call
+LLM_CALL_TIMEOUT = 480  # 8 minutes per LLM call (raised from 300 for enriched community-guide hints)
 
 
 def load_site_structure(site_slug: str) -> dict:
@@ -101,6 +101,130 @@ def load_site_structure(site_slug: str) -> dict:
 # Mechanical tasks (H2 normalize, polish) use OpenAI to save Opus for content.
 MECHANICAL_PROVIDER = "openai"
 MECHANICAL_MODEL = "gpt-5.4-mini"
+
+
+def _build_research_context_summary(rc: dict) -> str:
+    """Build a text summary from research-context.json for universal LLM injection.
+
+    Accepts any JSON structure. Looks for common fields: summary, context,
+    sources, quotes, case_frame, key_facts. Falls back to serializing
+    the entire dict if no recognized fields found.
+    """
+    parts = []
+    if rc.get("summary"):
+        parts.append(rc["summary"])
+    if rc.get("context"):
+        parts.append(rc["context"])
+    if rc.get("case_frame"):
+        parts.append(rc["case_frame"])
+    if rc.get("key_facts"):
+        if isinstance(rc["key_facts"], list):
+            parts.append("\n".join(f"- {f}" for f in rc["key_facts"]))
+        else:
+            parts.append(str(rc["key_facts"]))
+    if rc.get("quotes"):
+        if isinstance(rc["quotes"], list):
+            for q in rc["quotes"]:
+                if isinstance(q, dict):
+                    parts.append(f'Quote: "{q.get("text", "")}" — {q.get("source", "")}')
+                else:
+                    parts.append(f'Quote: "{q}"')
+    if rc.get("sources"):
+        if isinstance(rc["sources"], list):
+            src_lines = ["Sources:"]
+            for s in rc["sources"]:
+                if isinstance(s, dict):
+                    src_lines.append(f"  - {s.get('outlet', '')} ({s.get('date', '')}): {s.get('url', '')}")
+                else:
+                    src_lines.append(f"  - {s}")
+            parts.append("\n".join(src_lines))
+    # Fallback: if no recognized fields, dump the whole dict
+    if not parts:
+        import json as _json_fb
+        parts.append(_json_fb.dumps(rc, indent=2, default=str))
+    return "\n\n".join(parts)
+
+
+def _build_community_atf_data(cd: dict, ratings: dict) -> tuple[str, str]:
+    """Build community-guide qstats strip + rating bars from JSON data only (no LLM).
+
+    Returns (qstats_html, rating_bars_html). Both are empty string if
+    ratings block is missing or incomplete.
+    """
+    from html import escape as _esc
+
+    # ── qstats strip: 4 stats from community data ──
+    builders = cd.get("builders", [])
+    all_prices = []
+    for b in builders:
+        all_prices.extend([b.get("price_low", 0), b.get("price_high", 0)])
+    price_lo = min(p for p in all_prices if p > 0) if all_prices else 0
+    price_hi = max(all_prices) if all_prices else 0
+    price_range = f"${price_lo // 1000:,}K–${price_hi // 1000:,}K" if price_lo else "—"
+
+    tax_rate = cd.get("tax", {}).get("base_rate", "—")
+    school_district = cd.get("schools", {}).get("district", "—")
+
+    commute_r = ratings.get("commute", {})
+    drive_min = commute_r.get("drive_minutes")
+    drive_dest = commute_r.get("destination", "")
+    commute_val = f"{int(drive_min)} min" if drive_min else "—"
+    commute_label = f"Drive to {drive_dest}" if drive_dest else "Commute"
+
+    # Source URLs for qstats
+    tax_src = cd.get("tax", {}).get("source_url", "")
+    school_src = cd.get("schools", {}).get("source_url", "")
+    builder_src = builders[0].get("source_url", "") if builders else ""
+    commute_src = commute_r.get("source_url", "")
+
+    stats = [
+        {"value": price_range, "label": "Price Range", "source_url": builder_src},
+        {"value": tax_rate, "label": "Property Tax Rate", "source_url": tax_src},
+        {"value": commute_val, "label": commute_label, "source_url": commute_src},
+        {"value": school_district, "label": "School District", "source_url": school_src},
+    ]
+
+    boxes = []
+    for s in stats:
+        boxes.append(
+            f'<div class="rl-qs">'
+            f'<div class="v">{_esc(s["value"])}</div>'
+            f'<div class="l">{_esc(s["label"])}</div>'
+            f'</div>'
+        )
+    qstats_html = '<div class="rl-qstats">\n' + "\n".join(boxes) + "\n</div>"
+
+    # ── rating bars: 4 scored bars from JSON (all labeled est.) ──
+    _RATING_LABELS = {
+        "walkability": "Walkability",
+        "dining_retail": "Dining & Retail",
+        "value": "Value",
+        "commute": "Commute",
+    }
+    _RATING_ORDER = ("walkability", "dining_retail", "value", "commute")
+
+    bars = []
+    for rkey in _RATING_ORDER:
+        r = ratings.get(rkey, {})
+        score = r.get("score")
+        if score is None:
+            continue  # assertion: no bar without JSON-sourced score
+        score = float(score)
+        pct = int(min(score / 10.0, 1.0) * 100)
+        label = _RATING_LABELS.get(rkey, rkey.replace("_", " ").title())
+        bars.append(
+            f'<div class="rl-rating-bar">'
+            f'<span class="rb-label">{_esc(label)}</span>'
+            f'<div class="rb-track"><div class="rb-fill" style="width:{pct}%"></div></div>'
+            f'<span class="rb-val">{score:.1f} <small>est.</small></span>'
+            f'</div>'
+        )
+
+    if not bars:
+        return qstats_html, ""
+
+    rating_bars_html = '<div class="rl-rating-bars">\n' + "\n".join(bars) + "\n</div>"
+    return qstats_html, rating_bars_html
 
 
 def _build_entity_disambiguation(cd: dict) -> str:
@@ -180,6 +304,28 @@ def _validate_community_data(data: dict) -> None:
                                 errors.append(f"worked_examples[{i}].derived[{j}] missing: {field}")
                 if "captured_date" not in ex or not ex["captured_date"]:
                     errors.append(f"worked_examples[{i}] missing required field: captured_date")
+
+    # ratings: optional, but if present all 4 scores + methodology required
+    ratings = data.get("ratings", {})
+    if ratings:
+        _REQUIRED_RATINGS = ("walkability", "dining_retail", "value", "commute")
+        for rkey in _REQUIRED_RATINGS:
+            r = ratings.get(rkey)
+            if not isinstance(r, dict):
+                errors.append(f"ratings.{rkey} must be a dict (got {type(r).__name__})")
+                continue
+            if "score" not in r or not isinstance(r["score"], (int, float)):
+                errors.append(f"ratings.{rkey} missing or non-numeric 'score'")
+            if not r.get("methodology"):
+                errors.append(f"ratings.{rkey} missing required field: methodology")
+            if not r.get("captured_date"):
+                errors.append(f"ratings.{rkey} missing required field: captured_date")
+            # commute requires destination + drive_minutes
+            if rkey == "commute":
+                if not r.get("destination"):
+                    errors.append(f"ratings.commute missing required field: destination")
+                if "drive_minutes" not in r or not isinstance(r.get("drive_minutes"), (int, float)):
+                    errors.append(f"ratings.commute missing or non-numeric 'drive_minutes'")
 
     if errors:
         raise RuntimeError(
@@ -369,6 +515,8 @@ class PipelineState:
 
     # Community data (community-guide intent)
     community_data: dict = field(default_factory=dict)
+    research_context: dict = field(default_factory=dict)
+    research_context_path: str | None = None
 
     # Phase B
     serp: object = None
@@ -383,6 +531,8 @@ class PipelineState:
 
     # Phase D
     atf_lede_html: str = ""
+    qstats_html: str = ""
+    rating_bars_html: str = ""
     card_htmls: list[str] = field(default_factory=list)
     atf_faqs_html: str = ""
 
@@ -535,6 +685,50 @@ def phase_a(state: PipelineState) -> None:
         # Schema validation
         _validate_community_data(state.community_data)
         eprint(f"  [A.6] Community data loaded and validated: {cd_file}")
+
+        # Step 7: Research context validation (community-guide — strict schema)
+        rc_path = state.research_context_path
+        if not rc_path:
+            raise RuntimeError(
+                "FATAL: --research-context is required for community-guide intent. "
+                "Provide a research-context.json file with location, amenities, and named entities."
+            )
+        rc_file = Path(rc_path)
+        if not rc_file.exists():
+            raise RuntimeError(f"FATAL: research-context.json not found: {rc_file}")
+        try:
+            state.research_context = json.loads(rc_file.read_text())
+        except json.JSONDecodeError as e:
+            raise RuntimeError(f"FATAL: research-context.json is invalid JSON: {e}")
+        # Minimal validation: location, amenities_status, and >=3 named entities
+        rc = state.research_context
+        rc_errors = []
+        if not rc.get("location"):
+            rc_errors.append("'location' block is missing or empty")
+        if not rc.get("amenities_status"):
+            rc_errors.append("'amenities_status' block is missing or empty")
+        entities = rc.get("named_entities", [])
+        if len(entities) < 3:
+            rc_errors.append(f"'named_entities' has {len(entities)} entries (minimum 3)")
+        if rc_errors:
+            raise RuntimeError(
+                f"FATAL: research-context.json validation failed ({len(rc_errors)} errors):\n"
+                + "\n".join(f"  - {e}" for e in rc_errors)
+            )
+        eprint(f"  [A.7] Research context loaded and validated: {rc_file} ({len(entities)} named entities)")
+
+    # Step 7b: Research context for non-community-guide intents (universal injection)
+    # When --research-context is provided for any intent, load it without
+    # community-guide-specific schema validation. Content reaches every builder.
+    if state.intent != "community-guide" and state.research_context_path:
+        rc_file = Path(state.research_context_path)
+        if not rc_file.exists():
+            raise RuntimeError(f"FATAL: --research-context file not found: {rc_file}")
+        try:
+            state.research_context = json.loads(rc_file.read_text())
+        except json.JSONDecodeError as e:
+            raise RuntimeError(f"FATAL: research-context.json is invalid JSON: {e}")
+        eprint(f"  [A.7b] Research context loaded (universal): {rc_file}")
 
     state.phases_completed.append("A")
 
@@ -951,6 +1145,22 @@ def _build_h2_inventory(state: PipelineState) -> list[dict]:
                 lines.append(f"  {p['name']}: ${p['price']:,}, {p['sqft']:,} sqft, {p['beds']} bed/{p['baths']} bath")
             plans_block = "\n".join(lines)
 
+        # Research context block (injected into all section hints)
+        research_block = ""
+        rc = state.research_context or {}
+        if rc:
+            rc_lines = ["RESEARCH CONTEXT (verified facts from live sources):"]
+            loc = rc.get("location", {})
+            if loc:
+                rc_lines.append(f"  Location: {loc.get('description', '')}")
+            amenities = rc.get("amenities_status", {})
+            if amenities:
+                rc_lines.append(f"  Amenities: {amenities.get('summary', '')}")
+            for ent in rc.get("named_entities", []):
+                if isinstance(ent, dict):
+                    rc_lines.append(f"  Entity: {ent.get('name', '')} — {ent.get('context', '')}")
+            research_block = "\n".join(rc_lines)
+
         # Map roles to their data enrichment
         _role_data = {
             "builder_comparison": (plans_block if plans_block else builder_data_block),
@@ -964,6 +1174,19 @@ def _build_h2_inventory(state: PipelineState) -> list[dict]:
             "community_verdict": builder_data_block + "\n" + tax_data_block,
         }
 
+        # Reader-facing H2 title patterns per role
+        _cn = cd.get("community_name", "")
+        _city = cd.get("city", "San Antonio")
+        _role_titles = {
+            "community_overview": f"Living in {_cn}",
+            "cost_reality": f"What It Really Costs to Own in {_cn}",
+            "data_strip": f"{_city} Market Snapshot",
+            "schools_commute": f"Schools and Commute from {_cn}",
+            "military_buyer_fit": f"Is {_cn} a Good Fit for Military Buyers?",
+            "verify_checklist": f"What to Verify Before You Sign at {_cn}",
+            "community_verdict": f"The Verdict on {_cn}",
+        }
+
         for tmpl in template_sections:
             role = tmpl.get("role", "body")
             hint = tmpl.get("hint", "")
@@ -971,16 +1194,20 @@ def _build_h2_inventory(state: PipelineState) -> list[dict]:
             data_enrichment = _role_data.get(role, "")
             if data_enrichment:
                 hint = hint + "\n\n" + data_enrichment
-            seed_title = role.replace("_", " ").title()
+            # Inject research context into all sections
+            if research_block:
+                hint = hint + "\n\n" + research_block
+            # Reader-facing H2 title (never a role name)
+            seed_title = _role_titles.get(role, role.replace("_", " ").title())
             # Builder comparison H2: include builder names for SERP relevance
             if role == "builder_comparison" and cd.get("builders"):
                 b_names_short = [b["name"] for b in cd["builders"]]
                 if len(b_names_short) == 1:
-                    seed_title = f"What {b_names_short[0]} Builds at {cd.get('community_name', '')}"
+                    seed_title = f"What {b_names_short[0]} Builds at {_cn}"
                 elif len(b_names_short) == 2:
-                    seed_title = f"What {b_names_short[0]} and {b_names_short[1]} Build at {cd.get('community_name', '')}"
+                    seed_title = f"What {b_names_short[0]} and {b_names_short[1]} Build at {_cn}"
                 else:
-                    seed_title = f"What {b_names_short[0]}, {b_names_short[1]}, and Others Build at {cd.get('community_name', '')}"
+                    seed_title = f"What {b_names_short[0]}, {b_names_short[1]}, and Others Build at {_cn}"
             h2s.append({
                 "title": seed_title,
                 "role": role,
@@ -1005,6 +1232,25 @@ def _build_h2_inventory(state: PipelineState) -> list[dict]:
                     h2["callout_key"] = "reality_check"
                     h2["callout_label"] = "Reality Check"
         eprint(f"  [C.10] Community-guide: seeded {len(h2s)} H2s from structural template (data-enriched)")
+
+        # H2 role-name leak assertion: no H2 title may match a structural template role name
+        _all_roles = {s.get("role", "") for s in template_sections}
+        _role_name_variants = set()
+        for r in _all_roles:
+            _role_name_variants.add(r.replace("_", " ").lower())
+            _role_name_variants.add(r.replace("_", " ").title().lower())
+        leaked = []
+        for h2 in h2s:
+            title_lower = h2["title"].strip().lower()
+            if title_lower in _role_name_variants:
+                leaked.append(f"H2 '{h2['title']}' matches role name '{h2.get('template_role', '')}'")
+        if leaked:
+            raise RuntimeError(
+                f"H2 ROLE-NAME LEAK: {len(leaked)} H2 title(s) are internal role names, not reader-facing:\n"
+                + "\n".join(f"  - {l}" for l in leaked)
+                + "\nFix _role_titles map in Phase C community-guide H2 seeding."
+            )
+
         return h2s
 
     # Start from SERP gap analysis: high-coverage subtopics
@@ -1392,9 +1638,28 @@ def phase_d(state: PipelineState) -> None:
     client = LLMClient(provider=state.provider, model=state.model)
     serp_json = str(state.serp_json_path) if state.serp_json_path else ""
 
+    # Pre-write topic-context file for card/FAQ builders when research_context
+    # is present (file is rewritten in Phase E with full SERP enrichment, but
+    # cards/FAQs need it NOW in Phase D).
+    context_path = state.output_dir / f"{state.post_id}-topic-context.json"
+    if state.research_context and not context_path.exists():
+        rc_summary = _build_research_context_summary(state.research_context)
+        context_path.write_text(json.dumps({"context": rc_summary}))
+        eprint(f"  [D.12b] Pre-wrote topic-context for card/FAQ builders ({len(rc_summary)} chars)")
+
     # Step 13: ATF lede
     eprint("  [D.13] Building ATF lede")
     state.atf_lede_html = _build_atf_lede(state, client)
+
+    # Step 13b: Community-guide qstats strip + rating bars (no LLM — pure data)
+    if state.intent == "community-guide" and state.community_data:
+        cd = state.community_data
+        ratings = cd.get("ratings", {})
+        if ratings:
+            state.qstats_html, state.rating_bars_html = _build_community_atf_data(cd, ratings)
+            eprint(f"  [D.13b] Community qstats + rating bars built from JSON")
+        else:
+            eprint("  [D.13b] No ratings in community-data — qstats/bars skipped")
 
     # Step 14: Build 4 ATF cards (sequential, with synthesis diversity)
     if not ss.get("emit_atf_cards", True):
@@ -1416,6 +1681,8 @@ def phase_d(state: PipelineState) -> None:
                 "--serp-json", serp_json,
                 "--output", str(output_path),
             ]
+            if context_path.exists():
+                card_args += ["--topic-context", str(context_path)]
             if prior_cards_synthesis:
                 card_args += ["--prior-cards-synthesis", json.dumps(prior_cards_synthesis)]
             try:
@@ -1442,14 +1709,17 @@ def phase_d(state: PipelineState) -> None:
         eprint("  [D.15] Building ATF FAQs")
         faqs_tool = TOOLS_DIR / "build-faqs.py"
         atf_faq_path = state.output_dir / f"{state.post_id}-atf-faqs.html"
-        try:
-            _run_tool(str(faqs_tool), [
+        faq_args = [
                 "--site", state.site_slug,
                 "--target-keyword", state.target_keyword,
                 "--mode", "atf",
                 "--serp-json", serp_json,
                 "--output", str(atf_faq_path),
-            ], "D.15")
+            ]
+        if context_path.exists():
+            faq_args += ["--topic-context", str(context_path)]
+        try:
+            _run_tool(str(faqs_tool), faq_args, "D.15")
             state.atf_faqs_html = atf_faq_path.read_text()
             state.llm_calls += 3
         except RuntimeError as e:
@@ -1473,6 +1743,12 @@ def _build_atf_lede(state: PipelineState, client: LLMClient) -> str:
     entity_preamble = ""
     if state.intent == "community-guide" and state.community_data:
         entity_preamble = _build_entity_disambiguation(state.community_data) + "\n\n"
+
+    # Universal research context injection into lede prompt
+    if state.research_context:
+        rc_summary = _build_research_context_summary(state.research_context)
+        if rc_summary:
+            entity_preamble = rc_summary + "\n\n" + entity_preamble
 
     prompt = render_prompt(template, {
         "TARGET_KEYWORD": state.target_keyword,
@@ -1519,7 +1795,7 @@ def phase_e(state: PipelineState) -> None:
     bluf_tool = TOOLS_DIR / "build-bluf.py"
     bluf_path = state.output_dir / f"{state.post_id}-bluf.html"
 
-    # Write topic context to temp file for build-bluf
+    # Write topic context to temp file for build-bluf (and reused by cards/FAQs)
     context_path = state.output_dir / f"{state.post_id}-topic-context.json"
     topic_ctx = build_topic_context(state.serp, state.target_keyword) if state.serp else ""
     # Community-guide: inject entity disambiguation into topic context
@@ -1540,6 +1816,12 @@ def phase_e(state: PipelineState) -> None:
             if tax.get("mud_name") is None:
                 cd_summary += " No MUD or PID applies."
         topic_ctx = cd_summary + (topic_ctx or "")
+    # Universal research-context injection: prepend research summary
+    # to topic context so BLUF, cards, FAQs, and lede all receive it.
+    if state.research_context:
+        rc_summary = _build_research_context_summary(state.research_context)
+        if rc_summary:
+            topic_ctx = rc_summary + "\n\n" + (topic_ctx or "")
     context_path.write_text(json.dumps({"context": topic_ctx}))
 
     serp_json = str(state.serp_json_path) if state.serp_json_path else "/dev/null"
@@ -1597,8 +1879,14 @@ def phase_f(state: PipelineState) -> None:
             args_list += ["--callout-key", h2["callout_key"]]
         if h2.get("callout_label"):
             args_list += ["--callout-label", h2["callout_label"]]
-        if h2.get("template_hint"):
-            args_list += ["--template-hint", h2["template_hint"]]
+        # Inject research context into template_hint for body sections
+        section_hint = h2.get("template_hint", "")
+        if state.research_context and state.intent != "community-guide":
+            rc_block = _build_research_context_summary(state.research_context)
+            if rc_block:
+                section_hint = (section_hint + "\n\n" + rc_block) if section_hint else rc_block
+        if section_hint:
+            args_list += ["--template-hint", section_hint]
         if h2.get("h2_format"):
             args_list += ["--h2-format", h2["h2_format"]]
         if prior_sections_summary:
@@ -1684,15 +1972,19 @@ def phase_g(state: PipelineState) -> None:
     ]
     exclude_path.write_text(json.dumps(atf_questions))
 
-    try:
-        _run_tool(str(faqs_tool), [
+    btf_faq_args = [
             "--site", state.site_slug,
             "--target-keyword", state.target_keyword,
             "--mode", "btf",
             "--serp-json", serp_json,
             "--exclude-questions", str(exclude_path),
             "--output", str(btf_path),
-        ], "G.21")
+        ]
+    context_path = state.output_dir / f"{state.post_id}-topic-context.json"
+    if context_path.exists():
+        btf_faq_args += ["--topic-context", str(context_path)]
+    try:
+        _run_tool(str(faqs_tool), btf_faq_args, "G.21")
         state.btf_faqs_html = btf_path.read_text()
         state.llm_calls += 1
     except RuntimeError as e:
@@ -1828,6 +2120,8 @@ def phase_h(state: PipelineState) -> None:
         state.header_html,
         state.jump_nav_html,
         state.atf_lede_html,
+        state.qstats_html,
+        state.rating_bars_html,
         "\n".join(state.card_htmls),
         state.atf_faqs_html,
     ]
@@ -2003,6 +2297,95 @@ def phase_h(state: PipelineState) -> None:
             f"See {fail_path} for details. Pipeline will NOT deploy."
         )
     eprint("  [H.28] Brand rules: PASS (0 violations)")
+
+    # Step 28b: wrong_geo output assertion (community-guide only, hard fail)
+    if state.intent == "community-guide" and state.community_data:
+        wrong_geo = state.community_data.get("wrong_geo", [])
+        if wrong_geo:
+            eprint("  [H.28b] wrong_geo output check")
+            from bs4 import BeautifulSoup as _BS
+            text = _BS(state.assembled_html, "html.parser").get_text(" ", strip=True).lower()
+            violations = []
+            for term in wrong_geo:
+                if term.lower() in text:
+                    violations.append(term)
+            if violations:
+                fail_path = state.output_dir / f"{state.post_id}-wrong-geo-violations.log"
+                lines = [
+                    f"WRONG_GEO ASSERTION FAILED — {state.site_slug} post {state.post_id}",
+                    f"Target: {state.target_keyword}",
+                    f"Violations ({len(violations)}):",
+                ]
+                for v in violations:
+                    lines.append(f"  - '{v}' found in output (listed in wrong_geo)")
+                fail_path.write_text("\n".join(lines))
+                eprint(f"  [H.28b] FAILED: {len(violations)} wrong_geo term(s) in output → {fail_path.name}")
+                for v in violations:
+                    eprint(f"         '{v}'")
+                raise RuntimeError(
+                    f"wrong_geo assertion failed: {len(violations)} prohibited geographic term(s) "
+                    f"found in output. See {fail_path}."
+                )
+            eprint(f"  [H.28b] wrong_geo: PASS (checked {len(wrong_geo)} terms, 0 in output)")
+        else:
+            eprint("  [H.28b] wrong_geo: SKIP (no wrong_geo list in community data)")
+
+    # Step 28c: Named-entity flag pass (soft, community-guide only)
+    if state.intent == "community-guide" and state.community_data:
+        eprint("  [H.28c] Named-entity flag pass")
+        import re as _ner
+        # Collect known entities from community-data + research-context
+        known_entities = set()
+        cd = state.community_data
+        for b in cd.get("builders", []):
+            known_entities.add(b["name"].lower())
+        for field in ["community_name", "city", "county", "zip", "address"]:
+            v = cd.get(field, "")
+            if v:
+                known_entities.add(str(v).lower())
+        schools = cd.get("schools", {})
+        for field in ["district", "elementary", "middle", "high"]:
+            v = schools.get(field, "")
+            if v:
+                known_entities.add(v.lower())
+        rc = state.research_context or {}
+        for ent in rc.get("named_entities", []):
+            if isinstance(ent, dict):
+                known_entities.add(ent.get("name", "").lower())
+            elif isinstance(ent, str):
+                known_entities.add(ent.lower())
+        for src in rc.get("sources", []):
+            if isinstance(src, dict) and src.get("title"):
+                known_entities.add(src["title"].lower())
+        # Extract proper nouns from prose (title-cased multi-word sequences)
+        text = _BS(state.assembled_html, "html.parser").get_text(" ", strip=True)
+        # Match sequences of 2+ title-cased words (proper nouns)
+        proper_nouns = set()
+        for m in _ner.finditer(r'\b([A-Z][a-z]+(?:\s+[A-Z][a-z]+)+)\b', text):
+            pn = m.group(1)
+            # Skip common patterns
+            if pn.lower() in {"the bottom", "bottom line", "resources used", "frequently asked"}:
+                continue
+            proper_nouns.add(pn)
+        # Flag proper nouns not in known entities
+        unknown_pn = []
+        for pn in sorted(proper_nouns):
+            if not any(pn.lower() in ke or ke in pn.lower() for ke in known_entities):
+                unknown_pn.append(pn)
+        if unknown_pn:
+            flag_path = state.output_dir / f"{state.post_id}-entity-flags.txt"
+            lines = [
+                f"NAMED-ENTITY FLAGS (soft) — {state.site_slug} post {state.post_id}",
+                f"Target: {state.target_keyword}",
+                f"Known entities: {len(known_entities)}",
+                f"Unknown proper nouns ({len(unknown_pn)}):",
+            ]
+            for pn in unknown_pn:
+                lines.append(f"  - {pn}")
+            flag_path.write_text("\n".join(lines))
+            eprint(f"  [H.28c] Named-entity flags: {len(unknown_pn)} unknown proper noun(s) → {flag_path.name}")
+        else:
+            eprint(f"  [H.28c] Named-entity flags: clean ({len(proper_nouns)} proper nouns, all known)")
 
     state.phases_completed.append("H")
 
@@ -2311,6 +2694,16 @@ def _write_manifest(state: PipelineState) -> dict:
         "phases_completed": state.phases_completed,
     }
 
+    # Community-guide: include research_context metadata in manifest
+    if state.intent == "community-guide" and state.research_context:
+        rc = state.research_context
+        manifest["research_context"] = {
+            "file_path": state.research_context_path or "",
+            "captured_sources_count": len(rc.get("sources", [])),
+            "named_entities_count": len(rc.get("named_entities", [])),
+            "generated_date": rc.get("generated_date", ""),
+        }
+
     # Community-guide: include volatile_data from community-data.json
     if state.intent == "community-guide" and state.community_data:
         volatile = []
@@ -2428,6 +2821,7 @@ def main():
     parser.add_argument("--accept-generic", action="store_true", help="Override generic-template H2 safety check (not recommended)")
     parser.add_argument("--skip-featured-image", action="store_true", help="Skip GPT-generated branded featured image (Phase J)")
     parser.add_argument("--community-data", help="Path to community-data.json (required for community-guide intent)")
+    parser.add_argument("--research-context", help="Path to research-context.json (required for community-guide intent)")
     args = parser.parse_args()
 
     # P1: Single-agent lockfile — abort if another instance is running
@@ -2444,6 +2838,7 @@ def main():
     state.accept_generic = args.accept_generic
     state.h2_override_path = args.h2_override
     state.community_data_path = getattr(args, "community_data", None)
+    state.research_context_path = getattr(args, "research_context", None)
     state.start_time = time.time()
 
     # Output directory
@@ -2452,6 +2847,15 @@ def main():
     else:
         state.output_dir = Path.home() / f"{args.site}-rewrite" / "articles-v2"
     state.output_dir.mkdir(parents=True, exist_ok=True)
+
+    # ── DUPE GUARD (slug collision + keyword similarity check) ──
+    from lib.dupe_guard import run_dupe_guard_article
+    run_dupe_guard_article(
+        site_slug=state.site_slug,
+        target_keyword=state.target_keyword,
+        post_id=state.post_id,
+        force=args.force,
+    )
 
     # Idempotency check
     article_path = state.output_dir / f"{state.post_id}-article.html"
