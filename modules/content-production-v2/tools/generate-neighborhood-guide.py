@@ -1202,6 +1202,19 @@ def main():
         eprint(f"HARD FAIL: div balance is {div_bal} (unclosed or extra </div> tags)")
         sys.exit(1)
 
+    # ── CONTENT QUALITY GATE (must pass before write/deploy) ──
+    from lib.content_quality_gate import run_content_quality_gate
+    quality_failures = run_content_quality_gate(html, nb, city)
+    if quality_failures:
+        eprint(f"\nCONTENT QUALITY GATE FAILED — {len(quality_failures)} check(s):")
+        for fail in quality_failures:
+            eprint(f"  BLOCKED: {fail}")
+        eprint(f"\nThe generated content for '{nb}' did not pass quality checks.")
+        eprint("Fix the content generation or data inputs, then re-run.")
+        eprint("This gate prevents publishing boilerplate stubs.")
+        sys.exit(1)
+    eprint("Content quality gate: PASS")
+
     # Write output
     article_path = out_dir / f"{post_id}-nh-guide.html"
     article_path.write_text(html)
