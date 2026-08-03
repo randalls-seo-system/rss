@@ -146,6 +146,32 @@ Use prose. A table is OPTIONAL if the content benefits from one; otherwise just 
 - If {{STRUCTURAL_ELEMENT_PREFERENCE}} is "callout", use {{CALLOUT_KEY}} for the CSS class modifier and {{CALLOUT_LABEL}} for the visible heading text.
 - **Cross-section continuity:** If PRIOR_SECTIONS_SUMMARY is non-empty, do NOT re-state facts already covered. Pick up where prior sections left off.
 
+## NUMBER PRECISION — VOLATILE vs FIXED
+
+Numbers in content fall into two categories. Treat them differently:
+
+**VOLATILE numbers** change over time and go stale within months. Use DURABLE PHRASING — ranges, qualitative language, or "as of [date]" framing. Do NOT hard-code a specific figure.
+- Market prices → "homes generally range from the $400s to $600s" NOT "$485,000 median"
+- Days on market → "homes here tend to sell within a few weeks" NOT "12 days on market"
+- School rating scores → "consistently well-rated in the district" NOT "8/10 on GreatSchools"
+- Inventory counts → "active inventory stays moderate" NOT "91 homes for sale"
+- Population estimates → "a growing community" NOT "population 7,391"
+- Appreciation percentages → "has appreciated steadily" NOT "4.2% annual appreciation"
+
+**FIXED AUTHORITATIVE facts** are defined by statute, regulation, or institutional authority. Keep these EXACT — do NOT soften them to ranges or vague phrasing. Precision is the point.
+- Tax exemption amounts and rules → "100% total property tax exemption for 100% disabled Veterans" (exact, verified)
+- Conforming loan limits → "$766,550 for a single-family home in 2026" (exact, from FHFA)
+- Statutory references → "Texas Property Code §5.008" (exact)
+- Program eligibility figures → "3.5% minimum down payment for FHA" (exact, from HUD)
+- Tax rates set by jurisdiction → "Bexar County base rate of $0.2763 per $100" (exact, from county)
+- HOA fees → state the specific amount if sourced from the HOA
+- School attendance zones → name the specific school and district (verified from district boundary tool)
+- Specific deadlines → "option period typically runs 7-10 days" (standard practice, stated as range)
+
+**The rule is NOT "numbers bad / ranges good."** It is: volatile market stats → durable ranges; fixed authoritative facts → exact and verified. A legal exemption amount that is softened to a range is WRONG. A median home price that is hard-coded will go stale in months.
+
+When you are unsure whether a number is volatile or fixed, default to durable phrasing.
+
 ## Anti-patterns
 
 Do NOT produce any of the following:
