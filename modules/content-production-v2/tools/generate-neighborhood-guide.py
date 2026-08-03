@@ -512,13 +512,24 @@ Context: {section_context}
 {inline_link_instruction}
 
 Write 80-160 words of expert, practical prose about this topic. Rules:
-- Write like a local real estate agent who knows the area
+
+VOICE: Write as a top-producing local broker — honest, unvarnished, balances pros and cons candidly. HOA restrictions, tax reality, car-dependency alongside schools and terrain. Never promotional or boosterish.
+
+NAME DENSITY (mandatory): Use the full neighborhood name "{nb}" at most 1-2 times per 200 words. NEVER in consecutive sentences. Vary with: "the neighborhood," "the community," "the corridor," "this section of {city}," specific subdivision names from the SERP data (e.g. Sonterra, The Fairways), or "here."
+
+LOCAL SPECIFICITY: Use specific proper nouns over generic placeholders. "H-E-B Plus at Evans Rd" not "grocery stores." "Lopez Middle School" not "top schools." BUT only use specifics the SERP RESEARCH CONTEXT above actually provided. Do NOT fabricate business names, school feeders, street names, or landmarks. If the research did not surface a real named anchor, use a general description instead. Specific-but-wrong is worse than generic.
+
+VOLATILE vs FIXED NUMBERS: Market prices, DOM, school rating scores, inventory counts, appreciation percentages are VOLATILE — use durable ranges ("homes generally range from the $400s to $600s") not hard-coded figures ("$485,000 median"). Tax rates, HOA fees, loan limits, statutory references are FIXED — keep exact.
+
+COMMUTE REALISM: Use real intersections and bottlenecks from the SERP data. Do NOT invent a "newly completed flyover" or specific bottleneck not in the source data.
+
+BANNED PHRASES (auto-reject): "the numbers back it up," "the tradeoff is straightforward," "resident feedback trends positive," "the phrase [X] appears repeatedly," "the table below stacks," "as seen in the chart," "whether you're looking to," "nestled in the heart of," "resident feedback indicates," "reviews mention," "it's important to note," "when it comes to," "discover," "vibrant," "navigate the complexities," "robust," "leverage," "delve into"
+
+ADDITIONAL RULES:
 - Lead with the key insight, not background
-- Include specific names, numbers, and local details
 - No em dashes, use commas or periods instead
 - No parentheses in body prose, restructure or use commas
 - Capitalize Veteran and Military
-- No filler: "it's important to note", "when it comes to", "discover", "vibrant"
 - Short paragraphs, 2-3 sentences max
 - If AUTHORITATIVE DATA is provided above, use those exact values. Do NOT substitute different school names, tax rates, or HOA figures.
 - If an INLINE EXTERNAL LINK instruction is provided, weave exactly one link into the prose using the provided <a> tag.
@@ -533,8 +544,8 @@ NAMING RULE (mandatory, zero exceptions):
 
 Return ONLY the prose HTML using <p> tags (and any inline <a> links if instructed). No headings, no wrapper divs."""
 
-    h = hashlib.md5(f"{nb}|{h2_title}|v3|{section_context[:80]}|{verified_facts[:40]}".encode()).hexdigest()[:12]
-    cache_key = f"nh-guide-v3|{nb}|{h2_title}|{h}"
+    h = hashlib.md5(f"{nb}|{h2_title}|v4|{section_context[:80]}|{verified_facts[:40]}".encode()).hexdigest()[:12]
+    cache_key = f"nh-guide-v4|{nb}|{h2_title}|{h}"
     response = client.call(prompt, cache_key=cache_key)
     return extract_html(response.text)
 
@@ -1214,6 +1225,16 @@ def main():
         eprint("This gate prevents publishing boilerplate stubs.")
         sys.exit(1)
     eprint("Content quality gate: PASS")
+
+    # ── FACT-CHECKER (extract claims, write verification checklist) ──
+    from lib.fact_checker import run_fact_check, format_fact_check_report
+    fc_report = run_fact_check(html, nb, city)
+    fc_path = out_dir / f"{post_id}-fact-check.txt"
+    fc_path.write_text(format_fact_check_report(fc_report))
+    eprint(f"Fact-check report: {fc_path} ({fc_report.flagged_for_human} claims to verify)")
+    if fc_report.flagged_for_human > 0:
+        eprint(f"  ⚠ Review {fc_path} before publishing — {fc_report.flagged_for_human} "
+               f"high-stakes claims need verification against authoritative sources.")
 
     # Write output
     article_path = out_dir / f"{post_id}-nh-guide.html"

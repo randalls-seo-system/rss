@@ -2274,6 +2274,24 @@ def phase_h(state: PipelineState) -> None:
     else:
         eprint("  [H.27] Claims check: clean (no operational claims detected)")
 
+    # Step 27b: Fact-checker — extract and categorize checkable claims
+    try:
+        from lib.fact_checker import run_fact_check, format_fact_check_report
+        fc_report = run_fact_check(
+            state.assembled_html, state.target_keyword, state.site_slug
+        )
+        fc_path = state.output_dir / f"{state.post_id}-fact-check.txt"
+        fc_path.write_text(format_fact_check_report(fc_report))
+        if fc_report.flagged_for_human > 0:
+            eprint(f"  [H.27b] Fact-check: {fc_report.flagged_for_human} claims to verify → {fc_path.name}")
+        else:
+            eprint(f"  [H.27b] Fact-check: no high-stakes claims found")
+    except Exception as e:
+        eprint(f"  [H.27b] *** FACT-CHECK FAILED (non-fatal but visible) ***")
+        eprint(f"  [H.27b] Error: {e}")
+        eprint(f"  [H.27b] The fact-check report was NOT generated for this article.")
+        eprint(f"  [H.27b] Claims will NOT be flagged for human review. Investigate.")
+
     # Step 28: Brand rules validation (forbidden terms + price policy)
     eprint("  [H.28] Brand rules validation")
     brand_violations = validate_brand_rules(state.assembled_html, state.config)
