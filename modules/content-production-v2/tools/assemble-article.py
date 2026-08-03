@@ -967,6 +967,54 @@ def phase_c(state: PipelineState) -> None:
             )
         eprint(f"  [C.10] WARNING: {generic_count} generic-template H2s detected, --accept-generic overriding")
 
+    # Confabulation guard: filter out heritage/history/culture H2s when
+    # these topics have thin SERP support (< 2 results mentioning the topic).
+    # The LLM amplifies thin SERP mentions into fabricated narrative sections.
+    _CONFAB_RISK_MARKERS = [
+        "heritage", "history", "historical", "tradition", "founding",
+        "settlers", "cultural roots", "origin story", "established in",
+    ]
+    if state.serp and hasattr(state.serp, 'top_results'):
+        serp_text = " ".join(
+            (getattr(r, "title", "") + " " + getattr(r, "snippet", "")).lower()
+            for r in state.serp.top_results[:10]
+        )
+    else:
+        serp_text = ""
+
+    filtered_h2s = []
+    for h in h2s:
+        h_lower = h["title"].lower()
+        is_confab_risk = any(m in h_lower for m in _CONFAB_RISK_MARKERS)
+        if is_confab_risk:
+            # Strict check: a heritage/history H2 is only justified if a SERP
+            # result's TITLE (not just snippet) specifically addresses this topic
+            # for THIS place. A passing mention in a snippet is thin support that
+            # the LLM will amplify into fabricated narrative.
+            title_support = 0
+            if state.serp and hasattr(state.serp, 'top_results'):
+                kw_core = re.sub(r'\b(?:neighborhood|tx|texas|best|neighborhoods|guide)\b', '',
+                                 state.target_keyword.lower()).strip()
+                for r in state.serp.top_results[:10]:
+                    r_title = getattr(r, "title", "").lower()
+                    if (any(m in r_title for m in _CONFAB_RISK_MARKERS) and
+                        any(t in r_title for t in kw_core.split() if len(t) > 3)):
+                        title_support += 1
+
+            if title_support < 1:
+                eprint(f"  [C.10c] DROPPED confab-risk H2: '{h['title']}' "
+                       f"(0 SERP titles specifically about this heritage topic)")
+                continue
+            else:
+                eprint(f"  [C.10c] KEPT heritage H2: '{h['title']}' "
+                       f"({title_support} SERP title(s) specifically address it)")
+        filtered_h2s.append(h)
+
+    if len(filtered_h2s) < len(h2s):
+        eprint(f"  [C.10c] Confabulation guard dropped {len(h2s) - len(filtered_h2s)} H2(s)")
+        state.h2_inventory = filtered_h2s
+        h2s = filtered_h2s
+
     # Step 11: Build header prelude (deterministic)
     ss = state.site_structure
     if ss.get("emit_hero_block", True):
@@ -1722,6 +1770,31 @@ def phase_d(state: PipelineState) -> None:
             _run_tool(str(faqs_tool), faq_args, "D.15")
             state.atf_faqs_html = atf_faq_path.read_text()
             state.llm_calls += 3
+
+            # ATF FAQ topic-drift filter — same logic as BTF filter
+            kw_lower = state.target_keyword.lower()
+            kw_tokens = set(re.sub(r'[^a-z0-9\s]', '', kw_lower).split()) - {
+                'neighborhood', 'tx', 'texas', 'best', 'neighborhoods', 'guide', 'in', 'the',
+            }
+            if kw_tokens:
+                atf_faq_soup = BeautifulSoup(state.atf_faqs_html, "html.parser")
+                atf_details = atf_faq_soup.find_all("details")
+                kept_atf = []
+                for d in atf_details:
+                    summary = d.find("summary")
+                    if summary:
+                        q_text = summary.get_text(strip=True).lower()
+                        has_topic = any(t in q_text for t in kw_tokens if len(t) > 3)
+                        if has_topic:
+                            kept_atf.append(d)
+                        else:
+                            eprint(f"  [D.15b] DROPPED generic ATF FAQ: {summary.get_text(strip=True)[:60]}")
+                    else:
+                        kept_atf.append(d)
+                if len(kept_atf) < len(atf_details):
+                    state.atf_faqs_html = "\n".join(str(d) for d in kept_atf)
+                    atf_faq_path.write_text(state.atf_faqs_html)
+
         except RuntimeError as e:
             raise RuntimeError(f"Phase D step 15 (ATF FAQs) failed.\nReason: {e}")
 
@@ -1987,6 +2060,38 @@ def phase_g(state: PipelineState) -> None:
         _run_tool(str(faqs_tool), btf_faq_args, "G.21")
         state.btf_faqs_html = btf_path.read_text()
         state.llm_calls += 1
+
+        # FAQ topic-drift filter: strip generic questions not about this specific topic
+        kw_lower = state.target_keyword.lower()
+        # Extract core topic words (neighborhood/city name)
+        kw_tokens = set(re.sub(r'[^a-z0-9\s]', '', kw_lower).split()) - {
+            'neighborhood', 'tx', 'texas', 'best', 'neighborhoods', 'guide', 'in', 'the',
+        }
+        if kw_tokens and len(kw_tokens) >= 1:
+            faq_soup = BeautifulSoup(state.btf_faqs_html, "html.parser")
+            details = faq_soup.find_all("details")
+            kept = []
+            dropped = []
+            for d in details:
+                summary = d.find("summary")
+                if summary:
+                    q_text = summary.get_text(strip=True).lower()
+                    # Check if any core keyword token appears in the question
+                    has_topic = any(t in q_text for t in kw_tokens if len(t) > 3)
+                    if has_topic:
+                        kept.append(d)
+                    else:
+                        dropped.append(summary.get_text(strip=True))
+                else:
+                    kept.append(d)
+            if dropped:
+                eprint(f"  [G.21b] FAQ topic-drift filter dropped {len(dropped)} generic Q(s):")
+                for dq in dropped:
+                    eprint(f"    DROPPED: {dq[:70]}")
+                # Rebuild FAQ HTML with only kept questions
+                new_faq = "\n".join(str(d) for d in kept)
+                state.btf_faqs_html = new_faq
+                btf_path.write_text(new_faq)
     except RuntimeError as e:
         raise RuntimeError(f"Phase G step 21 (BTF FAQs) failed.\nReason: {e}")
 

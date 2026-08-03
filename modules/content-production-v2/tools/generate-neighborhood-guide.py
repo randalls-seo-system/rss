@@ -527,6 +527,10 @@ BANNED PHRASES (auto-reject): "the numbers back it up," "the tradeoff is straigh
 
 AMENITY RESTRAINT: Never assert specific physical amenities (playgrounds, splash pads, pool types, courts, gated access, trail surfaces, trail lengths, specific park features) unless that amenity is explicitly stated in the SERP RESEARCH CONTEXT or AUTHORITATIVE DATA above. If a business or landmark is mentioned, use its full canonical name as it appears in the source data. Omission is better than invention.
 
+NARRATIVE RESTRAINT: Do NOT generate historical narrative, heritage stories, cultural origin stories, or founding mythology unless the SERP data above contains SOURCED material for them. When data is thin, write SHORTER covering verifiable specifics. Never fill gaps with invented narrative. A shorter guide with verified facts beats a longer guide with fabricated heritage.
+
+FAQ RESTRAINT: FAQ questions must be about THIS specific neighborhood. Do NOT answer generic broad questions like "What is the nicest neighborhood in Texas?" in a guide about a specific place. Use FEWER neighborhood-specific FAQs rather than padding with generic ones.
+
 ADDITIONAL RULES:
 - Lead with the key insight, not background
 - No em dashes, use commas or periods instead
@@ -547,7 +551,7 @@ NAMING RULE (mandatory, zero exceptions):
 Return ONLY the prose HTML using <p> tags (and any inline <a> links if instructed). No headings, no wrapper divs."""
 
     h = hashlib.md5(f"{nb}|{h2_title}|v4|{section_context[:80]}|{verified_facts[:40]}".encode()).hexdigest()[:12]
-    cache_key = f"nh-guide-v4|{nb}|{h2_title}|{h}"
+    cache_key = f"nh-guide-v5|{nb}|{h2_title}|{h}"
     response = client.call(prompt, cache_key=cache_key)
     return extract_html(response.text)
 

@@ -164,4 +164,64 @@ def run_content_quality_gate(
             f"(minimum {MIN_PROSE_PARAGRAPHS}). Real guides have multiple detailed sections."
         )
 
+    # ── CHECK 6: Self-contradiction (body asserts X, FAQ denies X) ──
+    # Extract FAQ answers and body text separately, look for direct contradictions
+    # Works with both nh-faq (neighborhood format) and rl-faq / details (article format)
+    faq_section = re.search(r'<div class="(?:nh-faq|rl-faq)">(.*?)</div>', html, re.DOTALL)
+    if not faq_section:
+        # Fallback: look for any <details> block cluster (FAQ section without wrapper class)
+        details_blocks = re.findall(r'<details>.*?</details>', html, re.DOTALL)
+        if len(details_blocks) >= 3:
+            faq_section = type('obj', (object,), {'group': lambda self, n: ' '.join(details_blocks)})()
+
+    if faq_section:
+        faq_text = _strip_html(faq_section.group(1)).lower()
+        body_text = text_lower
+
+        # Pattern: body says "X heritage/tradition/founded by" and FAQ says "No... not X"
+        contradiction_patterns = [
+            # (body_claim_pattern, faq_denial_pattern, description)
+            (r'german\s+(?:settlers?|heritage|tradition|immigrants?|founded)',
+             r'(?:no|not)\s+.*german', "German heritage claimed in body but denied in FAQ"),
+            (r'spanish\s+(?:settlers?|heritage|tradition|founded)',
+             r'(?:no|not)\s+.*spanish', "Spanish heritage claimed in body but denied in FAQ"),
+            (r'(?:founded|established|settled)\s+(?:by|in)\s+\d{4}',
+             r'(?:no|not)\s+.*founded', "Founding narrative in body contradicted in FAQ"),
+        ]
+        for body_pat, faq_pat, desc in contradiction_patterns:
+            if re.search(body_pat, body_text) and re.search(faq_pat, faq_text):
+                failures.append(
+                    f"SELF-CONTRADICTION: {desc}. "
+                    f"The body and FAQ contradict each other on the same topic."
+                )
+
     return failures
+
+
+def check_thin_data_risk(serp_results_count: int, neighborhood: str) -> dict:
+    """Flag guides generated from sparse SERP data as confabulation risk.
+
+    Returns a risk assessment dict. Called by the pipeline after generation
+    to tag guides that need full human read, not just correction-clearing.
+    """
+    if serp_results_count <= 5:
+        return {
+            "risk_level": "HIGH",
+            "flag": f"THIN-DATA: Only {serp_results_count} SERP results for '{neighborhood}'. "
+                    f"READ FULLY — confabulation risk. Heritage/history sections, specific "
+                    f"amenity claims, and cultural narratives may be invented.",
+            "action": "full_human_read",
+        }
+    elif serp_results_count <= 7:
+        return {
+            "risk_level": "MODERATE",
+            "flag": f"MODERATE-DATA: {serp_results_count} SERP results for '{neighborhood}'. "
+                    f"Spot-check heritage and cultural claims.",
+            "action": "spot_check",
+        }
+    else:
+        return {
+            "risk_level": "LOW",
+            "flag": "",
+            "action": "corrections_only",
+        }

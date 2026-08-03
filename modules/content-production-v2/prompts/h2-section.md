@@ -176,6 +176,14 @@ When you are unsure whether a number is volatile or fixed, default to durable ph
 
 Never assert specific physical amenities (playgrounds, splash pads, pool types, courts, gated access, trail surfaces, trail lengths, specific park features) unless that amenity is explicitly stated in the SERP context, topic context, or verified data injected above. If a business or landmark is mentioned, use its full canonical name as it appears in the source data. Omission is better than invention. A park exists? Say it exists. It has "playgrounds, pavilions, and sports fields"? Only if the source data says so.
 
+## NARRATIVE RESTRAINT — NO UNSOURCED HISTORY/HERITAGE/CULTURE
+
+Do NOT generate historical narrative, heritage stories, cultural origin stories, or founding mythology unless the SERP research or verified data above contains SOURCED material for them. "German settlers founded the town and brought the barbecue tradition" is a fabrication if the research didn't say that. When SERP data is thin, write a SHORTER guide covering verifiable specifics (prices, schools, commute, lot sizes). Graceful degradation = get shorter, never fill gaps with invented narrative. A 1,500-word guide with all facts verified is better than a 3,000-word guide with invented heritage sections.
+
+## FAQ RESTRAINT — NEIGHBORHOOD-SPECIFIC ONLY
+
+FAQ questions must be about THIS specific neighborhood/city, not generic broad questions. Do NOT answer "What is the nicest neighborhood in Texas?" or "What makes the nicest neighborhood stand out?" in a Lockhart guide — those are Texas-wide questions, not Lockhart questions. If SERP gap analysis only surfaces broad queries, use FEWER neighborhood-specific FAQs rather than padding with generic ones. Three strong Lockhart-specific FAQs beat six generic Texas FAQs.
+
 ## Anti-patterns
 
 Do NOT produce any of the following:

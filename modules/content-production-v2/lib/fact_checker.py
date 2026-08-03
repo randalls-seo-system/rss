@@ -89,6 +89,9 @@ _VOLATILE_INDICATORS = [
     (re.compile(r'\d+/10\b'), "Hard-coded rating score"),
     (re.compile(r'population\s+[\d,]+', re.I), "Hard-coded population"),
     (re.compile(r'[\d.]+%\s+(?:annual\s+)?appreciation', re.I), "Hard-coded appreciation"),
+    (re.compile(r'scores?\s+\d+/100', re.I), "Suspicious aggregator score (verify source)"),
+    (re.compile(r'\d+/100\s+(?:friendliness|affordability|safety|walkability)', re.I),
+     "Aggregator score — likely from one source, stated as fact"),
 ]
 
 # Words that mark subjective claims
