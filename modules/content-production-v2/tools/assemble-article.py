@@ -793,6 +793,53 @@ def phase_b(state: PipelineState, allow_no_serp: bool = False) -> None:
     else:
         raise RuntimeError("No SERP data available and --allow-no-serp not set")
 
+    # Step 7b: Source-relevance filter — reject SERP results not about the target
+    if state.serp and state.serp.top_results:
+        kw_lower = state.target_keyword.lower()
+        # Extract location tokens from the keyword (neighborhood + city names)
+        location_tokens = set(re.sub(r'[^a-z0-9\s]', '', kw_lower).split()) - {
+            'neighborhood', 'neighborhoods', 'best', 'guide', 'tx', 'in', 'the',
+            'to', 'live', 'living', 'for', 'homebuyers', 'near',
+        }
+        # Keep tokens with 4+ chars for matching (avoids false matches on short words)
+        location_tokens = {t for t in location_tokens if len(t) >= 4}
+
+        if location_tokens:
+            original_count = len(state.serp.top_results)
+            filtered = []
+            rejected = []
+            for r in state.serp.top_results:
+                r_text = (getattr(r, "title", "") + " " + getattr(r, "snippet", "")).lower()
+                # Result must mention at least ONE location token
+                has_location = any(t in r_text for t in location_tokens)
+                if has_location:
+                    filtered.append(r)
+                else:
+                    rejected.append(getattr(r, "title", "")[:60])
+
+            if rejected:
+                eprint(f"  [B.7b] Source-relevance filter: {len(rejected)} off-topic result(s) rejected:")
+                for title in rejected:
+                    eprint(f"    REJECTED: {title}")
+                state.serp._top_results = filtered
+                # Also rewrite the SERP JSON so downstream tools see filtered data
+                raw = json.loads(state.serp_json_path.read_text())
+                raw_filtered = [
+                    r for r in raw.get("top_results", [])
+                    if any(t in (r.get("title", "") + " " + r.get("snippet", "")).lower()
+                           for t in location_tokens)
+                ]
+                raw["top_results"] = raw_filtered
+                raw["_source_filter"] = {
+                    "original_count": original_count,
+                    "filtered_count": len(raw_filtered),
+                    "rejected": rejected,
+                }
+                state.serp_json_path.write_text(json.dumps(raw, indent=2))
+                eprint(f"  [B.7b] SERP filtered: {original_count} → {len(filtered)} results")
+            else:
+                eprint(f"  [B.7b] Source-relevance: all {original_count} results on-target")
+
     # Step 8: Extract subtopic gaps
     if state.serp and state.serp_json_path:
         gaps_tool = TOOLS_DIR / "extract-subtopic-gaps.py"
