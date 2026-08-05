@@ -411,6 +411,22 @@ class TestLegacyPostStructure:
 # Phase 3: New tests for unified linker
 # ---------------------------------------------------------------------------
 
+def _nltk_available():
+    try:
+        import nltk
+        nltk.data.find("taggers/averaged_perceptron_tagger_eng")
+        return True
+    except (ImportError, LookupError):
+        return False
+
+import pytest
+_skip_no_nltk = pytest.mark.skipif(
+    not _nltk_available(),
+    reason="NLTK tagger data not installed — run tools/setup-env.sh"
+)
+
+
+@_skip_no_nltk
 class TestCorpusCandidates:
     """corpus_candidates derives phrases from title/slug."""
 

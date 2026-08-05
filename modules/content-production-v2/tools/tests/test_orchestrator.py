@@ -220,6 +220,22 @@ class TestVentriloquismGate:
         assert len(hits) >= 4, f"Expected >= 4 hits, got {len(hits)}: {hits}"
 
 
+def _nltk_available():
+    try:
+        import nltk
+        nltk.data.find("taggers/averaged_perceptron_tagger_eng")
+        return True
+    except (ImportError, LookupError):
+        return False
+
+import pytest
+_skip_no_nltk = pytest.mark.skipif(
+    not _nltk_available(),
+    reason="NLTK tagger data not installed — run tools/setup-env.sh"
+)
+
+
+@_skip_no_nltk
 class TestCorpusLinkPass:
     """Corpus-mode link pass: fixture article with known destination titles."""
 

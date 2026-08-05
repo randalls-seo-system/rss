@@ -2387,7 +2387,6 @@ def phase_h(state: PipelineState) -> None:
             eprint("  [H.26] Validator is still a stub — skipping validation")
         else:
             try:
-                # Run validator in JSON mode to parse scores
                 json_report = _run_tool(str(validator), [
                     "--html-file", str(linked_path),
                     "--intent", state.intent,
@@ -2398,27 +2397,33 @@ def phase_h(state: PipelineState) -> None:
                 vdata = json.loads(json_report)
                 hard_passed = vdata.get("summary", {}).get("hard_passed", 0)
                 hard_total = vdata.get("summary", {}).get("hard_total", 30)
-                # Write markdown report too
                 validation_report_path.write_text(json_report)
                 eprint(f"  [H.26] Validator: {hard_passed}/{hard_total} hard passed")
-            except RuntimeError as e:
-                # Validator exits 1 on hard failures — parse from stderr
-                err_str = str(e)
-                import re as _re
-                score_match = _re.search(r"(\d+)/(\d+) hard passed", err_str)
-                if score_match:
-                    hard_passed = int(score_match.group(1))
-                    hard_total = int(score_match.group(2))
-                eprint(f"  [H.26] Validator: {hard_passed}/{hard_total} hard passed")
+            except (RuntimeError, json.JSONDecodeError) as e:
+                # Validator crash or unparseable output — treat as failure, not a salvage
+                eprint(f"  [H.26] Validator FAILED: {e}")
+                hard_passed = 0
+                hard_total = 30
     else:
         eprint("  [H.26] Validator not found — skipping validation")
 
+    # Store scores on state for manifest
+    state.validation_hard_passed = hard_passed
+    state.validation_hard_total = hard_total
+    state.validation_report_path = str(validation_report_path) if validation_report_path.exists() else ""
+
     # Route output: 25+ = ready, <25 = needs review
     if hard_passed < 25 and hard_total > 0:
-        review_path = state.output_dir / f"{state.post_id}-article.review.html"
-        import shutil
-        shutil.copy2(str(linked_path), str(review_path))
-        eprint(f"  [H.26] Below threshold ({hard_passed}/{hard_total} < 25/30) → saved as .review.html")
+        if getattr(state, "soft_validate", False):
+            review_path = state.output_dir / f"{state.post_id}-article.review.html"
+            import shutil
+            shutil.copy2(str(linked_path), str(review_path))
+            eprint(f"  [H.26] Below threshold ({hard_passed}/{hard_total} < 25/30) → saved as .review.html (--soft-validate)")
+        else:
+            raise RuntimeError(
+                f"Validation FAILED: {hard_passed}/{hard_total} hard passed (threshold 25). "
+                f"Report: {validation_report_path}"
+            )
 
     # Step 27: Business-facts claims check (D2-style)
     # Scan assembled HTML for operational claims (prices, hours, zones)
@@ -2886,8 +2891,9 @@ def _write_manifest(state: PipelineState) -> dict:
         "pending_links_count": len(state.pending_links),
         "validation": {
             "ran": (state.output_dir / f"{state.post_id}-validation-report.md").exists(),
-            "hard_passed": None,
-            "soft_warnings": None,
+            "hard_passed": getattr(state, "validation_hard_passed", None),
+            "hard_total": getattr(state, "validation_hard_total", None),
+            "report_path": getattr(state, "validation_report_path", ""),
         },
         "llm_calls_total": state.llm_calls,
         "llm_cost_estimate_usd": round(state.llm_cost, 4),
@@ -3025,6 +3031,7 @@ def main():
     parser.add_argument("--skip-featured-image", action="store_true", help="Skip GPT-generated branded featured image (Phase J)")
     parser.add_argument("--community-data", help="Path to community-data.json (required for community-guide intent)")
     parser.add_argument("--research-context", help="Path to research-context.json (required for community-guide intent)")
+    parser.add_argument("--soft-validate", action="store_true", help="Advisory validation only — do not block on low scores (debugging)")
     args = parser.parse_args()
 
     # P1: Single-agent lockfile — abort if another instance is running
@@ -3042,6 +3049,7 @@ def main():
     state.h2_override_path = args.h2_override
     state.community_data_path = getattr(args, "community_data", None)
     state.research_context_path = getattr(args, "research_context", None)
+    state.soft_validate = getattr(args, "soft_validate", False)
     state.start_time = time.time()
 
     # Output directory

@@ -190,19 +190,28 @@ def run_gates(html: str, config: dict) -> dict:
     wc = len(text.split())
     results["word_count"] = "pass" if wc >= min_words else f"FAIL: {wc} words (minimum {min_words})"
 
-    # Gate 6: CSS prefix check
+    # Gate 6: CSS prefix check — hard fail on foreign classes
+    _BUILTIN_ALLOWLIST = {"main-content", "ans", "sep", "badge", "bluf"}
+    _FRAMEWORK_PREFIXES = ("et_", "wp-", "dsm-")
+    site_allowlist = set(config.get("content", {}).get("css_allowlist", []))
     all_classes = set()
-    for tag in soup.find_all(class_=True):
+    scope = main_content if main_content else soup
+    for tag in scope.find_all(class_=True):
         for cls in tag.get("class", []):
             all_classes.add(cls)
     foreign = []
-    known_prefixes = list(css_prefixes) + ["main-content", "ans", "sep", "badge"]
-    for cls in all_classes:
-        if not any(cls.lower().startswith(p.lower()) for p in known_prefixes):
-            # Allow standard HTML classes
-            if cls not in ("ans",) and not cls.startswith("et_") and not cls.startswith("wp-"):
-                pass  # Don't flag framework classes
-    results["css_prefix"] = "pass"  # Soft check — hard enforcement is fragile across Divi themes
+    for cls in sorted(all_classes):
+        if cls in _BUILTIN_ALLOWLIST or cls in site_allowlist:
+            continue
+        if any(cls.startswith(p) for p in _FRAMEWORK_PREFIXES):
+            continue
+        if any(cls.lower().startswith(p.lower()) for p in css_prefixes):
+            continue
+        foreign.append(cls)
+    if foreign:
+        results["css_prefix"] = f"FAIL: foreign classes: {', '.join(foreign)}"
+    else:
+        results["css_prefix"] = "pass"
 
     # Gate 7: No internal links in body (writer never links)
     body_links = []
@@ -489,11 +498,22 @@ def run_link_pass(job: dict, config: dict) -> tuple[Path, int]:
 
     # Pass 2: corpus mode (title/slug-derived candidates)
     corpus_links = 0
+    corpus_status = "ok"
     try:
         corpus_links = _run_corpus_link_pass(job, config, linked_path)
     except Exception as e:
-        # Corpus pass is additive — pool-mode result stands if it fails
-        pass
+        # Corpus pass is additive — pool-mode result stands, but record the failure loudly
+        corpus_status = f"FAILED: {type(e).__name__}: {e}"
+        print(f"  [LINKING] Corpus link pass FAILED (pool links stand): {corpus_status}", file=sys.stderr)
+
+    # Record corpus status in job stage extras and manifest
+    jd = job_dir(job)
+    stage_data = job.get("stages", {}).get("link", {})
+    stage_data["corpus_links"] = corpus_status if corpus_status != "ok" else corpus_links
+    if "stages" not in job:
+        job["stages"] = {}
+    job["stages"]["link"] = stage_data
+    save_job(job)
 
     return linked_path, pool_links + corpus_links
 
@@ -795,21 +815,34 @@ Article text:
     prompt_path = job_path / "d2-extraction-prompt.txt"
     prompt_path.write_text(prompt)
 
-    # Use temp file for prompt to avoid OS arg-length limits on long articles
-    result = subprocess.run(
-        f'cat "{prompt_path}" | claude -p - --output-format json',
-        shell=True, capture_output=True, text=True, timeout=TIMEOUTS["d2_extraction"],
-    )
+    # Use temp file for prompt to avoid OS arg-length limits on long articles.
+    # Retry on CLI failure — a hiccup must not silently disarm the strongest gate.
+    D2_MAX_RETRIES = 2
+    D2_BACKOFF_BASE = 5  # seconds
+    last_err = ""
+    for attempt in range(D2_MAX_RETRIES + 1):
+        result = subprocess.run(
+            f'cat "{prompt_path}" | claude -p - --output-format json',
+            shell=True, capture_output=True, text=True, timeout=TIMEOUTS["d2_extraction"],
+        )
+        if result.returncode == 0:
+            break
+        last_err = result.stderr[:500] if result.stderr else f"exit {result.returncode}"
+        if attempt < D2_MAX_RETRIES:
+            import time as _time
+            wait = D2_BACKOFF_BASE * (2 ** attempt)
+            print(f"  [D2] Extraction CLI failed (attempt {attempt+1}), retrying in {wait}s: {last_err[:120]}", file=sys.stderr)
+            _time.sleep(wait)
 
     if result.returncode != 0:
-        return []
+        # All retries exhausted — raise so caller can block the stage
+        raise RuntimeError(f"D2 extraction CLI failed after {D2_MAX_RETRIES + 1} attempts: {last_err}")
 
     # Parse the response — claude outputs JSON with a result field
     try:
         resp = json.loads(result.stdout)
         content = resp.get("result", result.stdout)
         if isinstance(content, str):
-            # Find JSON array in content
             start = content.find("[")
             end = content.rfind("]") + 1
             if start >= 0 and end > start:
@@ -820,6 +853,7 @@ Article text:
     except (json.JSONDecodeError, TypeError):
         pass
 
+    # CLI succeeded but produced no parseable claims — legitimate zero
     return []
 
 
@@ -975,8 +1009,22 @@ def run_d2_claims_check(html: str, config: dict, job: dict, transcript_text: str
     # Step 1: Ventriloquism gate (deterministic)
     vent_hits = run_ventriloquism_gate(html, config)
 
-    # Step 2: Claim extraction (Opus)
-    claims = run_claims_extraction(html, jd)
+    # Step 2: Claim extraction (Opus) — fails closed, never silently passes
+    try:
+        claims = run_claims_extraction(html, jd)
+    except RuntimeError as e:
+        return {
+            "ventriloquism": vent_hits,
+            "claims": [],
+            "unsourced_count": 0,
+            "policy_count": 0,
+            "source_count": 0,
+            "sme_sourced_count": 0,
+            "passed": False,
+            "blocked": f"extraction failed: {e}",
+        }
+
+    print(f"  [D2] Extracted {len(claims)} claims", file=sys.stderr)
 
     # Step 3: Classify claims (with optional transcript as source)
     policy_path = config.get("content", {}).get("claims_policy", "")

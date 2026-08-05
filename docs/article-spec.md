@@ -842,6 +842,42 @@ Hard fail on:
 
 ---
 
+### 18.6 Emit gates (`run_gates` in orchestrator.py) — BLOCKING
+
+The orchestrator runs 8 emit gates before deployment. All are hard-fail:
+pipeline halts and reports the failure. There is no advisory mode for gates.
+
+| Gate | What it checks | Fail behavior |
+|------|---------------|---------------|
+| 1. BLUF present | `rl-bluf` class or "bottom line up front" text | FAIL: no BLUF |
+| 2. No literal `\n` | Escaped newlines in HTML (>5 = fail) | FAIL: count |
+| 3. No H1 in body | `<h1>` inside `main-content` | FAIL |
+| 4. No em dashes | Unicode `\u2014` count | FAIL: count |
+| 5. Word count | Below `article_min_words` | FAIL: actual vs minimum |
+| 6. CSS prefix | Classes in `main-content` must start with `content.css_prefix`, be in built-in allowlist (`main-content`, `ans`, `sep`, `badge`, `bluf`), framework prefixes (`et_`, `wp-`, `dsm-`), or site's `content.css_allowlist` | FAIL: foreign classes listed |
+| 7. No writer links | `<a href="/">` inside body before link injection | FAIL: count |
+| 8. CTA present | `content.cta_url` appears in HTML | FAIL (skipped if CTA unconfigured) |
+
+Gate 6 note: if Divi or another theme adds classes for a specific site,
+add them to that site's `content.css_allowlist` array in config.json.
+Never disable the gate globally.
+
+### 18.7 Validation threshold — BLOCKING
+
+`validate-article-v2.py` produces a hard-passed score. If `hard_passed < 25`
+(out of ~30), the pipeline exits non-zero. The `--soft-validate` flag
+preserves advisory-only behavior for debugging but must never be passed
+by default.
+
+### 18.8 D2 claims gate — FAIL-CLOSED
+
+If the D2 extraction CLI fails (non-zero exit after retries), the stage
+is marked `blocked: extraction failed` — it never silently passes.
+Legitimate zero-claim extraction (CLI succeeded, article has no checkable
+claims) is allowed to pass with a logged count.
+
+---
+
 ## 19. IMPLEMENTATION CHANGES TO EXISTING MODULES
 
 This spec implies the following changes to the current RSS codebase. Listed for Step 3 implementation planning, not part of the spec itself.

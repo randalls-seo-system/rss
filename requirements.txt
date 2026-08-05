@@ -1,0 +1,13 @@
+# RSS pipeline dependencies
+# Install: pip install -r requirements.txt
+# Then run: tools/setup-env.sh for NLTK data
+
+beautifulsoup4>=4.12
+requests>=2.31
+pyyaml>=6.0
+nltk>=3.8
+python-dotenv>=1.0
+pytest>=8.0
+
+# Optional — needed only if AI_PROVIDER=openai
+# openai>=1.0

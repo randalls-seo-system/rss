@@ -31,8 +31,35 @@ DEFAULT_MODELS: dict[str, str] = {
     "openai":     "gpt-5.4-mini",
 }
 
-MAX_RETRIES = 2
-BACKOFF_BASE = 1  # seconds
+# Per-section caching makes retried assembles cheap — the LLM is only
+# re-called for the section that failed, not the whole article.  Do not
+# reduce MAX_RETRIES to "optimize" — the real cost is a blocked pipeline.
+MAX_RETRIES = 4
+BACKOFF_BASE = 2  # seconds
+RATE_LIMIT_BACKOFF_BASE = 60  # seconds — used when stderr matches rate/usage limit patterns
+
+# Patterns that indicate a fatal (non-retryable) CLI error
+_FATAL_PATTERNS = [
+    "command not found",
+    "invalid flag",
+    "unknown flag",
+    "auth revoked",
+    "authentication failed",
+    "invalid api key",
+    "no such file or directory",
+]
+
+# Patterns that indicate a rate/usage limit — use longer backoff
+_RATE_LIMIT_PATTERNS = [
+    "rate limit",
+    "rate_limit",
+    "usage limit",
+    "too many requests",
+    "429",
+    "quota exceeded",
+    "capacity",
+    "overloaded",
+]
 
 
 @dataclass
@@ -91,7 +118,8 @@ class LLMClient:
             if cached is not None:
                 return cached
 
-        # Call with retries
+        # Call with retries.  Non-zero CLI exits are retryable UNLESS the
+        # stderr matches a clearly fatal pattern (command not found, auth revoked).
         last_error: Exception | None = None
         for attempt in range(MAX_RETRIES + 1):
             try:
@@ -116,10 +144,26 @@ class LLMClient:
 
                 return response
 
-            except (subprocess.TimeoutExpired, OSError, ConnectionError) as e:
+            except (subprocess.TimeoutExpired, OSError, ConnectionError, RuntimeError) as e:
+                err_text = str(e).lower()
+
+                # Fatal patterns — raise immediately, no retry
+                if any(pat in err_text for pat in _FATAL_PATTERNS):
+                    raise
+
                 last_error = e
                 if attempt < MAX_RETRIES:
-                    wait = BACKOFF_BASE * (2 ** attempt)
+                    # Rate-limit pattern → longer backoff
+                    if any(pat in err_text for pat in _RATE_LIMIT_PATTERNS):
+                        wait = RATE_LIMIT_BACKOFF_BASE * (2 ** attempt)
+                        import sys as _sys
+                        print(
+                            f"  [LLM] Rate/usage limit detected, backing off {wait}s "
+                            f"(attempt {attempt + 1}/{MAX_RETRIES + 1})",
+                            file=_sys.stderr,
+                        )
+                    else:
+                        wait = BACKOFF_BASE * (2 ** attempt)
                     time.sleep(wait)
                 continue
 
