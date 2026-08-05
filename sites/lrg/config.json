@@ -27,7 +27,8 @@
     "form_page_slug": "TODO-verify",
     "article_min_words": 1800,
     "article_max_words": 3500,
-    "default_post_status": "draft"
+    "default_post_status": "draft",
+    "vertical": "real_estate"
   },
 
   "authors": {

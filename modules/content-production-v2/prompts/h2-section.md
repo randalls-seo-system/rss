@@ -17,16 +17,7 @@ You are writing ONE body H2 section for an article about **{{TARGET_KEYWORD}}**.
 - **Topic context for this subtopic:** {{TOPIC_CONTEXT}}
 - **Prior sections summary (what the article has already covered):** {{PRIOR_SECTIONS_SUMMARY}}
 
-## EVIDENCE (source material for factual grounding)
-
 {{EVIDENCE_BLOCK}}
-
-**Evidence rules:**
-- Ground specific factual assertions (numbers, percentages, timelines, dollar figures, named rules/programs/forms, thresholds) in the evidence above or in `[business_facts | CONFIRMED]` items. If the evidence does not support a specific figure, use directional or conditional language instead of inventing one.
-- `[business_facts | VERIFY]` items get conditional phrasing: "check current...", "call for...", "verify with...".
-- NEVER copy competitor passages verbatim or near-verbatim. Evidence is for factual grounding only. All prose must be original and in brand voice.
-- Never mention or cite competitor URLs or brand names in the article body.
-- Evidence informs; it does not dictate structure. The section still follows its LOCKED structural element and all existing caps.
 
 ## Output
 
@@ -195,39 +186,15 @@ Do NOT generate historical narrative, heritage stories, cultural origin stories,
 
 FAQ questions must be about THIS specific neighborhood/city, not generic broad questions. Do NOT answer "What is the nicest neighborhood in Texas?" or "What makes the nicest neighborhood stand out?" in a Lockhart guide — those are Texas-wide questions, not Lockhart questions. If SERP gap analysis only surfaces broad queries, use FEWER neighborhood-specific FAQs rather than padding with generic ones. Three strong Lockhart-specific FAQs beat six generic Texas FAQs.
 
-## AUSTIN REVIEW GUARDRAILS (mandatory — derived from 5-pass factual review)
+## NO UNSUPPORTED SUPERLATIVES
 
-These rules prevent errors that required manual correction on the Austin flagship guide. They apply to ALL content — articles, neighborhood guides, FAQs, fit sections, taglines.
-
-### 1. FAIR HOUSING — FEATURE LANGUAGE ONLY (compliance)
-NEVER describe neighborhoods by demographic group. "Best for families," "young professionals," "singles," "professionals," "safest for families" are ALL prohibited. Describe FEATURES instead:
-- "larger lots, community pools, nearby schools" NOT "families"
-- "central commute, restaurants, condo inventory" NOT "young professionals"
-- "walkable dining and nightlife" NOT "singles"
-Scan taglines, profile prose, callouts, fit-sections, FAQs — no demographic targeting anywhere.
-
-### 2. SCHOOL CLAIMS — VERIFIED ONLY
-- Do NOT assert a specific feeder CAMPUS as fact ("feeds into [X] Elementary"). Use "school assignments vary by address — verify current campus with [district name]."
-- District-level statements are acceptable IF verified. When citing TEA accountability ratings, ALWAYS include the year and numerical score: "Eanes ISD earned an A (94) in the 2025 TEA accountability system." Never overstate a rating — a B-rated district stated as A is a factual error.
-- Never use "top-rated," "highest-rated," or "best schools" without the TEA year, letter, and score.
-
-### 3. NO UNSUPPORTED SUPERLATIVES
 "Highest-rated," "no other neighborhood matches," "best value," "strongest," "safest" as bald claims are prohibited. Either ATTRIBUTE ("in our agents' assessment") or make MEASURABLE with a cited source. No unsourced absolutes.
 
-### 4. SAFETY — NO NAMED "SAFER" NEIGHBORHOODS
-Do NOT name neighborhoods as "safer" or claim "controlled/gated access" without a cited crime dataset. Use: "review current crime data for the specific area through the appropriate agency; there is no single safest neighborhood."
+## INTERNAL CONSISTENCY
 
-### 5. METHODOLOGY DISCLAIMER (for ranked guides)
-Every guide with a 1-N ranking must include: "The final ranking is an editorial assessment informed by these factors rather than a purely mathematical calculation." Plus a data note citing sources (Census, TEA, Google Maps, MLS listings) and verification dates where practical.
+Numbers and counts stated in one part of the article must match every other mention. If the intro says "5 options," the body must list exactly 5. If a stat strip says "3 districts," body and FAQs must agree. Contradictions between sections are a hard fail.
 
-### 6. GEOGRAPHIC ACCURACY + INTERNAL CONSISTENCY
-Verify place facts — which lake, highway, boundary. (Austin had Tarrytown on the wrong lake.) Header stats (qstats count, district count) must match body claims and FAQ answers. If the header says "4 ISDs," every mention in the guide must agree.
-
-### 7. PROPERTY-TYPE NOTE
-Where a price comparison mixes condos/townhomes and single-family homes, add: "Entry prices are not directly comparable across property types — [condo-heavy neighborhoods] include substantial condo/townhome inventory, while [others] are primarily single-family markets."
-
-### 8. STYLING CONSISTENCY
-Neighborhood guides must emit the same styled components as regular posts. The author-card and sources section are rendered by shared mu-plugins — do not emit alternative markup for these components.
+{{VERTICAL_RULES}}
 
 ## Anti-patterns
 

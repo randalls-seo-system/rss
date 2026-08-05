@@ -753,6 +753,36 @@ If SerpAPI/SerpDev BOTH return errors or no key configured:
 - Generation can proceed only with `--allow-no-serp` flag explicitly set.
 - In `--allow-no-serp` mode: Resources Used MUST come from manual config or generation fails (Section 15.6).
 
+### 17.5 Vertical rules overlays
+
+Domain-specific writing rules (fair housing compliance, school claim
+standards, safety phrasing, methodology disclaimers) are injected via
+per-vertical overlay files, not hardcoded in shared prompts.
+
+**Config field:** `content.vertical` in the site's JSON config. Optional.
+Currently valid values: `"real_estate"`. Absent or empty = no vertical
+rules injected.
+
+**File location:** `prompts/verticals/<vertical>.md` (e.g.,
+`prompts/verticals/real-estate.md`). The config value `real_estate`
+maps to filename `real-estate.md`.
+
+**Injection:** The `{{VERTICAL_RULES}}` placeholder in prompts
+(`h2-section.md`, `bluf.md`, `atf-faq.md`, `btf-faq.md`) is populated
+by `load_vertical_rules_block(site_slug)`. When empty, the placeholder
+vanishes — no orphan header. The neighborhood guide generator
+(`generate-neighborhood-guide.py`) injects the same block into its
+inline section-writing prompt.
+
+**Content boundary:** Vertical files contain domain-specific writing
+rules only (compliance, claim standards, structural requirements). They
+do NOT contain site-specific business facts — those live in
+`sites/{slug}-business-facts.md`.
+
+**Adding a new vertical:** Create `prompts/verticals/<name>.md`, add
+the value to `VALID_VERTICALS` in `lib/brand_rules.py`, set
+`content.vertical` in the site config.
+
 ---
 
 ## 18. VALIDATION (machine-checkable)

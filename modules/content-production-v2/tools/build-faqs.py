@@ -255,6 +255,7 @@ def _build_atf(args, serp, brand_voice, topic_context, client, evidence_block=""
             "TARGET_KEYWORD": args.target_keyword,
             "TOPIC_CONTEXT": topic_context,
             "EVIDENCE_BLOCK": faq_evidence,
+            "VERTICAL_RULES": vertical_rules,
             "INJECT_BRAND_VOICE": brand_voice,
         })
 
@@ -303,6 +304,7 @@ def _build_btf(args, serp, brand_voice, topic_context, client, evidence_block=""
         "TARGET_KEYWORD": args.target_keyword,
         "TOPIC_CONTEXT": topic_context,
         "EVIDENCE_BLOCK": evidence_block,
+        "VERTICAL_RULES": vertical_rules,
         "INJECT_BRAND_VOICE": brand_voice,
     })
 
@@ -363,6 +365,9 @@ def main():
     brand_rules = load_brand_rules_block(args.site)
     if brand_rules:
         brand_voice += f"\n\n{brand_rules}"
+    # Load vertical rules
+    from lib.brand_rules import load_vertical_rules_block
+    vertical_rules = load_vertical_rules_block(args.site)
     topic_context = build_topic_context(serp, args.target_keyword)
 
     # Prepend research context if provided (universal injection)

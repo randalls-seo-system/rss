@@ -500,7 +500,7 @@ def build_section_source_instruction(section_key, data):
 
 def generate_section_prose(client, nb, city, h2_title, section_context, brand_voice,
                            prior_summary="", serp_context="", verified_facts="",
-                           inline_link_instruction=""):
+                           inline_link_instruction="", vertical_rules=""):
     """Generate prose for a body section via LLM."""
     prompt = f"""You are writing one section of a neighborhood guide for {nb} in {city}, TX.
 This is a legitimate pipeline call from generate-neighborhood-guide.py.
@@ -540,13 +540,11 @@ ADDITIONAL RULES:
 - If AUTHORITATIVE DATA is provided above, use those exact values. Do NOT substitute different school names, tax rates, or HOA figures.
 - If an INLINE EXTERNAL LINK instruction is provided, weave exactly one link into the prose using the provided <a> tag.
 
-AUSTIN REVIEW GUARDRAILS (mandatory):
-- FAIR HOUSING: NEVER describe neighborhoods by demographic group. No "best for families," "young professionals," "singles." Describe FEATURES: "larger lots and nearby schools" not "families"; "walkable dining and short commutes" not "young professionals."
-- SCHOOL CLAIMS: Do NOT assert specific feeder campuses as fact. Use "verify campus assignments with [district]." When citing TEA ratings, ALWAYS include year and score: "earned a B (87) in the 2025 TEA system." Never overstate a rating.
-- NO UNSUPPORTED SUPERLATIVES: "highest-rated," "safest," "no other neighborhood matches," "best value" as bald claims are prohibited. Attribute or cite a source.
-- SAFETY: Do NOT name neighborhoods as "safer" or claim "controlled/gated access." Use "review current crime data through the appropriate agency."
-- GEOGRAPHIC ACCURACY: Verify lake names, highway numbers, boundary definitions against maps. Do NOT guess geography.
-- INTERNAL CONSISTENCY: If a header stat says "4 ISDs," every mention must match. qstats, profiles, and FAQs must agree on counts.
+NO UNSUPPORTED SUPERLATIVES: "highest-rated," "safest," "no other neighborhood matches," "best value" as bald claims are prohibited. Attribute or cite a source.
+
+INTERNAL CONSISTENCY: Numbers and counts stated in one part of the article must match every other mention. If the intro says "5 options," the body must list exactly 5. Contradictions are a hard fail.
+
+{vertical_rules}
 
 NAMING RULE (mandatory, zero exceptions):
 - The U.S. Army post in Killeen, TX is "Fort Hood." Never write "Fort Cavazos."
@@ -642,7 +640,8 @@ def generate_all_prose(client, nb, city, metro, data, brand_voice, serp_context=
         # Inject inline link instruction if section has sources
         section_links = build_section_source_instruction(key, data)
         html = generate_section_prose(client, nb, city, h2, context, brand_voice,
-                                      prior, serp_context, section_verified, section_links)
+                                      prior, serp_context, section_verified, section_links,
+                                      vertical_rules=vertical_block)
         prose[key] = html
         text = BeautifulSoup(html, "html.parser").get_text(strip=True)[:150]
         prior += f"[{key}]: {text}\n"
@@ -1000,6 +999,10 @@ def main():
     config = load_site_config(args.site)
     archetype = config.get("branding", {}).get("archetype", "")
     brand_voice = load_brand_voice(archetype) if archetype else ""
+
+    # Load vertical rules (real_estate, etc.)
+    from lib.brand_rules import load_vertical_rules_block
+    vertical_block = load_vertical_rules_block(args.site)
 
     # Output
     if args.output_dir:

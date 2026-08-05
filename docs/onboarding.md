@@ -19,7 +19,8 @@ The full process of bringing a new client onto RSS infrastructure. Target: under
 5. **Run onboarding** — `./tools/new-client.sh clients/<slug>/intake.md`
 6. **Review baseline audit** — Identify quick wins in `clients/<slug>/audits/baseline-*/`
 7. **Verify deployment** — Spot-check /llms.txt, ?format=md, AI Crawlers dashboard
-8. **Begin 30-day plan** — Follow `clients/<slug>/30-day-tasks.md`
+8. **Set vertical** — Real-estate sites: set `content.vertical: "real_estate"` in `sites/<slug>/config.json`
+9. **Begin 30-day plan** — Follow `clients/<slug>/30-day-tasks.md`
 
 ## One-Command Onboarding
 

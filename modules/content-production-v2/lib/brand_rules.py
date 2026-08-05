@@ -6,10 +6,17 @@ FORBIDDEN_TERMS, and REQUIRED_TONE from the site config and produces:
 1. A formatted BRAND RULES block for injection into every LLM prompt.
 2. A list of forbidden terms for post-generation validation.
 3. A validation function that checks assembled HTML for violations.
+4. A vertical rules loader for domain-specific prompt overlays.
 """
 
 import re
+import sys
 from pathlib import Path
+
+MODULE_DIR = Path(__file__).resolve().parent.parent
+VERTICALS_DIR = MODULE_DIR / "prompts" / "verticals"
+
+VALID_VERTICALS = {"real_estate"}  # extend as new verticals are added
 
 
 def load_brand_rules_block(config: dict) -> str:
@@ -171,3 +178,51 @@ def validate_brand_rules(html: str, config: dict) -> list[str]:
                     break  # One violation per unique price is enough
 
     return violations
+
+
+# ---------------------------------------------------------------------------
+# Vertical rules
+# ---------------------------------------------------------------------------
+
+def validate_vertical(config: dict) -> list[str]:
+    """Validate the content.vertical field if present.
+
+    Returns list of error strings. Empty = valid.
+    """
+    vertical = config.get("content", {}).get("vertical", "")
+    if not vertical:
+        return []
+    if vertical not in VALID_VERTICALS:
+        valid_list = ", ".join(sorted(VALID_VERTICALS))
+        return [
+            f"content.vertical: unknown value '{vertical}'. "
+            f"Valid options: {valid_list}"
+        ]
+    return []
+
+
+def load_vertical_rules_block(site_slug: str) -> str:
+    """Load per-vertical rules for prompt injection.
+
+    Reads content.vertical from the site's JSON config, resolves the
+    corresponding file in prompts/verticals/<vertical>.md, and returns
+    its contents. Returns "" if no vertical is configured.
+
+    Raises FileNotFoundError if a vertical is declared but its file is
+    missing — this is a loud error, not a silent empty string.
+    """
+    from lib.site_config import load_site_config
+    config = load_site_config(site_slug)
+    vertical = config.get("content", {}).get("vertical", "")
+    if not vertical:
+        return ""
+
+    # Map config value to filename
+    filename = f"{vertical.replace('_', '-')}.md"
+    path = VERTICALS_DIR / filename
+    if not path.exists():
+        raise FileNotFoundError(
+            f"Vertical '{vertical}' declared for site '{site_slug}' "
+            f"but file not found: {path}"
+        )
+    return path.read_text()

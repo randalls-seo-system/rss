@@ -171,6 +171,10 @@ def main():
     if brand_rules:
         brand_voice += f"\n\n{brand_rules}"
 
+    # Load vertical rules
+    from lib.brand_rules import load_vertical_rules_block
+    vertical_rules = load_vertical_rules_block(args.site)
+
     # Render prompt
     template = load_prompt_template("bluf.md")
     prompt = render_prompt(template, {
@@ -179,6 +183,7 @@ def main():
         "EVIDENCE_BLOCK": evidence_block,
         "FRICTION_POINT": args.friction_point,
         "ANCHOR_POOL_CANDIDATES": anchor_lines,
+        "VERTICAL_RULES": vertical_rules,
         "INJECT_BRAND_VOICE": brand_voice,
     })
 

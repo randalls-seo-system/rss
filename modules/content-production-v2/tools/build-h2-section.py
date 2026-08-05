@@ -172,6 +172,10 @@ def main():
     if brand_rules:
         brand_voice += f"\n\n{brand_rules}"
 
+    # Load vertical rules (real_estate, etc.)
+    from lib.brand_rules import load_vertical_rules_block
+    vertical_rules = load_vertical_rules_block(args.site)
+
     # Prior sections summary (for cross-section context)
     prior_summary = args.prior_sections_summary if hasattr(args, 'prior_sections_summary') and args.prior_sections_summary else ""
 
@@ -189,6 +193,7 @@ def main():
         "TARGET_WORD_COUNT": str(args.target_word_count),
         "TOPIC_CONTEXT": topic_context,
         "EVIDENCE_BLOCK": evidence_block,
+        "VERTICAL_RULES": vertical_rules,
         "PRIOR_SECTIONS_SUMMARY": prior_summary,
         "INJECT_BRAND_VOICE": brand_voice,
     })

@@ -122,6 +122,10 @@ def validate_config(config: dict) -> list[str]:
     if status != "draft":
         missing.append(f"content.default_post_status (must be 'draft', got '{status}')")
 
+    # vertical validation (optional field, but must be valid if set)
+    from lib.brand_rules import validate_vertical
+    missing.extend(validate_vertical(config))
+
     return missing
 
 
@@ -851,13 +855,22 @@ def run_claims_classification(
     scan_globs = (
         sorted(scan_dir.glob("*-subtopic-gaps.json"))
         + sorted(scan_dir.glob("*-empty-serp.json"))
-        + sorted(scan_dir.glob("*-evidence.json"))
     )
     for scan_file in scan_globs:
         try:
-            # Evidence store is the richest source — larger excerpt budget
-            budget = 6000 if scan_file.name.endswith("-evidence.json") else 2000
-            scan_text += scan_file.read_text()[:budget] + "\n"
+            scan_text += scan_file.read_text()[:2000] + "\n"
+        except Exception:
+            pass
+
+    # Evidence store: render as prose (not raw JSON) so the classifier reads
+    # the same labeled passages the writer used
+    for ev_file in sorted(scan_dir.glob("*-evidence.json")):
+        try:
+            ev_items = json.loads(ev_file.read_text())
+            from lib.evidence import render_evidence_block
+            ev_prose = render_evidence_block(ev_items[:40])
+            if ev_prose:
+                scan_text += ev_prose[:6000] + "\n"
         except Exception:
             pass
 

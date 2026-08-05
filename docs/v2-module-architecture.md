@@ -38,7 +38,9 @@ modules/content-production-v2/
 │   ├── bluf.md
 │   ├── h2-section.md
 │   ├── closing-bottom-line.md
-│   └── btf-faq.md
+│   ├── btf-faq.md
+│   └── verticals/                     # Domain-specific rule overlays
+│       └── real-estate.md             # RE: fair housing, schools, safety, methodology
 ├── lib/
 │   ├── __init__.py
 │   ├── spec_assertions.py             # Section 18 as importable functions
@@ -47,7 +49,8 @@ modules/content-production-v2/
 │   ├── serp_adapter.py                # Reads serp-research output, exposes typed accessors
 │   ├── anchor_pool.py                 # Reads linking-v2 anchor pool, applies competition rule
 │   ├── page_fetch.py                  # Shared page fetching + caching (used by gap extraction + evidence)
-│   └── evidence.py                    # Evidence layer: build store, select per section
+│   ├── evidence.py                    # Evidence layer: build store, select per section
+│   └── brand_rules.py                 # Brand rules + vertical rules loader
 ├── tools/
 │   ├── extract-subtopic-gaps.py       # SERP → gap analysis
 │   ├── compute-target-wc.py           # SERP → word count target
