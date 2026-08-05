@@ -16,6 +16,21 @@ The following modules are frozen during v2 build and MUST NOT be modified:
 
 If a v2 task seems to require modifying a frozen module, stop and ask.
 
+## WPE Cache Purge Protocol (QUADRUPLE PURGE)
+
+Any deployment that changes rendered HTML requires all four steps in order:
+
+1. `wp_cache_flush()` — WP object cache
+2. `WpeCommon::purge_varnish_cache()` or `purge_varnish_cache_all()` — Varnish
+3. `WpeCommon::clear_cdn_cache()` — WPE CDN layer (between Varnish and
+   Cloudflare; NOT cleared by the Varnish purge — root cause of the
+   2026-07-30 stale-page incident)
+4. Touch `post_modified` on affected posts via `wp_update_post` with
+   `edit_date => true` — breaks Cloudflare 304 loop
+
+Do NOT call `WpeCommon::purge_object_cache()` statically (non-static, fatals).
+Verify from served HTML (real URL, no cache-buster) after purge.
+
 ## Server Safety — Deploy Scripts
 
 Deploy scripts run foreground only, never backgrounded. All deploy scripts
@@ -98,8 +113,10 @@ facts, mark unknowns as VERIFY, get team ratification before content gen.
 - Article HTML must NOT include inline TOC. RSS TOC Manager renders TOC
   at WordPress render time. Adding inline TOC creates duplicate/conflicting
   rendering.
-- Section builders must produce content with ZERO internal links. Link
-  injection is single-pass via inject-internal-links.py only.
+- Section builders must produce content with ZERO internal links. For
+  standard articles, link injection is single-pass via inject-internal-links.py.
+  Neighborhood guides use the generator's built-in inject_section_links()
+  for metro-aware contextual links (directory, listings, related guides).
 - Anchor pool excludes the current article from its own link candidates.
 - H2s must be natural-language, not keyword-stuffed SEO-2012 patterns.
 
@@ -380,10 +397,13 @@ overrides are banned — they silently default to prose/statement.
 2. Every deploy report includes a rendered-page curl check (H2 count,
    details, tables, components, internal links, Resources) against
    the source content. DB-only verification is never sufficient.
-3. Claim audit is a mandatory Phase 2 step on every pipeline build
-   until source_data wiring into build-h2-section.py ships
-   (Phase A backlog item 1). Every number in the output must map to
-   a verified quote with URL; unsourced numbers are CUT, not hedged.
+3. Claim audit is a mandatory step on every pipeline build. The
+   fact-checker module (lib/fact_checker.py) automates claim extraction
+   and categorization; human review of the fact-check report is still
+   required. source_data wiring into build-h2-section.py (Phase A
+   backlog item 1) is the target mechanism for fully-automated
+   sourcing. Every number in the output must map to a verified quote
+   with URL; unsourced numbers are CUT, not hedged.
 4. Article source material is injected as verbatim quotes with URLs
    into the article's topic-context JSON before any build. Summaries
    are never sufficient. A proper source_data override field wired
@@ -392,6 +412,48 @@ overrides are banned — they silently default to prose/statement.
 5. Validator conformance follows the approved article design, not the
    reverse. When a component or layout change is approved, the
    matching spec_assertions.py update ships in the same batch.
+
+## Pipeline verification layers (current as of 2026-08-03)
+
+The pipeline now includes these automated verification steps. Do NOT
+duplicate these manually or bypass them — they are load-bearing and
+removing them reintroduces the defects they were built to catch
+(calibrated on Lockhart + Stone Oak failures):
+
+- **dupe_guard.py:** Checks for existing posts with the same topic
+  before creating new content. Do not manually dupe-check if the
+  pipeline is running — the guard handles it.
+- **content_quality_gate.py:** Blocks stub/empty articles, checks
+  banned AI phrases (17 specific phrases), name density (max 1-2
+  per 200 words), school consistency, aggregator score detection.
+  Non-passing articles halt before deploy.
+- **fact_checker.py:** Extracts checkable claims from generated HTML,
+  categorizes by type (school/legal/year/geography/financial/business/
+  volatile/subjective), writes a human-review checklist. Runs after
+  quality gate, before deploy.
+- **claim_verifier.py:** Verifies claims against TEA, Nominatim,
+  Wikipedia. Produces a verification report with CORRECT/WRONG/
+  COULDN'T VERIFY verdicts.
+- **Source-relevance filter (assemble-article.py):** Rejects SERP
+  results that don't mention the target location. Prevents wrong-town
+  data contamination. Filters both in-memory SerpData and rewrites
+  the SERP JSON so downstream tools only see on-target results.
+- **Confabulation guard (assemble-article.py):** Drops H2 sections
+  when no SERP result title specifically addresses that topic for
+  this neighborhood. Prevents fabricated narrative sections from
+  thin data.
+- **FAQ topic-drift filter:** Strips FAQs that don't mention the
+  target neighborhood/city name. Applies to both ATF and BTF phases.
+- **Self-contradiction check (content_quality_gate.py):** Detects
+  when the body asserts X and a FAQ denies it.
+- **Durable-phrasing rules (h2-section.md):** Volatile market stats
+  (prices, DOM, inventory, appreciation) use ranges/qualitative
+  phrasing; fixed authoritative figures (tax exemptions, loan limits,
+  statutes, program eligibility) stay precise. Shared prompt affects
+  both assemble-article.py and generate-neighborhood-guide.py.
+- **batch-neighborhood-rebuild.py:** Sequential batch runner for 62+
+  guides with resume support, per-guide progress, and a consolidated
+  review queue (WRONG/softenings/unverified/thin-data categories).
 
 ## LRG default component layout (every article)
 

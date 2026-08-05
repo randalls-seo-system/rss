@@ -4,8 +4,8 @@
 > Every claim in GFP content MUST trace to a fact in this file.
 > If a fact is not in this file, content does NOT assert it — omit or flag.
 >
-> **Last updated:** 2026-06-18
-> **Ratified by:** Randall (team-confirmed data from owner/menu)
+> **Last updated:** 2026-07-03
+> **Ratified by:** Randall (team-confirmed data from owner/menu + media verification)
 
 ---
 
@@ -116,6 +116,27 @@
 | Brand name | Godfather's Pizza | CONFIRMED |
 | Tagline | "The Best Pizza in San Antonio" | CONFIRMED |
 
+## 9. Ownership & History
+
+| Fact | Value | Status |
+|------|-------|--------|
+| Owner | Levi Rodgers | CONFIRMED (multiple media outlets) |
+| Military background | Decorated U.S. Army Special Forces Veteran (Green Beret), wounded in service | CONFIRMED |
+| Early connection | Worked at a Godfather's Pizza in Sacramento as a teenager (early 1990s) | CONFIRMED |
+| SA brand history | ~20 Godfather's locations operated in San Antonio through the 1980s | CONFIRMED (CultureMap: "returns after 35 years") |
+| SA departure | Original SA locations closed in the 1980s | CONFIRMED |
+| Lackland location | A separate Godfather's operated near Lackland AFB, 2004–2016 | CONFIRMED |
+| Current location opened | 2025 | CONFIRMED |
+| "35 years" framing | Acceptable — refers to the ~20 original SA locations closing in the 1980s, NOT the Lackland location | CONFIRMED — never place "gone 35 years" adjacent to Lackland 2004–2016 without context |
+| Expansion plans | Owner has publicly stated plans for additional SA locations | CONFIRMED — do NOT hard-code "only location" into schema or permanent copy |
+
+### Ownership Voice Rules
+
+- **Veteran framing:** "Decorated Green Beret, wounded in service" — brief, respectful. No combat play-by-play, no IED narrative as origin story.
+- **Fallen heroes / remembrance:** Reference the restaurant's fallen-heroes table (empty seats honoring SA KIA/POWs) and flagpole tradition as remembrance. Match the dignified register of Levi's LRG bio.
+- **Sacramento detail:** Use "Sacramento" for accuracy when referencing the teenage connection.
+- **"Only Godfather's in SA":** True now, but keep only where easy to update later. Do NOT hard-code into schema.
+
 ---
 
 ## NEVER-CLAIM LIST (permanent policy)
@@ -126,14 +147,23 @@ or omit entirely.
 | Claim | Why | Required language |
 |-------|-----|-------------------|
 | **Any price** | Prices change; stale prices damage trust | "Check our current menu for pricing" |
-| **Veteran-owned** | Not confirmed; do NOT claim or imply | Remove all veteran-owned claims |
-| **Veteran discount** | Not a confirmed GFP policy | Remove all veteran discount claims |
 | **Delivery fee amount** | Not provided | "Check current delivery fee" |
 | **Holiday hours** | Not provided | "Call for holiday hours" |
-| **Year established / "comeback story"** | Unconfirmed specifics | Soften — "Godfather's Pizza in San Antonio" (no year, no story claims) |
-| **Family-owned** | Unconfirmed | Do not assert |
-| **Owner name(s)** | Not approved for content use | Do not use |
-| **Franchise vs independent** | Unconfirmed | Do not assert either way |
+| **Family-owned** | Not accurate — do not assert | Do not use |
+| **Franchise vs independent** | Complex — do not assert either way | Do not characterize the business structure |
+| **Combat narrative as origin story** | IED attack / teammate details are not appropriate for pizza content | Do not narrate; use "wounded in service" only |
+| **"Gone 35 years" adjacent to Lackland 2016** | Creates a factual contradiction | If both facts appear, add context: "the original ~20 locations closed in the '80s; a separate Lackland location operated 2004–2016" |
+
+## ALLOWED CLAIMS (confirmed, use freely)
+
+| Claim | Confirmed source | Usage notes |
+|-------|-----------------|-------------|
+| **Veteran-owned** | Media coverage, public record | "Decorated Green Beret, wounded in service" — brief, respectful |
+| **Owner: Levi Rodgers** | Media coverage | May name in About page, bio contexts. Not required in every article. |
+| **"Back after 35 years"** | CultureMap headline, multiple outlets | Refers to the ~20 original SA locations closing in the 1980s |
+| **Sacramento teenage connection** | Multiple outlets | Use "Sacramento" for accuracy |
+| **Comeback / returned to SA** | Factual | Acceptable brand-history language |
+| **Veteran discount** | VERIFY before claiming | Check with owner — do not assert without confirmation |
 
 ---
 

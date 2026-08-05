@@ -46,7 +46,7 @@
   "authors": {
     "author_map": {
       "primary_sme": {
-        "wp_user_id": "TODO-verify",
+        "wp_user_id": 1,
         "name": "Sohail A. Safi",
         "scope": "islamic-finance-expert",
         "notes": "Named author/SME. Voice capture subject. All content drafted from his answers."
@@ -57,12 +57,12 @@
   },
 
   "linking": {
-    "zone_suffixes": "TODO-verify",
+    "zone_suffixes": ["hero", "callout", "faq", "bluf", "disclosure"],
     "extra_zone_classes": [],
-    "skip_slugs": "TODO-verify",
+    "skip_slugs": ["home", "privacy-policy"],
     "protected_slugs": [],
     "excluded_destinations": [],
-    "pool_path": "TODO-verify",
+    "pool_path": "",
     "inbound_min": 3,
     "per_run_dest_cap": 10,
     "max_links_per_para": 1,
