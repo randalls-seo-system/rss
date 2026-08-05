@@ -184,6 +184,40 @@ Do NOT generate historical narrative, heritage stories, cultural origin stories,
 
 FAQ questions must be about THIS specific neighborhood/city, not generic broad questions. Do NOT answer "What is the nicest neighborhood in Texas?" or "What makes the nicest neighborhood stand out?" in a Lockhart guide — those are Texas-wide questions, not Lockhart questions. If SERP gap analysis only surfaces broad queries, use FEWER neighborhood-specific FAQs rather than padding with generic ones. Three strong Lockhart-specific FAQs beat six generic Texas FAQs.
 
+## AUSTIN REVIEW GUARDRAILS (mandatory — derived from 5-pass factual review)
+
+These rules prevent errors that required manual correction on the Austin flagship guide. They apply to ALL content — articles, neighborhood guides, FAQs, fit sections, taglines.
+
+### 1. FAIR HOUSING — FEATURE LANGUAGE ONLY (compliance)
+NEVER describe neighborhoods by demographic group. "Best for families," "young professionals," "singles," "professionals," "safest for families" are ALL prohibited. Describe FEATURES instead:
+- "larger lots, community pools, nearby schools" NOT "families"
+- "central commute, restaurants, condo inventory" NOT "young professionals"
+- "walkable dining and nightlife" NOT "singles"
+Scan taglines, profile prose, callouts, fit-sections, FAQs — no demographic targeting anywhere.
+
+### 2. SCHOOL CLAIMS — VERIFIED ONLY
+- Do NOT assert a specific feeder CAMPUS as fact ("feeds into [X] Elementary"). Use "school assignments vary by address — verify current campus with [district name]."
+- District-level statements are acceptable IF verified. When citing TEA accountability ratings, ALWAYS include the year and numerical score: "Eanes ISD earned an A (94) in the 2025 TEA accountability system." Never overstate a rating — a B-rated district stated as A is a factual error.
+- Never use "top-rated," "highest-rated," or "best schools" without the TEA year, letter, and score.
+
+### 3. NO UNSUPPORTED SUPERLATIVES
+"Highest-rated," "no other neighborhood matches," "best value," "strongest," "safest" as bald claims are prohibited. Either ATTRIBUTE ("in our agents' assessment") or make MEASURABLE with a cited source. No unsourced absolutes.
+
+### 4. SAFETY — NO NAMED "SAFER" NEIGHBORHOODS
+Do NOT name neighborhoods as "safer" or claim "controlled/gated access" without a cited crime dataset. Use: "review current crime data for the specific area through the appropriate agency; there is no single safest neighborhood."
+
+### 5. METHODOLOGY DISCLAIMER (for ranked guides)
+Every guide with a 1-N ranking must include: "The final ranking is an editorial assessment informed by these factors rather than a purely mathematical calculation." Plus a data note citing sources (Census, TEA, Google Maps, MLS listings) and verification dates where practical.
+
+### 6. GEOGRAPHIC ACCURACY + INTERNAL CONSISTENCY
+Verify place facts — which lake, highway, boundary. (Austin had Tarrytown on the wrong lake.) Header stats (qstats count, district count) must match body claims and FAQ answers. If the header says "4 ISDs," every mention in the guide must agree.
+
+### 7. PROPERTY-TYPE NOTE
+Where a price comparison mixes condos/townhomes and single-family homes, add: "Entry prices are not directly comparable across property types — [condo-heavy neighborhoods] include substantial condo/townhome inventory, while [others] are primarily single-family markets."
+
+### 8. STYLING CONSISTENCY
+Neighborhood guides must emit the same styled components as regular posts. The author-card and sources section are rendered by shared mu-plugins — do not emit alternative markup for these components.
+
 ## Anti-patterns
 
 Do NOT produce any of the following:

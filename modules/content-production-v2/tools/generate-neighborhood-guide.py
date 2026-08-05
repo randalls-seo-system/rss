@@ -540,6 +540,14 @@ ADDITIONAL RULES:
 - If AUTHORITATIVE DATA is provided above, use those exact values. Do NOT substitute different school names, tax rates, or HOA figures.
 - If an INLINE EXTERNAL LINK instruction is provided, weave exactly one link into the prose using the provided <a> tag.
 
+AUSTIN REVIEW GUARDRAILS (mandatory):
+- FAIR HOUSING: NEVER describe neighborhoods by demographic group. No "best for families," "young professionals," "singles." Describe FEATURES: "larger lots and nearby schools" not "families"; "walkable dining and short commutes" not "young professionals."
+- SCHOOL CLAIMS: Do NOT assert specific feeder campuses as fact. Use "verify campus assignments with [district]." When citing TEA ratings, ALWAYS include year and score: "earned a B (87) in the 2025 TEA system." Never overstate a rating.
+- NO UNSUPPORTED SUPERLATIVES: "highest-rated," "safest," "no other neighborhood matches," "best value" as bald claims are prohibited. Attribute or cite a source.
+- SAFETY: Do NOT name neighborhoods as "safer" or claim "controlled/gated access." Use "review current crime data through the appropriate agency."
+- GEOGRAPHIC ACCURACY: Verify lake names, highway numbers, boundary definitions against maps. Do NOT guess geography.
+- INTERNAL CONSISTENCY: If a header stat says "4 ISDs," every mention must match. qstats, profiles, and FAQs must agree on counts.
+
 NAMING RULE (mandatory, zero exceptions):
 - The U.S. Army post in Killeen, TX is "Fort Hood." Never write "Fort Cavazos."
 - The correct name in all contexts: "Fort Hood" (noun), "Fort Hood Main Gate" (landmark), "Fort Hood West Gate" (landmark).
