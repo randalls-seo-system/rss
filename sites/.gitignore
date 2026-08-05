@@ -1,4 +1,17 @@
-# Ignore all client configs except this gitignore and README
+# Default: ignore everything in sites/
 *
+
+# Always track
 !.gitignore
 !README.md
+
+# Track site subdirectories and their tracked files
+!*/
+*/*
+!*/config.json
+!*/queue.json
+
+# Track top-level site data files
+!*-anchor-pools.json
+!*-linker.json
+!*-business-facts.md

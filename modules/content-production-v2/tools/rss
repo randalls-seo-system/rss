@@ -308,10 +308,180 @@ def cmd_new_article(args):
     log(f"Job dir:    {jd}")
 
 
+def cmd_doctor(args):
+    """Run readiness diagnostics for a site."""
+    REPO_ROOT = MODULE_DIR.parent.parent
+    config_path = REPO_ROOT / "sites" / args.site / "config.json"
+    checks = {}
+
+    # 1. Config loads
+    if not config_path.exists():
+        checks["config"] = "FAIL: config not found"
+        _doctor_report(checks, args.json)
+        sys.exit(1)
+    with open(config_path) as f:
+        config = json.load(f)
+
+    # 2. Config validation (no TODO fields in required paths)
+    missing = validate_config(config)
+    checks["config_validate"] = "pass" if not missing else f"FAIL: {', '.join(missing)}"
+
+    # 3. CSS prefix — real values
+    css_pfx = config.get("content", {}).get("css_prefix", [])
+    if not css_pfx or any("TODO" in str(p) for p in css_pfx):
+        checks["css_prefix"] = f"FAIL: css_prefix is {css_pfx}"
+    else:
+        checks["css_prefix"] = "pass"
+
+    # 4. Postprocessor
+    post_tool_candidates = [
+        REPO_ROOT / "tools" / f"{args.site}-postprocess.py",
+        MODULE_DIR / "tools" / f"{args.site}-postprocess.py",
+    ]
+    if any(p.exists() for p in post_tool_candidates):
+        checks["postprocessor"] = "pass"
+    else:
+        checks["postprocessor"] = "WARN: no postprocessor found (may not be needed)"
+
+    # 5. Business-facts file
+    facts = REPO_ROOT / "sites" / f"{args.site}-business-facts.md"
+    checks["business_facts"] = "pass" if facts.exists() else "WARN: no business-facts file (H.27 handles)"
+
+    # 6. Claims policy
+    policy_path = config.get("content", {}).get("claims_policy", "")
+    if policy_path:
+        expanded = Path(policy_path).expanduser()
+        checks["claims_policy"] = "pass" if expanded.exists() else f"FAIL: declared {policy_path} not found"
+    else:
+        checks["claims_policy"] = "pass (none declared)"
+
+    # 7. Anchor pool
+    pool_path_cfg = config.get("linking", {}).get("pool_path", "")
+    pool_path = REPO_ROOT / pool_path_cfg if pool_path_cfg else REPO_ROOT / "sites" / f"{args.site}-anchor-pools.json"
+    if pool_path.exists():
+        try:
+            data = json.loads(pool_path.read_text())
+            checks["anchor_pool"] = f"pass ({len(data.get('destinations', data if isinstance(data, list) else []))} destinations)"
+        except (json.JSONDecodeError, TypeError):
+            checks["anchor_pool"] = "FAIL: anchor pool exists but is invalid JSON"
+    else:
+        checks["anchor_pool"] = "WARN: no anchor pool (pool-mode links will be zero)"
+
+    # 8. Environment — NLTK + required packages
+    env_issues = []
+    try:
+        import nltk
+        nltk.data.find("taggers/averaged_perceptron_tagger_eng")
+    except (ImportError, LookupError):
+        env_issues.append("NLTK tagger data missing (run tools/setup-env.sh)")
+    for pkg in ("bs4", "requests", "yaml"):
+        try:
+            __import__(pkg)
+        except ImportError:
+            env_issues.append(f"{pkg} not installed")
+    checks["environment"] = "pass" if not env_issues else f"FAIL: {'; '.join(env_issues)}"
+
+    # 9. Deploy — SSH connectivity
+    ssh_host = config.get("access", {}).get("ssh_host", "")
+    ssh_user = config.get("access", {}).get("ssh_user", "")
+    ssh_key = config.get("access", {}).get("ssh_key_path", "")
+    wp_path = config.get("access", {}).get("wp_path", "")
+    if ssh_host and ssh_user:
+        import subprocess
+        key_path = Path(ssh_key).expanduser() if ssh_key else None
+        ssh_cmd = ["ssh", "-o", "ConnectTimeout=5", "-o", "StrictHostKeyChecking=accept-new"]
+        if key_path and key_path.exists():
+            ssh_cmd += ["-i", str(key_path)]
+        ssh_cmd += [f"{ssh_user}@{ssh_host}", f"test -d {wp_path} && echo ok"]
+        try:
+            r = subprocess.run(ssh_cmd, capture_output=True, text=True, timeout=15)
+            if r.returncode == 0 and "ok" in r.stdout:
+                checks["deploy_ssh"] = "pass"
+            else:
+                checks["deploy_ssh"] = f"FAIL: SSH returned {r.returncode}: {r.stderr[:100]}"
+        except subprocess.TimeoutExpired:
+            checks["deploy_ssh"] = "FAIL: SSH timed out"
+        except Exception as e:
+            checks["deploy_ssh"] = f"FAIL: {e}"
+    else:
+        checks["deploy_ssh"] = "FAIL: ssh_host or ssh_user not configured"
+
+    _doctor_report(checks, args.json)
+    has_fail = any(v.startswith("FAIL") for v in checks.values())
+    sys.exit(1 if has_fail else 0)
+
+
+def _doctor_report(checks: dict, as_json: bool):
+    if as_json:
+        print(json.dumps(checks, indent=2))
+        return
+    for name, result in checks.items():
+        if result.startswith("FAIL"):
+            icon = "\033[31mFAIL\033[0m"
+        elif result.startswith("WARN"):
+            icon = "\033[33mWARN\033[0m"
+        else:
+            icon = "\033[32m OK \033[0m"
+        print(f"  [{icon}] {name}: {result}")
+
+
+def cmd_queue(args):
+    """Queue management subcommands."""
+    from lib.queue import (
+        load_queue, save_queue, add_item, list_items,
+        park_item, retry_item, seed_from_gsc,
+    )
+    REPO_ROOT = MODULE_DIR.parent.parent
+
+    if args.queue_action == "add":
+        item = add_item(args.site, args.topic, keyword=args.keyword or args.topic,
+                        intent_hint=getattr(args, "intent", ""))
+        print(f"Added: {item['id']} — {item['target_keyword']}")
+
+    elif args.queue_action == "list":
+        items = list_items(args.site, status=getattr(args, "status", None))
+        if not items:
+            print("Queue is empty.")
+            return
+        for it in items:
+            print(f"  [{it['status']:12s}] {it['id'][:12]}  {it['target_keyword'][:60]}"
+                  f"  attempts={it.get('attempts', 0)}")
+
+    elif args.queue_action == "seed":
+        candidates = seed_from_gsc(
+            args.site,
+            min_impressions=getattr(args, "min_impressions", 50),
+            limit=getattr(args, "limit", 30),
+        )
+        if not candidates:
+            print("No candidates from GSC.")
+            return
+        print(f"\n{len(candidates)} candidates from GSC (review before writing):\n")
+        for i, c in enumerate(candidates, 1):
+            print(f"  {i:3d}. [{c.get('impressions', '?'):>5} imp] {c['query']}")
+        print(f"\nTo write these to the queue, re-run with --confirm")
+        if getattr(args, "confirm", False):
+            from lib.queue import add_item
+            added = 0
+            for c in candidates:
+                add_item(args.site, c["query"], keyword=c["query"])
+                added += 1
+            print(f"\nAdded {added} items to queue.")
+
+    elif args.queue_action == "park":
+        park_item(args.site, args.id)
+        print(f"Parked: {args.id}")
+
+    elif args.queue_action == "retry":
+        retry_item(args.site, args.id)
+        print(f"Retried (reset to pending): {args.id}")
+
+
 def main():
     parser = argparse.ArgumentParser(description="RSS — Rank Logic SEO System CLI")
     sub = parser.add_subparsers(dest="command")
 
+    # new-article
     na = sub.add_parser("new-article", help="Generate and deploy a new article as draft")
     na.add_argument("--site", required=True, help="Site ID from sites/<site>/config.json")
     na.add_argument("--topic", required=True, help="Target keyword / article topic")
@@ -324,9 +494,49 @@ def main():
     na.add_argument("--dry-run", action="store_true", help="Run through gates but don't deploy")
     na.add_argument("--resume", default="", help="Resume an existing job by ID")
 
+    # doctor
+    doc = sub.add_parser("doctor", help="Check site readiness for pipeline generation")
+    doc.add_argument("--site", required=True, help="Site ID")
+    doc.add_argument("--json", action="store_true", help="Output as JSON (for machine consumption)")
+
+    # queue
+    q = sub.add_parser("queue", help="Manage the article generation queue")
+    qsub = q.add_subparsers(dest="queue_action")
+
+    qa = qsub.add_parser("add", help="Add a topic to the queue")
+    qa.add_argument("--site", required=True)
+    qa.add_argument("--topic", required=True)
+    qa.add_argument("--keyword", default="")
+    qa.add_argument("--intent", default="")
+
+    ql = qsub.add_parser("list", help="List queue items")
+    ql.add_argument("--site", required=True)
+    ql.add_argument("--status", default=None)
+
+    qs = qsub.add_parser("seed", help="Seed queue from GSC queries")
+    qs.add_argument("--site", required=True)
+    qs.add_argument("--min-impressions", type=int, default=50)
+    qs.add_argument("--limit", type=int, default=30)
+    qs.add_argument("--confirm", action="store_true", help="Actually write candidates to queue")
+
+    qp = qsub.add_parser("park", help="Park a queue item")
+    qp.add_argument("--site", required=True)
+    qp.add_argument("--id", required=True)
+
+    qr = qsub.add_parser("retry", help="Reset a parked item to pending")
+    qr.add_argument("--site", required=True)
+    qr.add_argument("--id", required=True)
+
     args = parser.parse_args()
     if args.command == "new-article":
         cmd_new_article(args)
+    elif args.command == "doctor":
+        cmd_doctor(args)
+    elif args.command == "queue":
+        if not args.queue_action:
+            q.print_help()
+            sys.exit(1)
+        cmd_queue(args)
     else:
         parser.print_help()
         sys.exit(1)

@@ -13,21 +13,16 @@
     "ssh_key_path": "~/.ssh/id_ed25519_wpe_staging",
     "wp_path": "/nas/content/live/lrgrealtyblogs/",
     "mu_plugins_path": "/nas/content/live/lrgrealtyblogs/wp-content/mu-plugins/",
-    "staging": {
-      "url": "TODO-verify",
-      "ssh_user": "TODO-verify",
-      "ssh_key_path": "TODO-verify",
-      "wp_path": "TODO-verify"
-    }
+    "staging": null
   },
 
   "content": {
     "css_prefix": ["tln"],
     "brand_voice_archetype": "va-lending",
     "primary_color": "#00d93e",
-    "secondary_color": "TODO-verify",
-    "logo_url": "TODO-verify",
-    "phone": "TODO-verify",
+    "secondary_color": "#1a1a1a",
+    "logo_url": "",
+    "phone": "",
     "cta_url": "/compare-loan-offers/",
     "cta_text": "Compare Mortgage Offers",
     "form_page_slug": "compare-loan-offers",
@@ -77,7 +72,7 @@
     "do_not_touch_pages": [
       {"post_id": 566, "slug": "compare-loan-offers", "reason": "Money page, 125+ inbound links."}
     ],
-    "theme_builder_layouts": "TODO-verify",
+    "theme_builder_layouts": [],
     "frozen_subsystems": [],
     "known_traps": [
       {"name": "Shared WPE install", "description": "TLN and LRG share the lrgrealtyblogs WP Engine install. Work on one affects the other."}
@@ -86,14 +81,14 @@
 
   "integrations": {
     "gsc_property": "sc-domain:thelendersnetwork.com",
-    "ga4_property_id": "TODO-verify",
-    "clarity_project_id": "TODO-verify",
+    "ga4_property_id": "",
+    "clarity_project_id": "",
     "cdn_notes": "WP Engine Varnish. Standard purge via WpeCommon."
   },
 
   "ops": {
-    "work_log": "TODO-verify",
-    "backup_dir": "TODO-verify",
+    "work_log": "",
+    "backup_dir": "/nas/content/live/lrgrealtyblogs/backups/",
     "persistent_ops_dir": "/nas/content/live/lrgrealtyblogs/wp-content/uploads/tln-ops/",
     "service_tier": "Pro",
     "reference_files": {

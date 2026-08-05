@@ -1,0 +1,231 @@
+#!/usr/bin/env python3
+"""RSS Loop — autonomous article generation from a site queue.
+
+Pops items from sites/<slug>/queue.json, runs the pipeline, attempts
+one repair on failure, parks items that still fail. State lives in
+files, never in a session.
+
+Usage:
+    tools/rss-loop --site tln [--max-articles 5] [--max-consecutive-failures 3] [--status draft]
+"""
+
+import argparse
+import json
+import os
+import subprocess
+import sys
+import time
+from datetime import datetime, timezone
+from pathlib import Path
+
+REPO_ROOT = Path(__file__).resolve().parent.parent
+MODULE_DIR = REPO_ROOT / "modules" / "content-production-v2"
+RSS_CLI = MODULE_DIR / "tools" / "rss"
+LOG_DIR = REPO_ROOT / "logs"
+
+sys.path.insert(0, str(MODULE_DIR))
+from lib.queue import load_queue, save_queue, pop_next, mark_done, park_item
+
+
+def log_line(site: str, item_id: str, outcome: str, duration: float, cost: float = 0.0):
+    """Append one line to logs/loop-<site>.log."""
+    LOG_DIR.mkdir(parents=True, exist_ok=True)
+    log_path = LOG_DIR / f"loop-{site}.log"
+    ts = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+    line = f"{ts}  {item_id}  {outcome:12s}  {duration:.0f}s  ${cost:.4f}\n"
+    with open(log_path, "a") as f:
+        f.write(line)
+
+
+def eprint(*args, **kw):
+    print(*args, file=sys.stderr, flush=True, **kw)
+
+
+def run_preflight(site: str) -> bool:
+    """Run rss doctor --json. Returns True if no FAILs."""
+    result = subprocess.run(
+        [sys.executable, str(RSS_CLI), "doctor", "--site", site, "--json"],
+        capture_output=True, text=True, timeout=30,
+    )
+    if result.returncode != 0:
+        try:
+            checks = json.loads(result.stdout)
+            fails = {k: v for k, v in checks.items() if v.startswith("FAIL")}
+            eprint(f"[preflight] FAILED: {json.dumps(fails, indent=2)}")
+        except json.JSONDecodeError:
+            eprint(f"[preflight] FAILED (non-JSON): {result.stdout[:300]}")
+        return False
+    return True
+
+
+def run_article(site: str, topic: str, keyword: str, status: str = "draft",
+                dry_run: bool = False) -> tuple[bool, str, dict]:
+    """Run rss new-article. Returns (success, job_id, manifest_data)."""
+    cmd = [
+        sys.executable, str(RSS_CLI), "new-article",
+        "--site", site,
+        "--topic", topic,
+    ]
+    if dry_run:
+        cmd.append("--dry-run")
+
+    eprint(f"[loop] Running: {' '.join(cmd[:8])}...")
+    t0 = time.time()
+    result = subprocess.run(cmd, capture_output=True, text=True, timeout=900)
+    duration = time.time() - t0
+
+    # Extract job ID from output
+    job_id = ""
+    for line in result.stdout.split("\n"):
+        if "Created job" in line or "Resuming job" in line:
+            parts = line.split()
+            for i, w in enumerate(parts):
+                if w == "job":
+                    job_id = parts[i + 1] if i + 1 < len(parts) else ""
+                    break
+        if "JOB COMPLETE:" in line:
+            job_id = line.split("JOB COMPLETE:")[-1].strip()
+
+    if result.returncode == 0:
+        return True, job_id, {"duration": duration}
+    else:
+        return False, job_id, {
+            "duration": duration,
+            "stderr_tail": result.stderr[-500:] if result.stderr else "",
+            "stdout_tail": result.stdout[-500:] if result.stdout else "",
+        }
+
+
+def attempt_repair(site: str, job_id: str, failure_info: dict) -> bool:
+    """Invoke claude -p once with a repair prompt. Returns True if repair succeeds."""
+    if not job_id:
+        return False
+
+    stderr_tail = failure_info.get("stderr_tail", "")
+    stdout_tail = failure_info.get("stdout_tail", "")
+    failure_text = f"{stderr_tail}\n{stdout_tail}"
+
+    repair_prompt = f"""You are repairing a failed RSS pipeline job.
+
+Job ID: {job_id}
+Site: {site}
+
+The pipeline failed with this output:
+{failure_text[-2000:]}
+
+Instructions:
+1. Read the job record at jobs/{job_id}/job.json to understand which stage failed.
+2. If the failure is in the 'generate' stage (validation, spec compliance), resume with:
+   rss new-article --site {site} --topic <from job> --resume {job_id}
+3. If the failure is a gate issue (foreign CSS class, word count), fix the article HTML and re-run gates.
+4. Do NOT deploy to production. Keep status as draft.
+5. Report whether the repair succeeded or failed.
+"""
+
+    eprint(f"[loop] Attempting repair via claude -p for job {job_id}...")
+    try:
+        result = subprocess.run(
+            ["claude", "-p", "--max-turns", "5", repair_prompt],
+            capture_output=True, text=True, timeout=600,
+        )
+        return result.returncode == 0 and "repair succeeded" in result.stdout.lower()
+    except (subprocess.TimeoutExpired, FileNotFoundError):
+        return False
+
+
+def is_usage_limit(failure_info: dict) -> bool:
+    """Check if failure looks like a usage/rate limit."""
+    text = (failure_info.get("stderr_tail", "") + failure_info.get("stdout_tail", "")).lower()
+    return any(p in text for p in ["rate limit", "usage limit", "429", "quota exceeded", "too many requests"])
+
+
+def main():
+    parser = argparse.ArgumentParser(description="RSS Loop — autonomous article generation")
+    parser.add_argument("--site", required=True, help="Site ID")
+    parser.add_argument("--max-articles", type=int, default=10, help="Stop after N articles (default 10)")
+    parser.add_argument("--max-consecutive-failures", type=int, default=3,
+                        help="Stop after N consecutive failures (default 3)")
+    parser.add_argument("--status", default="draft", choices=["draft", "publish"],
+                        help="Post status (default: draft — NEVER pass publish without explicit intent)")
+    parser.add_argument("--dry-run", action="store_true", help="Run pipeline without deploying")
+    args = parser.parse_args()
+
+    eprint(f"=== RSS Loop: {args.site} (max {args.max_articles} articles) ===\n")
+
+    # Preflight
+    if not run_preflight(args.site):
+        eprint("\n[loop] ABORT: preflight failed. Run 'rss doctor --site {args.site}' to diagnose.")
+        sys.exit(1)
+    eprint("[loop] Preflight passed.\n")
+
+    completed = 0
+    consecutive_failures = 0
+
+    while completed < args.max_articles:
+        item = pop_next(args.site)
+        if item is None:
+            eprint("[loop] Queue empty. Done.")
+            break
+
+        item_id = item["id"]
+        keyword = item["target_keyword"]
+        topic = item.get("topic", keyword)
+        eprint(f"\n[loop] Item {item_id}: {keyword}")
+
+        t0 = time.time()
+        success, job_id, info = run_article(
+            args.site, topic, keyword, status=args.status, dry_run=args.dry_run
+        )
+        duration = time.time() - t0
+
+        if success:
+            mark_done(args.site, item_id, job_id=job_id)
+            log_line(args.site, item_id, "done", duration)
+            eprint(f"[loop] DONE: {keyword} (job {job_id}, {duration:.0f}s)")
+            completed += 1
+            consecutive_failures = 0
+            continue
+
+        # Failure — check for usage limit
+        if is_usage_limit(info):
+            eprint("[loop] Usage limit detected. Sleeping 30 minutes...")
+            time.sleep(1800)
+            # Retry once
+            success2, job_id2, info2 = run_article(
+                args.site, topic, keyword, status=args.status, dry_run=args.dry_run
+            )
+            if success2:
+                mark_done(args.site, item_id, job_id=job_id2)
+                log_line(args.site, item_id, "done-retry", time.time() - t0)
+                eprint(f"[loop] DONE (after rate-limit retry): {keyword}")
+                completed += 1
+                consecutive_failures = 0
+                continue
+
+        # Attempt repair
+        repaired = attempt_repair(args.site, job_id, info)
+        if repaired:
+            mark_done(args.site, item_id, job_id=job_id)
+            log_line(args.site, item_id, "done-repair", time.time() - t0)
+            eprint(f"[loop] REPAIRED: {keyword}")
+            completed += 1
+            consecutive_failures = 0
+            continue
+
+        # Park
+        park_item(args.site, item_id,
+                  failure_reason=info.get("stderr_tail", "unknown")[:500])
+        log_line(args.site, item_id, "parked", time.time() - t0)
+        eprint(f"[loop] PARKED: {keyword}")
+        consecutive_failures += 1
+
+        if consecutive_failures >= args.max_consecutive_failures:
+            eprint(f"\n[loop] ABORT: {consecutive_failures} consecutive failures (systemic issue).")
+            eprint(f"[loop] Last failure: {info.get('stderr_tail', '')[:200]}")
+            sys.exit(1)
+
+    eprint(f"\n=== Loop complete: {completed} articles produced ===")
+
+
+if __name__ == "__main__":
+    main()

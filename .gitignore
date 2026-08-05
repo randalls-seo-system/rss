@@ -4,6 +4,13 @@ sites/*.json
 sites/*.env
 sites/*.php
 
+# But track these specific site JSON files
+!sites/*/config.json
+!sites/*-anchor-pools.json
+!sites/*/queue.json
+!sites/*-linker.json
+!sites/*-business-facts.md
+
 # Rendered output (site-specific, regenerated from templates)
 modules/*/rendered/
 
