@@ -29,7 +29,38 @@ node_modules/
 
 # Backups
 *.bak
+*.bak-*
 backups/
+
+# Audit artifacts (regenerated per run)
+audit/
+
+# Transient data files
+*.csv
+jobs/
+job-types/
+state/
+test-results/
+listing-data/
+listing-templates/
+
+# Generated featured images
+featured-images/lrg/
+featured-images/valn/
+featured-images/canopy/
+featured-images/gfp/
+
+# Working docs (not canonical — canonical docs are in docs/)
+*-todo.md
+*-guides-to-be-created.md
+page-creation-spec.md
+modules/content-production-v2/LRG_content_queue.md
+
+# Review sync module (WIP)
+modules/reviews-sync/
+
+# Spanish template (pipeline output, blocked by hook)
+modules/content-production-v2/templates/lrg-spanish-article.html
 
 # Sensitive
 *.key
