@@ -222,4 +222,48 @@ def seed_from_gsc(site_slug: str, min_impressions: int = 50,
 
     # Sort by impressions descending
     candidates.sort(key=lambda x: x["impressions"], reverse=True)
-    return candidates[:limit]
+    candidates = candidates[:limit]
+
+    # Page ownership check: pull query+page to flag refresh vs new
+    if candidates:
+        try:
+            page_response = service.searchanalytics().query(
+                siteUrl=gsc_property,
+                body={
+                    "startDate": start_date,
+                    "endDate": end_date,
+                    "dimensions": ["query", "page"],
+                    "rowLimit": 5000,
+                },
+            ).execute()
+            page_rows = page_response.get("rows", [])
+
+            # Build query -> top page map (by impressions)
+            query_top_page = {}
+            for pr in page_rows:
+                q = pr["keys"][0].lower().strip()
+                page_url = pr["keys"][1]
+                imp = pr.get("impressions", 0)
+                if q not in query_top_page or imp > query_top_page[q]["impressions"]:
+                    query_top_page[q] = {"page": page_url, "impressions": imp,
+                                         "position": round(pr.get("position", 0), 1)}
+
+            public_url = config.get("identity", {}).get("public_url", "").rstrip("/")
+            for c in candidates:
+                q = c["query"].lower().strip()
+                if q in query_top_page:
+                    top = query_top_page[q]
+                    slug = top["page"].replace(public_url + "/", "").strip("/")
+                    if slug and slug not in ("", "blog"):
+                        c["owning_page"] = slug
+                        c["owning_position"] = top["position"]
+                        c["flag"] = "REFRESH"
+                    else:
+                        c["flag"] = "NEW"
+                else:
+                    c["flag"] = "NEW"
+        except Exception as e:
+            print(f"Page ownership check failed (continuing without): {e}",
+                  file=sys.stderr)
+
+    return candidates

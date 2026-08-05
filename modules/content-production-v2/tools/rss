@@ -457,17 +457,34 @@ def cmd_queue(args):
         if not candidates:
             print("No candidates from GSC.")
             return
-        print(f"\n{len(candidates)} candidates from GSC (review before writing):\n")
-        for i, c in enumerate(candidates, 1):
-            print(f"  {i:3d}. [{c.get('impressions', '?'):>5} imp] {c['query']}")
-        print(f"\nTo write these to the queue, re-run with --confirm")
+        new_candidates = [c for c in candidates if c.get("flag") == "NEW"]
+        refresh_candidates = [c for c in candidates if c.get("flag") == "REFRESH"]
+
+        if new_candidates:
+            print(f"\n{len(new_candidates)} NEW candidates (no existing page owns the query):\n")
+            for i, c in enumerate(new_candidates, 1):
+                print(f"  {i:3d}. [{c.get('impressions', '?'):>5} imp] {c['query']}")
+
+        if refresh_candidates:
+            print(f"\n{len(refresh_candidates)} REFRESH candidates (existing page receives impressions — do NOT seed):\n")
+            for i, c in enumerate(refresh_candidates, 1):
+                owner = c.get("owning_page", "?")
+                pos = c.get("owning_position", "?")
+                print(f"  {i:3d}. [{c.get('impressions', '?'):>5} imp] {c['query']}  → {owner} (pos {pos})")
+
+        if not new_candidates:
+            print(f"\nAll {len(candidates)} candidates map to existing pages. Seed yields no new content.")
+            print("Consider refreshing the listed pages instead.")
+            return
+
+        print(f"\nTo write the {len(new_candidates)} NEW candidates to queue, re-run with --confirm")
         if getattr(args, "confirm", False):
             from lib.queue import add_item
             added = 0
-            for c in candidates:
+            for c in new_candidates:
                 add_item(args.site, c["query"], keyword=c["query"])
                 added += 1
-            print(f"\nAdded {added} items to queue.")
+            print(f"\nAdded {added} items to queue (refresh candidates excluded).")
 
     elif args.queue_action == "park":
         park_item(args.site, args.id)
