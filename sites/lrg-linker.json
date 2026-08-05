@@ -1,0 +1,524 @@
+{
+  "site_id": "lrg",
+  "site_domain": "lrgrealty.com",
+  "css_prefix": [
+    "rl-"
+  ],
+  "zone_suffixes": [
+    "hero",
+    "quick-card",
+    "callout",
+    "bluf",
+    "resources"
+  ],
+  "extra_zone_classes": [
+    "rl-resources"
+  ],
+  "skip_slugs": [
+    "privacy-policy",
+    "home-old",
+    "agents",
+    "contact",
+    "about-team-lrg",
+    "home",
+    "home-evaluation",
+    "resources",
+    "join-us",
+    "areas-we-cover",
+    "financing",
+    "media",
+    "lrg-blog",
+    "connect-with-lrg"
+  ],
+  "protected_slugs": [],
+  "excluded_destinations": [
+    "/lrg-blog/connect-with-lrg",
+    "/lrg-blog/category/",
+    "/wp-admin",
+    "/agents",
+    "/mortgage-calculator",
+    "/affordability-calculator",
+    "/lrg-blog/home-old"
+  ],
+  "pool_path": "sites/lrg-anchor-pools.json",
+  "canonical_formats": {
+    "english_post": "/lrg-blog/{slug}/",
+    "spanish_post": "/spanish-blog/{slug}/",
+    "listing_page": "/listings/{city-slug}/"
+  },
+  "source_dest_language_match": true,
+  "language_prefixes": {
+    "spanish": "/spanish-blog/",
+    "default": "/lrg-blog/"
+  },
+  "inbound_min": 3,
+  "per_run_dest_cap": 10,
+  "max_links_per_para": 1,
+  "max_links_per_section": 3,
+  "max_links_per_post": 10,
+  "pages_as_sources": false,
+  "url_transform": "lrg_blog_prefix",
+  "manual_destinations": [
+    {
+      "url": "https://lrgrealty.com/listings/homes-for-sale-san-antonio/",
+      "title": "Homes for Sale in San Antonio",
+      "anchor_seeds": [
+        "homes for sale in San Antonio",
+        "San Antonio homes for sale",
+        "San Antonio real estate listings"
+      ]
+    },
+    {
+      "url": "https://lrgrealty.com/listings/homes-for-sale-austin/",
+      "title": "Homes for Sale in Austin",
+      "anchor_seeds": [
+        "homes for sale in Austin",
+        "Austin homes for sale",
+        "Austin real estate listings"
+      ]
+    },
+    {
+      "url": "https://lrgrealty.com/listings/homes-for-sale-bastrop/",
+      "title": "Homes for Sale in Bastrop",
+      "anchor_seeds": [
+        "homes for sale in Bastrop",
+        "Bastrop homes for sale",
+        "Bastrop real estate listings"
+      ]
+    },
+    {
+      "url": "https://lrgrealty.com/listings/homes-for-sale-boerne/",
+      "title": "Homes for Sale in Boerne",
+      "anchor_seeds": [
+        "homes for sale in Boerne",
+        "Boerne homes for sale",
+        "Boerne real estate listings"
+      ]
+    },
+    {
+      "url": "https://lrgrealty.com/listings/homes-for-sale-new-braunfels/",
+      "title": "Homes for Sale in New Braunfels",
+      "anchor_seeds": [
+        "homes for sale in New Braunfels",
+        "New Braunfels homes for sale",
+        "New Braunfels real estate listings"
+      ]
+    },
+    {
+      "url": "https://lrgrealty.com/listings/homes-for-sale-georgetown/",
+      "title": "Homes for Sale in Georgetown",
+      "anchor_seeds": [
+        "homes for sale in Georgetown",
+        "Georgetown homes for sale",
+        "Georgetown real estate listings"
+      ]
+    },
+    {
+      "url": "https://lrgrealty.com/listings/homes-for-sale-killeen/",
+      "title": "Homes for Sale in Killeen",
+      "anchor_seeds": [
+        "homes for sale in Killeen",
+        "Killeen homes for sale",
+        "Killeen real estate listings"
+      ]
+    },
+    {
+      "url": "https://lrgrealty.com/listings/homes-for-sale-schertz/",
+      "title": "Homes for Sale in Schertz",
+      "anchor_seeds": [
+        "homes for sale in Schertz",
+        "Schertz homes for sale",
+        "Schertz real estate listings"
+      ]
+    },
+    {
+      "url": "https://lrgrealty.com/listings/homes-for-sale-round-rock/",
+      "title": "Homes for Sale in Round Rock",
+      "anchor_seeds": [
+        "homes for sale in Round Rock",
+        "Round Rock homes for sale",
+        "Round Rock real estate listings"
+      ]
+    },
+    {
+      "url": "https://lrgrealty.com/listings/homes-for-sale-fair-oaks-ranch/",
+      "title": "Homes for Sale in Fair Oaks Ranch",
+      "anchor_seeds": [
+        "homes for sale in Fair Oaks Ranch",
+        "Fair Oaks Ranch homes for sale",
+        "Fair Oaks Ranch real estate listings"
+      ]
+    },
+    {
+      "url": "https://lrgrealty.com/listings/homes-for-sale-cibolo/",
+      "title": "Homes for Sale in Cibolo",
+      "anchor_seeds": [
+        "homes for sale in Cibolo",
+        "Cibolo homes for sale",
+        "Cibolo real estate listings"
+      ]
+    },
+    {
+      "url": "https://lrgrealty.com/listings/homes-for-sale-garden-ridge/",
+      "title": "Homes for Sale in Garden Ridge",
+      "anchor_seeds": [
+        "homes for sale in Garden Ridge",
+        "Garden Ridge homes for sale",
+        "Garden Ridge real estate listings"
+      ]
+    },
+    {
+      "url": "https://lrgrealty.com/listings/homes-for-sale-dripping-springs/",
+      "title": "Homes for Sale in Dripping Springs",
+      "anchor_seeds": [
+        "homes for sale in Dripping Springs",
+        "Dripping Springs homes for sale",
+        "Dripping Springs real estate listings"
+      ]
+    },
+    {
+      "url": "https://lrgrealty.com/listings/homes-for-sale-leander/",
+      "title": "Homes for Sale in Leander",
+      "anchor_seeds": [
+        "homes for sale in Leander",
+        "Leander homes for sale",
+        "Leander real estate listings"
+      ]
+    },
+    {
+      "url": "https://lrgrealty.com/listings/homes-for-sale-lockhart/",
+      "title": "Homes for Sale in Lockhart",
+      "anchor_seeds": [
+        "homes for sale in Lockhart",
+        "Lockhart homes for sale",
+        "Lockhart real estate listings"
+      ]
+    },
+    {
+      "url": "https://lrgrealty.com/listings/homes-for-sale-bulverde/",
+      "title": "Homes for Sale in Bulverde",
+      "anchor_seeds": [
+        "homes for sale in Bulverde",
+        "Bulverde homes for sale",
+        "Bulverde real estate listings"
+      ]
+    },
+    {
+      "url": "https://lrgrealty.com/listings/homes-for-sale-spring-branch/",
+      "title": "Homes for Sale in Spring Branch",
+      "anchor_seeds": [
+        "homes for sale in Spring Branch",
+        "Spring Branch homes for sale",
+        "Spring Branch real estate listings"
+      ]
+    },
+    {
+      "url": "https://lrgrealty.com/listings/homes-for-sale-cedar-park/",
+      "title": "Homes for Sale in Cedar Park",
+      "anchor_seeds": [
+        "homes for sale in Cedar Park",
+        "Cedar Park homes for sale",
+        "Cedar Park real estate listings"
+      ]
+    },
+    {
+      "url": "https://lrgrealty.com/listings/homes-for-sale-harker-heights/",
+      "title": "Homes for Sale in Harker Heights",
+      "anchor_seeds": [
+        "homes for sale in Harker Heights",
+        "Harker Heights homes for sale",
+        "Harker Heights real estate listings"
+      ]
+    },
+    {
+      "url": "https://lrgrealty.com/listings/homes-for-sale-seguin/",
+      "title": "Homes for Sale in Seguin",
+      "anchor_seeds": [
+        "homes for sale in Seguin",
+        "Seguin homes for sale",
+        "Seguin real estate listings"
+      ]
+    },
+    {
+      "url": "https://lrgrealty.com/listings/homes-for-sale-san-marcos/",
+      "title": "Homes for Sale in San Marcos",
+      "anchor_seeds": [
+        "homes for sale in San Marcos",
+        "San Marcos homes for sale",
+        "San Marcos real estate listings"
+      ]
+    },
+    {
+      "url": "https://lrgrealty.com/listings/homes-for-sale-helotes/",
+      "title": "Homes for Sale in Helotes",
+      "anchor_seeds": [
+        "homes for sale in Helotes",
+        "Helotes homes for sale",
+        "Helotes real estate listings"
+      ]
+    },
+    {
+      "url": "https://lrgrealty.com/listings/homes-for-sale-live-oak/",
+      "title": "Homes for Sale in Live Oak",
+      "anchor_seeds": [
+        "homes for sale in Live Oak",
+        "Live Oak homes for sale",
+        "Live Oak real estate listings"
+      ]
+    },
+    {
+      "url": "https://lrgrealty.com/listings/homes-for-sale-universal-city/",
+      "title": "Homes for Sale in Universal City",
+      "anchor_seeds": [
+        "homes for sale in Universal City",
+        "Universal City homes for sale",
+        "Universal City real estate listings"
+      ]
+    },
+    {
+      "url": "https://lrgrealty.com/listings/homes-for-sale-converse/",
+      "title": "Homes for Sale in Converse",
+      "anchor_seeds": [
+        "homes for sale in Converse",
+        "Converse homes for sale",
+        "Converse real estate listings"
+      ]
+    },
+    {
+      "url": "https://lrgrealty.com/listings/homes-for-sale-selma/",
+      "title": "Homes for Sale in Selma",
+      "anchor_seeds": [
+        "homes for sale in Selma",
+        "Selma homes for sale",
+        "Selma real estate listings"
+      ]
+    },
+    {
+      "url": "https://lrgrealty.com/listings/homes-for-sale-pflugerville/",
+      "title": "Homes for Sale in Pflugerville",
+      "anchor_seeds": [
+        "homes for sale in Pflugerville",
+        "Pflugerville homes for sale",
+        "Pflugerville real estate listings"
+      ]
+    },
+    {
+      "url": "https://lrgrealty.com/listings/homes-for-sale-temple/",
+      "title": "Homes for Sale in Temple",
+      "anchor_seeds": [
+        "homes for sale in Temple",
+        "Temple homes for sale",
+        "Temple real estate listings"
+      ]
+    },
+    {
+      "url": "https://lrgrealty.com/listings/homes-for-sale-copperas-cove/",
+      "title": "Homes for Sale in Copperas Cove",
+      "anchor_seeds": [
+        "homes for sale in Copperas Cove",
+        "Copperas Cove homes for sale",
+        "Copperas Cove real estate listings"
+      ]
+    },
+    {
+      "url": "https://lrgrealty.com/listings/homes-for-sale-belton/",
+      "title": "Homes for Sale in Belton",
+      "anchor_seeds": [
+        "homes for sale in Belton",
+        "Belton homes for sale",
+        "Belton real estate listings"
+      ]
+    },
+    {
+      "url": "https://lrgrealty.com/listings/homes-for-sale-waco/",
+      "title": "Homes for Sale in Waco",
+      "anchor_seeds": [
+        "homes for sale in Waco",
+        "Waco homes for sale",
+        "Waco real estate listings"
+      ]
+    },
+    {
+      "url": "https://lrgrealty.com/listings/homes-for-sale-marble-falls/",
+      "title": "Homes for Sale in Marble Falls",
+      "anchor_seeds": [
+        "homes for sale in Marble Falls",
+        "Marble Falls homes for sale",
+        "Marble Falls real estate listings"
+      ]
+    },
+    {
+      "url": "https://lrgrealty.com/listings/homes-for-sale-fredericksburg/",
+      "title": "Homes for Sale in Fredericksburg",
+      "anchor_seeds": [
+        "homes for sale in Fredericksburg",
+        "Fredericksburg homes for sale",
+        "Fredericksburg real estate listings"
+      ]
+    },
+    {
+      "url": "https://lrgrealty.com/listings/homes-for-sale-kerrville/",
+      "title": "Homes for Sale in Kerrville",
+      "anchor_seeds": [
+        "homes for sale in Kerrville",
+        "Kerrville homes for sale",
+        "Kerrville real estate listings"
+      ]
+    },
+    {
+      "url": "https://lrgrealty.com/listings/homes-for-sale-wimberley/",
+      "title": "Homes for Sale in Wimberley",
+      "anchor_seeds": [
+        "homes for sale in Wimberley",
+        "Wimberley homes for sale",
+        "Wimberley real estate listings"
+      ]
+    },
+    {
+      "url": "https://lrgrealty.com/listings/homes-for-sale-canyon-lake/",
+      "title": "Homes for Sale in Canyon Lake",
+      "anchor_seeds": [
+        "homes for sale in Canyon Lake",
+        "Canyon Lake homes for sale",
+        "Canyon Lake real estate listings"
+      ]
+    },
+    {
+      "url": "https://lrgrealty.com/listings/homes-for-sale-buda/",
+      "title": "Homes for Sale in Buda",
+      "anchor_seeds": [
+        "homes for sale in Buda",
+        "Buda homes for sale",
+        "Buda real estate listings"
+      ]
+    },
+    {
+      "url": "https://lrgrealty.com/tools/texas-escrow-shock-test-taxes-insurance-mud/",
+      "title": "Texas Escrow Shock Test",
+      "anchor_seeds": [
+        "escrow shock test",
+        "escrow calculator"
+      ]
+    },
+    {
+      "url": "https://lrgrealty.com/tools/appraisal-gap-inspection/",
+      "title": "Appraisal Gap + Inspection Strategy",
+      "anchor_seeds": [
+        "appraisal gap strategy",
+        "inspection strategy"
+      ]
+    },
+    {
+      "url": "https://lrgrealty.com/tools/commute-stress-test/",
+      "title": "Commute Stress Test",
+      "anchor_seeds": [
+        "commute stress test",
+        "commute calculator"
+      ]
+    },
+    {
+      "url": "https://lrgrealty.com/tools/hoa-mud-pid-monthly-costs-texas/",
+      "title": "HOA MUD PID Costs",
+      "anchor_seeds": [
+        "HOA and MUD costs",
+        "MUD district costs"
+      ]
+    },
+    {
+      "url": "https://lrgrealty.com/tools/insurance-lower-quote-buying-power/",
+      "title": "Lower Insurance Quote",
+      "anchor_seeds": [
+        "insurance buying power",
+        "lower insurance quote"
+      ]
+    },
+    {
+      "url": "https://lrgrealty.com/tools/lower-cash-to-close-texas-credits/",
+      "title": "Lower Cash to Close",
+      "anchor_seeds": [
+        "cash to close",
+        "seller credits"
+      ]
+    },
+    {
+      "url": "https://lrgrealty.com/tools/mortgage-payment-breakdown-piti-builder/",
+      "title": "Mortgage PITI Builder",
+      "anchor_seeds": [
+        "PITI breakdown",
+        "mortgage payment builder"
+      ]
+    },
+    {
+      "url": "https://lrgrealty.com/tools/mortgage-payment-calculator-rate-tips/",
+      "title": "Mortgage Calculator",
+      "anchor_seeds": [
+        "mortgage calculator",
+        "payment calculator"
+      ]
+    },
+    {
+      "url": "https://lrgrealty.com/tools/real-mortgage-payment-taxes-insurance-hoa-pmi/",
+      "title": "Real Mortgage Payment",
+      "anchor_seeds": [
+        "real mortgage payment",
+        "full payment estimate"
+      ]
+    },
+    {
+      "url": "https://lrgrealty.com/tools/texas-new-build-taxes-hoa-reality-check/",
+      "title": "New Build Reality Check",
+      "anchor_seeds": [
+        "new build costs",
+        "new construction costs"
+      ]
+    },
+    {
+      "url": "https://lrgrealty.com/tools/texas-property-tax-protest-guide/",
+      "title": "Property Tax Protest Guide",
+      "anchor_seeds": [
+        "property tax protest",
+        "tax protest guide"
+      ]
+    },
+    {
+      "url": "https://lrgrealty.com/tools/rent-to-own-vs-buying-texas/",
+      "title": "Rent to Own Calculator",
+      "anchor_seeds": [
+        "rent to own calculator",
+        "rent vs buy"
+      ]
+    },
+    {
+      "url": "https://lrgrealty.com/tools/how-much-house-can-i-afford-san-antonio/",
+      "title": "Affordability Calculator",
+      "anchor_seeds": [
+        "affordability calculator",
+        "how much house"
+      ]
+    },
+    {
+      "url": "https://lrgrealty.com/tools/jbsa-bah-calculator/",
+      "title": "JBSA BAH Calculator",
+      "anchor_seeds": [
+        "BAH calculator",
+        "JBSA BAH rates"
+      ]
+    },
+    {
+      "url": "https://lrgrealty.com/tools/fort-cavazos-bah-calculator/",
+      "title": "Fort Cavazos BAH Calculator",
+      "anchor_seeds": [
+        "Fort Cavazos BAH",
+        "Killeen BAH calculator"
+      ]
+    },
+    {
+      "url": "https://lrgrealty.com/tools/real-estate-help-texas/",
+      "title": "Home Rescue",
+      "anchor_seeds": [
+        "real estate help",
+        "Home Rescue tool"
+      ]
+    }
+  ]
+}
