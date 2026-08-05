@@ -42,6 +42,7 @@ from lib.tool_utils import (
     eprint,
     extract_html,
     load_brand_voice,
+    load_brand_rules_block,
     load_prompt_template,
     render_prompt,
     validate_or_retry,
@@ -229,7 +230,7 @@ def build_btf_questions(
 # Build modes
 # ---------------------------------------------------------------------------
 
-def _build_atf(args, serp, brand_voice, topic_context, client):
+def _build_atf(args, serp, brand_voice, topic_context, client, evidence_block=""):
     """Build 3 ATF FAQ items, one LLM call each."""
     questions = get_atf_questions(serp, args.target_keyword)
     template = load_prompt_template("atf-faq.md")
@@ -238,10 +239,22 @@ def _build_atf(args, serp, brand_voice, topic_context, client):
     for i, question in enumerate(questions):
         eprint(f"[build-faqs] ATF FAQ {i+1}/3: {question[:60]}")
 
+        # Per-question evidence selection if store is available
+        faq_evidence = evidence_block
+        if args.evidence_json:
+            from lib.evidence import select_evidence_for_section, render_evidence_block
+            ev_path = Path(args.evidence_json)
+            if ev_path.exists():
+                selected = select_evidence_for_section(
+                    ev_path, question, args.target_keyword
+                )
+                faq_evidence = render_evidence_block(selected)
+
         prompt = render_prompt(template, {
             "QUESTION": question,
             "TARGET_KEYWORD": args.target_keyword,
             "TOPIC_CONTEXT": topic_context,
+            "EVIDENCE_BLOCK": faq_evidence,
             "INJECT_BRAND_VOICE": brand_voice,
         })
 
@@ -268,7 +281,7 @@ def _build_atf(args, serp, brand_voice, topic_context, client):
     write_output(final_html, args.output)
 
 
-def _build_btf(args, serp, brand_voice, topic_context, client):
+def _build_btf(args, serp, brand_voice, topic_context, client, evidence_block=""):
     """Build BTF FAQ section with single LLM call."""
     exclude: list[str] = []
     if args.exclude_questions:
@@ -289,6 +302,7 @@ def _build_btf(args, serp, brand_voice, topic_context, client):
         "ATF_FAQ_QUESTIONS_TO_EXCLUDE": exclude_text,
         "TARGET_KEYWORD": args.target_keyword,
         "TOPIC_CONTEXT": topic_context,
+        "EVIDENCE_BLOCK": evidence_block,
         "INJECT_BRAND_VOICE": brand_voice,
     })
 
@@ -332,6 +346,8 @@ def main():
         "--exclude-questions",
         help="Path to JSON list of ATF questions to exclude (for btf mode)",
     )
+    parser.add_argument("--topic-context", default="", help="Path to topic-context JSON (from research-context)")
+    parser.add_argument("--evidence-json", default="", help="Path to evidence store JSON")
     parser.add_argument("--output", help="Output file path (default: stdout)")
     args = parser.parse_args()
 
@@ -344,14 +360,43 @@ def main():
 
     serp = SerpData(Path(args.serp_json))
     brand_voice = load_brand_voice(archetype) if archetype else ""
+    brand_rules = load_brand_rules_block(args.site)
+    if brand_rules:
+        brand_voice += f"\n\n{brand_rules}"
     topic_context = build_topic_context(serp, args.target_keyword)
+
+    # Prepend research context if provided (universal injection)
+    if args.topic_context:
+        import json as _json2
+        tc_path = Path(args.topic_context)
+        if tc_path.exists():
+            try:
+                tc_data = _json2.loads(tc_path.read_text())
+                rc_text = tc_data.get("context", "")
+                if rc_text:
+                    topic_context = rc_text + "\n\n" + topic_context
+            except Exception:
+                pass
+
+    # Build evidence block if evidence store is available
+    evidence_block = ""
+    if args.evidence_json:
+        from lib.evidence import select_evidence_for_section, render_evidence_block
+        ev_path = Path(args.evidence_json)
+        if ev_path.exists():
+            selected = select_evidence_for_section(
+                ev_path, args.target_keyword, args.target_keyword
+            )
+            evidence_block = render_evidence_block(selected)
+            if evidence_block:
+                eprint(f"[build-faqs] Evidence: {len(selected)} items for FAQs")
 
     client = LLMClient(provider=provider, model=model)
 
     if args.mode == "atf":
-        _build_atf(args, serp, brand_voice, topic_context, client)
+        _build_atf(args, serp, brand_voice, topic_context, client, evidence_block)
     else:
-        _build_btf(args, serp, brand_voice, topic_context, client)
+        _build_btf(args, serp, brand_voice, topic_context, client, evidence_block)
 
 
 if __name__ == "__main__":

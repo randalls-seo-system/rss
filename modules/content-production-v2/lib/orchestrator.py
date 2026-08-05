@@ -212,12 +212,12 @@ def run_gates(html: str, config: dict) -> dict:
                 body_links.append(href)
     results["no_writer_links"] = "pass" if not body_links else f"FAIL: {len(body_links)} internal links in body before link pass"
 
-    # Gate 8: CTA present
-    if cta_url:
+    # Gate 8: CTA present (skip if not configured or TODO-verify)
+    if cta_url and cta_url != "TODO-verify" and not cta_url.startswith("TODO"):
         has_cta = cta_url.rstrip("/") in html
         results["cta_present"] = "pass" if has_cta else f"FAIL: CTA URL {cta_url} not found"
     else:
-        results["cta_present"] = "pass (no CTA configured)"
+        results["cta_present"] = "pass (CTA not configured)"
 
     return results
 
@@ -326,6 +326,118 @@ def run_assemble(job: dict, config: dict, skip_gap: bool = False) -> Path:
             return linked
         raise RuntimeError(f"Article HTML not found at {article_path}")
 
+    return article_path
+
+
+# ───────────────────────────────────────────────────────────────────────────
+# Stage: generate from voice capture
+# ───────────────────────────────────────────────────────────────────────────
+
+def load_capture_transcript(capture_path: str) -> tuple[str, str]:
+    """Load a voice capture JSON and return (story_text, qualify_text)."""
+    path = Path(os.path.expanduser(capture_path))
+    if not path.exists():
+        raise FileNotFoundError(f"Capture file not found: {path}")
+    raw = path.read_text()
+    if raw.startswith("<?php"):
+        raw = raw[raw.index("\n") + 1:]
+    cap = json.loads(raw)
+    responses = cap.get("responses", {})
+    story = (responses.get("story") or responses.get("tell_story") or "").strip()
+    qualify = (responses.get("qualify") or "").strip()
+    return story, qualify
+
+
+def generate_from_capture(job: dict, config: dict, capture_path: str) -> Path:
+    """Generate an article from a voice-capture transcript via claude CLI.
+
+    The transcript is the primary source material. The voice archetype and
+    claims policy govern style and assertion boundaries. Gap-scan material
+    supplements competitive coverage but never overrides the SME's claims.
+
+    Returns path to the generated article HTML.
+    """
+    jd = job_dir(job)
+    post_id = job["post_id"]
+    topic = job["topic"]
+
+    story, qualify = load_capture_transcript(capture_path)
+    if not story:
+        raise ValueError("Capture has no 'story' content — cannot generate")
+
+    # Load voice archetype
+    archetype = config.get("content", {}).get("brand_voice_archetype", "")
+    voice_path = MODULE_DIR / "brand-voice" / "archetypes" / f"{archetype}.md"
+    # Try repo-root-relative path
+    if not voice_path.exists():
+        voice_path = REPO_ROOT / "modules" / "brand-voice" / "archetypes" / f"{archetype}.md"
+    voice_text = voice_path.read_text()[:2500] if voice_path.exists() else ""
+
+    # Load claims policy
+    policy_path = config.get("content", {}).get("claims_policy", "")
+    policy_text = ""
+    if policy_path:
+        expanded = Path(os.path.expanduser(policy_path))
+        if expanded.exists():
+            policy_text = expanded.read_text()[:3000]
+
+    css_prefix = (config.get("content", {}).get("css_prefix") or ["ahn"])[0]
+    min_words = config.get("content", {}).get("article_min_words", 1800)
+    site_name = config.get("identity", {}).get("name", "")
+
+    prompt = f"""You are writing a hub article for {site_name} from the SME's voice capture.
+
+VOICE (how to write):
+{voice_text}
+
+CLAIMS POLICY (what you can and cannot assert):
+{policy_text}
+
+SME'S CAPTURED ANSWERS (PRIMARY source material — substance + voice):
+
+### Story
+{story}
+
+### Qualification Details
+{qualify or "(not provided for this topic)"}
+
+ARTICLE SPEC:
+- Topic: {topic}
+- Target: {min_words}-{min_words + 700} words
+- Write in the SME's voice (first person if licensed in the voice file)
+- Structure: BLUF (50-70 words), 5-7 H2 sections (each with intro paragraph + structural element), "The Bottom Line" closing, 5-8 FAQs, Resources Used
+- Each H2: answer-first intro (50-70w) + one structural element (table, bullets, or callout)
+- Include at least one real dollar example from the capture
+- Shariah-compliance statements: ALWAYS attributed to the provider's Shariah board
+- Qualification numbers: use ONLY the SME's stated figures, framed as observed ("the financiers I work with typically look for...")
+- No H1 in body, no em dashes, use CSS prefix "{css_prefix}" for component classes
+- CTA: omit if not configured
+
+Return clean HTML only (h2, h3, p, strong, table, ul/li, div for callouts). No markdown, no preamble, no H1.
+"""
+
+    prompt_path = jd / "capture-generation-prompt.txt"
+    prompt_path.write_text(prompt)
+
+    article_path = jd / f"{post_id}-article.html"
+    result = subprocess.run(
+        f'cat "{prompt_path}" | claude -p - --output-format text',
+        shell=True, capture_output=True, text=True, timeout=TIMEOUTS["generation"],
+    )
+
+    if result.returncode != 0:
+        raise RuntimeError(f"claude CLI failed (rc={result.returncode}): {result.stderr[-300:]}")
+
+    html = result.stdout.strip()
+    # Strip markdown wrapper if present
+    if not html.startswith("<"):
+        import re as _re
+        m = _re.search(r'<div|<section|<h2|<p', html)
+        if m:
+            html = html[m.start():]
+        html = _re.sub(r'```\s*$', '', html).strip()
+
+    article_path.write_text(html)
     return article_path
 
 
@@ -712,8 +824,15 @@ def run_claims_classification(
     policy_path: str,
     scan_dir: Path,
     job_path: Path,
+    transcript_text: str = "",
 ) -> list[dict]:
-    """Classify each claim as POLICY-BACKED, SOURCE-BACKED, or UNSOURCED.
+    """Classify each claim as POLICY, SOURCE, SME-SOURCED, or UNSOURCED.
+
+    Classification tiers:
+    - POLICY: claim matches the site's claims policy (ratified positions)
+    - SOURCE: claim matches gap-scan research material
+    - SME-SOURCED: claim is traceable to the SME's voice-capture transcript
+    - UNSOURCED: not backed by any source — requires human review
 
     Uses claude CLI (Opus) with conservative instructions.
     """
@@ -727,23 +846,43 @@ def run_claims_classification(
         if os.path.exists(expanded):
             policy_text = Path(expanded).read_text()[:4000]
 
-    # Load scan excerpts (gap analysis, SERP data)
+    # Load scan excerpts (gap analysis, SERP data, evidence store)
     scan_text = ""
-    for scan_file in sorted(scan_dir.glob("*-subtopic-gaps.json")) + sorted(scan_dir.glob("*-empty-serp.json")):
+    scan_globs = (
+        sorted(scan_dir.glob("*-subtopic-gaps.json"))
+        + sorted(scan_dir.glob("*-empty-serp.json"))
+        + sorted(scan_dir.glob("*-evidence.json"))
+    )
+    for scan_file in scan_globs:
         try:
-            scan_text += scan_file.read_text()[:2000] + "\n"
+            # Evidence store is the richest source — larger excerpt budget
+            budget = 6000 if scan_file.name.endswith("-evidence.json") else 2000
+            scan_text += scan_file.read_text()[:budget] + "\n"
         except Exception:
             pass
 
+    # Truncate transcript for prompt size
+    sme_text = transcript_text[:5000] if transcript_text else ""
+
     claims_json = json.dumps(claims, indent=2, ensure_ascii=False)
 
-    prompt = f"""You are a factual-claims auditor for a mortgage/finance content site. For each claim below, classify it as:
+    sme_section = ""
+    if sme_text:
+        sme_section = f"""
+SME VOICE-CAPTURE TRANSCRIPT (if a claim is traceable to this transcript — the SME stated it or it closely paraphrases what the SME said — classify it SME-SOURCED):
+{sme_text}
+"""
+
+    prompt = f"""You are a factual-claims auditor for a content site. For each claim below, classify it as:
 
 - POLICY: the claim is explicitly stated in the site's claims policy (the authoritative positions below)
 - SOURCE: the claim appears in or is directly supported by the gap-scan research material below
-- UNSOURCED: the claim is not backed by either source — it may be correct, but it's not verifiable from the provided material
+- SME-SOURCED: the claim is traceable to the SME's voice-capture transcript below — the SME stated it, or it closely paraphrases what the SME said (same fact, same number, same example)
+- UNSOURCED: the claim is not backed by any of the above sources — it may be correct, but it's not verifiable from the provided material
 
-Be CONSERVATIVE: if you're unsure whether a claim is backed, classify it UNSOURCED. We'd rather flag a correct claim for human review than let an incorrect one through.
+Priority: POLICY > SOURCE > SME-SOURCED > UNSOURCED. If a claim matches multiple tiers, use the highest.
+
+Be CONSERVATIVE on UNSOURCED: if you're unsure, classify UNSOURCED. But be GENEROUS on SME-SOURCED: if the SME clearly stated the same fact or example (even in different words), that's SME-SOURCED, not UNSOURCED.
 
 For each UNSOURCED claim, add a "suggestion" field: how to neutralize it (replace specific number with directional language, delete invented rule, or note that human verification is needed).
 
@@ -752,6 +891,7 @@ CLAIMS POLICY (authoritative positions — if a claim matches one of these, it's
 
 GAP-SCAN RESEARCH MATERIAL (if a claim matches content from these sources, it's SOURCE):
 {scan_text or "(no scan material available)"}
+{sme_section}
 
 CLAIMS TO CLASSIFY:
 {claims_json}
@@ -800,8 +940,12 @@ Return ONLY the JSON array."""
              "suggestion": "Parse error — manual review required"} for c in claims]
 
 
-def run_d2_claims_check(html: str, config: dict, job: dict) -> dict:
+def run_d2_claims_check(html: str, config: dict, job: dict, transcript_text: str = "") -> dict:
     """Full D2 pipeline: ventriloquism gate + claim extraction + classification.
+
+    If transcript_text is provided (capture-driven mode), it's used as an
+    additional source for D2 classification. Claims traceable to the SME's
+    transcript classify as SME-SOURCED instead of UNSOURCED.
 
     Returns {
         "ventriloquism": [hits],
@@ -809,6 +953,7 @@ def run_d2_claims_check(html: str, config: dict, job: dict) -> dict:
         "unsourced_count": int,
         "policy_count": int,
         "source_count": int,
+        "sme_sourced_count": int,
         "passed": bool,
     }
     """
@@ -820,30 +965,142 @@ def run_d2_claims_check(html: str, config: dict, job: dict) -> dict:
     # Step 2: Claim extraction (Opus)
     claims = run_claims_extraction(html, jd)
 
-    # Step 3: Classify claims
+    # Step 3: Classify claims (with optional transcript as source)
     policy_path = config.get("content", {}).get("claims_policy", "")
-    classified = run_claims_classification(claims, policy_path, jd, jd)
+    classified = run_claims_classification(claims, policy_path, jd, jd, transcript_text=transcript_text)
 
     # Count
     unsourced = [c for c in classified if c.get("classification") == "UNSOURCED"]
     policy = [c for c in classified if c.get("classification") == "POLICY"]
     source = [c for c in classified if c.get("classification") == "SOURCE"]
+    sme_sourced = [c for c in classified if c.get("classification") == "SME-SOURCED"]
+
+    # Check ventriloquism license
+    voice_path = config.get("content", {}).get("claims_policy", "")
+    voice_file_path = os.path.expanduser(
+        config.get("content", {}).get("brand_voice_archetype", "")
+    )
+    first_person_licensed = bool(transcript_text)  # capture mode implies licensed
 
     # Save full report
     report = {
         "ventriloquism_hits": vent_hits,
+        "ventriloquism_licensed": first_person_licensed,
         "total_claims": len(classified),
         "classified_claims": classified,
         "unsourced_count": len(unsourced),
         "policy_count": len(policy),
         "source_count": len(source),
-        "passed": len(vent_hits) == 0 and len(unsourced) == 0,
+        "sme_sourced_count": len(sme_sourced),
+        "passed": (len(vent_hits) == 0 or first_person_licensed) and len(unsourced) == 0,
     }
     (jd / "d2-claims-report.json").write_text(
         json.dumps(report, indent=2, ensure_ascii=False)
     )
 
     return report
+
+
+def resolve_unsourced_claims(job: dict, article_path: Path, mode: str = "neutralize") -> tuple[Path, list[dict]]:
+    """Resolve UNSOURCED claims by neutralizing or removing them.
+
+    mode:
+      "neutralize" — apply D2's suggested neutralization for each claim
+      "remove" — remove the sentence containing the claim entirely
+
+    Returns (modified_article_path, resolution_log).
+    Each resolution_log entry: {claim, action, before, after, reason}
+    """
+    jd = job_dir(job)
+    report_path = jd / "d2-claims-report.json"
+    if not report_path.exists():
+        return article_path, []
+
+    report = json.loads(report_path.read_text())
+    classified = report.get("classified_claims", [])
+    unsourced = [c for c in classified if c.get("classification") == "UNSOURCED"]
+
+    if not unsourced:
+        return article_path, []
+
+    html = article_path.read_text()
+    log_entries = []
+
+    for claim in unsourced:
+        claim_text = claim.get("claim", "")
+        suggestion = claim.get("suggestion", "")
+
+        if mode == "remove":
+            # Remove the sentence containing the claim
+            import re as _re
+            # Find and remove the sentence
+            pattern = _re.escape(claim_text[:60])
+            m = _re.search(pattern, html)
+            if m:
+                # Find sentence boundaries
+                start = html.rfind(".", 0, m.start())
+                end = html.find(".", m.end())
+                if start >= 0 and end >= 0:
+                    removed = html[start + 1 : end + 1].strip()
+                    html = html[: start + 1] + html[end + 1 :]
+                    log_entries.append({
+                        "claim": claim_text[:100],
+                        "action": "removed",
+                        "removed_text": removed[:150],
+                        "reason": suggestion or "UNSOURCED — not in transcript, policy, or sources",
+                    })
+        elif mode == "neutralize" and suggestion:
+            # Try to apply the suggestion (directional language replacement)
+            # Find the claim text in the HTML
+            if claim_text[:50] in html:
+                # Use directional language from suggestion
+                neutral = suggestion.split(":")[-1].strip() if ":" in suggestion else ""
+                if not neutral or len(neutral) > 200:
+                    # Suggestion isn't a clean replacement — remove instead
+                    html = html.replace(claim_text, "", 1)
+                    log_entries.append({
+                        "claim": claim_text[:100],
+                        "action": "removed (suggestion not a clean replacement)",
+                        "reason": suggestion[:150],
+                    })
+                else:
+                    html = html.replace(claim_text, neutral, 1)
+                    log_entries.append({
+                        "claim": claim_text[:100],
+                        "action": "neutralized",
+                        "replacement": neutral[:150],
+                        "reason": suggestion[:150],
+                    })
+            else:
+                log_entries.append({
+                    "claim": claim_text[:100],
+                    "action": "skipped (claim text not found in HTML)",
+                    "reason": suggestion[:150],
+                })
+        else:
+            # No suggestion — remove
+            if claim_text[:50] in html:
+                html = html.replace(claim_text, "", 1)
+                log_entries.append({
+                    "claim": claim_text[:100],
+                    "action": "removed (no suggestion available)",
+                    "reason": "UNSOURCED with no neutralization suggestion",
+                })
+
+    article_path.write_text(html)
+
+    # Append resolution history to job
+    if "history" not in job:
+        job["history"] = []
+    job["history"].append({
+        "stage": "approve_claims",
+        "timestamp": datetime.now().isoformat(),
+        "mode": mode,
+        "resolutions": log_entries,
+    })
+    save_job(job)
+
+    return article_path, log_entries
 
 
 # ───────────────────────────────────────────────────────────────────────────

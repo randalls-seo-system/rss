@@ -13,12 +13,10 @@ See docs/v2-module-architecture.md "tools/extract-subtopic-gaps.py" for spec.
 
 import argparse
 import difflib
-import hashlib
 import json
 import os
 import re
 import sys
-import time
 from pathlib import Path
 
 # Add lib/ to path for sibling imports
@@ -26,80 +24,16 @@ TOOL_DIR = Path(__file__).resolve().parent
 MODULE_DIR = TOOL_DIR.parent
 sys.path.insert(0, str(MODULE_DIR))
 
+from lib.page_fetch import fetch_page, strip_boilerplate
 from lib.serp_adapter import SerpData
 
-PAGE_CACHE_DIR = Path.home() / ".cache" / "rss-serp-pages"
-CACHE_TTL_DAYS = 7
-USER_AGENT = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36"
-FETCH_TIMEOUT = 15
 FUZZY_THRESHOLD = 0.75
 
-KNOWN_BLOCKED_DOMAINS = {
-    'bungalow.com',
-    'zillow.com',
-    'apartments.com',
-    'realtor.com',
-    'reddit.com',
-    'forbes.com',
-    'wsj.com',
-    'nytimes.com',
-    'bloomberg.com',
-}
 STRIP_WORDS = {"the", "a", "an", "your", "my", "our", "his", "her", "their", "this", "that", "of", "in", "for", "and", "to", "on", "is", "are", "was"}
 
 
 def log(msg: str) -> None:
     print(msg, file=sys.stderr)
-
-
-# ---------------------------------------------------------------------------
-# Page cache
-# ---------------------------------------------------------------------------
-
-def _cache_path(url: str) -> Path:
-    h = hashlib.sha256(url.encode()).hexdigest()
-    return PAGE_CACHE_DIR / f"{h}.html"
-
-
-def _cache_get(url: str) -> str | None:
-    path = _cache_path(url)
-    if not path.exists():
-        return None
-    age_days = (time.time() - path.stat().st_mtime) / 86400
-    if age_days > CACHE_TTL_DAYS:
-        return None
-    return path.read_text(errors="replace")
-
-
-def _cache_set(url: str, html: str) -> None:
-    PAGE_CACHE_DIR.mkdir(parents=True, exist_ok=True)
-    _cache_path(url).write_text(html)
-
-
-def _is_blocked_domain(url: str) -> bool:
-    from urllib.parse import urlparse
-    domain = urlparse(url).netloc.lower().lstrip("www.")
-    return any(domain == d or domain.endswith("." + d) for d in KNOWN_BLOCKED_DOMAINS)
-
-
-def fetch_page(url: str) -> str | None:
-    """Fetch a page, using disk cache. Returns HTML or None on failure."""
-    if _is_blocked_domain(url):
-        log(f"  Skipping known-blocked domain: {url[:80]}")
-        return None
-    cached = _cache_get(url)
-    if cached is not None:
-        return cached
-    try:
-        import requests
-        resp = requests.get(url, headers={"User-Agent": USER_AGENT}, timeout=FETCH_TIMEOUT)
-        resp.raise_for_status()
-        html = resp.text
-        _cache_set(url, html)
-        return html
-    except Exception as e:
-        log(f"  WARN: failed to fetch {url[:80]}: {e}")
-        return None
 
 
 # ---------------------------------------------------------------------------
@@ -111,9 +45,7 @@ def extract_headings(html: str) -> list[str]:
     from bs4 import BeautifulSoup
     soup = BeautifulSoup(html, "html.parser")
 
-    # Remove nav, footer, sidebar, header, script, style
-    for tag in soup.find_all(["nav", "footer", "aside", "script", "style", "header", "noscript"]):
-        tag.decompose()
+    strip_boilerplate(soup)
 
     headings = []
     for h in soup.find_all(["h2", "h3"]):

@@ -45,7 +45,9 @@ modules/content-production-v2/
 │   ├── overlay_loader.py              # Load + validate overlay YAMLs
 │   ├── llm_client.py                  # Unified Claude CLI / OpenAI dispatch
 │   ├── serp_adapter.py                # Reads serp-research output, exposes typed accessors
-│   └── anchor_pool.py                 # Reads linking-v2 anchor pool, applies competition rule
+│   ├── anchor_pool.py                 # Reads linking-v2 anchor pool, applies competition rule
+│   ├── page_fetch.py                  # Shared page fetching + caching (used by gap extraction + evidence)
+│   └── evidence.py                    # Evidence layer: build store, select per section
 ├── tools/
 │   ├── extract-subtopic-gaps.py       # SERP → gap analysis
 │   ├── compute-target-wc.py           # SERP → word count target
@@ -412,6 +414,68 @@ If anchor pool is empty (linking-v2 hasn't been seeded yet), return empty lists.
 
 ---
 
+### lib/page_fetch.py
+
+**Purpose:** Shared page-fetching and disk-caching utilities. Used by both
+`extract-subtopic-gaps.py` (heading extraction) and `evidence.py` (passage
+extraction). Single implementation — no duplication.
+
+**Public API:**
+```python
+def fetch_page(url: str) -> str | None
+def cache_get(url: str) -> str | None
+def cache_set(url: str, html: str) -> None
+def is_blocked_domain(url: str) -> bool
+def strip_boilerplate(soup) -> None  # mutates BeautifulSoup in place
+```
+
+---
+
+### lib/evidence.py
+
+**Purpose:** Evidence layer — gives section writers real source material
+instead of writing from parametric memory. See `docs/article-spec.md`
+Section 17.3 for the full spec.
+
+**Public API:**
+```python
+@dataclass
+class EvidenceItem:
+    text: str
+    kind: str          # competitor_page | google_paa | google_ai_overview | business_facts
+    source_url: str
+    source_title: str
+    serp_position: int
+    tier: str          # confirmed | verify (business_facts only)
+
+def build_evidence_store(serp, site_slug: str, output_dir: Path, post_id: int) -> Path
+    """Build {post_id}-evidence.json from SERP + business facts.
+    Runs once per article in Phase B.8b."""
+
+def select_evidence_for_section(
+    store_path: Path, section_title: str, target_keyword: str,
+    max_items: int = 8, max_chars: int = 2500
+) -> list[dict]
+    """Select top evidence items for a given section by keyword overlap."""
+
+def render_evidence_block(items: list[dict]) -> str
+    """Format selected items as a labeled block for prompt injection."""
+```
+
+**Data flow:** Phase B.8b calls `build_evidence_store`. The store path
+is recorded on `PipelineState.evidence_path`. Phases E (BLUF), F (body
+H2s), and G (BTF FAQs) pass `--evidence-json <path>` to each section
+builder. Each builder calls `select_evidence_for_section` with its
+section title, then `render_evidence_block` to produce the
+`{{EVIDENCE_BLOCK}}` prompt variable.
+
+**Degradation:** When evidence store is absent or empty, the
+`{{EVIDENCE_BLOCK}}` template variable renders as empty string. Section
+builders fall back to the existing `build_topic_context` snippet
+behavior. `--allow-no-serp` runs and older invocation paths keep working.
+
+---
+
 ### tools/extract-subtopic-gaps.py
 
 **Purpose:** Take SERP data, return subtopic frequency map.
@@ -539,6 +603,7 @@ python3 assemble-article.py \
 2. Load intent overlay (auto-detect or `--intent` override)
 3. Run `serp-research/analyze-serp.py` (or use cached if fresh)
 4. Run `extract-subtopic-gaps.py` → gaps.json
+4b. Run `build_evidence_store` → evidence.json (reuses page cache from step 4)
 5. Run `compute-target-wc.py` → target word count
 6. Build H2 inventory: overlay required slots ∪ high-coverage SERP subtopics ∪ gap-fill picks
 7. Build header prelude (deterministic from site config)

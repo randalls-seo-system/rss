@@ -17,6 +17,17 @@ You are writing ONE body H2 section for an article about **{{TARGET_KEYWORD}}**.
 - **Topic context for this subtopic:** {{TOPIC_CONTEXT}}
 - **Prior sections summary (what the article has already covered):** {{PRIOR_SECTIONS_SUMMARY}}
 
+## EVIDENCE (source material for factual grounding)
+
+{{EVIDENCE_BLOCK}}
+
+**Evidence rules:**
+- Ground specific factual assertions (numbers, percentages, timelines, dollar figures, named rules/programs/forms, thresholds) in the evidence above or in `[business_facts | CONFIRMED]` items. If the evidence does not support a specific figure, use directional or conditional language instead of inventing one.
+- `[business_facts | VERIFY]` items get conditional phrasing: "check current...", "call for...", "verify with...".
+- NEVER copy competitor passages verbatim or near-verbatim. Evidence is for factual grounding only. All prose must be original and in brand voice.
+- Never mention or cite competitor URLs or brand names in the article body.
+- Evidence informs; it does not dictate structure. The section still follows its LOCKED structural element and all existing caps.
+
 ## Output
 
 Produce exactly this HTML structure:

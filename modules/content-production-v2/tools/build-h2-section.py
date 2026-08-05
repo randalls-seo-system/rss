@@ -37,6 +37,7 @@ from lib.tool_utils import (
     eprint,
     extract_html,
     load_brand_voice,
+    load_brand_rules_block,
     load_prompt_template,
     render_prompt,
     validate_or_retry,
@@ -78,8 +79,8 @@ def make_validator(structural_pref: str, site_domain: str = ""):
         )
 
         struct_count = len(tables) + len(lists) + len(callouts)
-        if structural_pref == "prose_optional_table":
-            # prose_optional_table: structural element is optional
+        if structural_pref in ("prose_optional_table", "prose"):
+            # prose / prose_optional_table: structural element is optional
             pass
         elif struct_count == 0:
             errors.append(
@@ -119,7 +120,7 @@ def main():
     parser.add_argument("--section-role", required=True, help="Section role")
     parser.add_argument(
         "--structural-element", required=True,
-        choices=["table", "bullets", "callout", "prose_optional_table"],
+        choices=["table", "bullets", "callout", "prose_optional_table", "prose"],
         help="Locked structural element from template",
     )
     parser.add_argument("--callout-key", help="Callout CSS key (required if structural-element=callout)")
@@ -132,6 +133,7 @@ def main():
     parser.add_argument("--template-hint", default="", help="Role hint from structural template (e.g., 'Headline fee schedule or rate breakdown')")
     parser.add_argument("--h2-format", default="statement", choices=["question", "statement"], help="H2 format: question (50-60w AEO answer) or statement (50-70w)")
     parser.add_argument("--prior-sections-summary", default="", help="Summary of prior sections for context continuity")
+    parser.add_argument("--evidence-json", default="", help="Path to evidence store JSON (from lib/evidence.py)")
     parser.add_argument("--output", help="Output file path (default: stdout)")
     args = parser.parse_args()
 
@@ -152,7 +154,23 @@ def main():
     serp = SerpData(Path(args.serp_json))
     topic_context = build_topic_context(serp, f"{args.h2_title} {args.target_keyword}")
 
+    # Build evidence block if evidence store is available
+    evidence_block = ""
+    if args.evidence_json:
+        from lib.evidence import select_evidence_for_section, render_evidence_block
+        ev_path = Path(args.evidence_json)
+        if ev_path.exists():
+            selected = select_evidence_for_section(
+                ev_path, args.h2_title, args.target_keyword
+            )
+            evidence_block = render_evidence_block(selected)
+            if evidence_block:
+                eprint(f"[build-h2-section] Evidence: {len(selected)} items for this section")
+
     brand_voice = load_brand_voice(archetype) if archetype else ""
+    brand_rules = load_brand_rules_block(args.site)
+    if brand_rules:
+        brand_voice += f"\n\n{brand_rules}"
 
     # Prior sections summary (for cross-section context)
     prior_summary = args.prior_sections_summary if hasattr(args, 'prior_sections_summary') and args.prior_sections_summary else ""
@@ -170,6 +188,7 @@ def main():
         "CALLOUT_LABEL": args.callout_label or "",
         "TARGET_WORD_COUNT": str(args.target_word_count),
         "TOPIC_CONTEXT": topic_context,
+        "EVIDENCE_BLOCK": evidence_block,
         "PRIOR_SECTIONS_SUMMARY": prior_summary,
         "INJECT_BRAND_VOICE": brand_voice,
     })
