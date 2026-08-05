@@ -523,6 +523,8 @@ class PipelineState:
     serp_json_path: Path | None = None
     subtopic_gaps: dict = field(default_factory=dict)
     target_wc: dict = field(default_factory=dict)
+    evidence_path: Path | None = None
+    evidence_status: str = ""
 
     # Phase C
     h2_inventory: list[dict] = field(default_factory=list)
@@ -859,6 +861,27 @@ def phase_b(state: PipelineState, allow_no_serp: bool = False) -> None:
                 eprint(f"  [B.8] Subtopic gap extraction failed, using defaults: {e}")
     else:
         eprint("  [B.8] Skipping subtopic gaps (no SERP)")
+
+    # Step 8b: Build evidence store
+    if state.serp:
+        eprint("  [B.8b] Building evidence store")
+        try:
+            from lib.evidence import build_evidence_store
+            ev_path = build_evidence_store(
+                state.serp, state.site_slug, state.output_dir, state.post_id
+            )
+            state.evidence_path = ev_path
+            # Count items for status
+            ev_data = json.loads(ev_path.read_text())
+            state.evidence_status = f"ok ({len(ev_data)} items)"
+            eprint(f"  [B.8b] Evidence store: {len(ev_data)} items")
+        except Exception as e:
+            eprint(f"  [B.8b] Evidence store build FAILED (non-fatal): {e}")
+            state.evidence_path = None
+            state.evidence_status = f"failed: {e}"
+    else:
+        eprint("  [B.8b] Skipping evidence store (no SERP)")
+        state.evidence_status = "skipped: no SERP data"
 
     # Step 9: Compute target word count
     if state.serp and state.serp_json_path:
@@ -1813,6 +1836,8 @@ def phase_d(state: PipelineState) -> None:
             ]
         if context_path.exists():
             faq_args += ["--topic-context", str(context_path)]
+        if state.evidence_path and state.evidence_path.exists():
+            faq_args += ["--evidence-json", str(state.evidence_path)]
         try:
             _run_tool(str(faqs_tool), faq_args, "D.15")
             state.atf_faqs_html = atf_faq_path.read_text()
@@ -1945,15 +1970,18 @@ def phase_e(state: PipelineState) -> None:
     context_path.write_text(json.dumps({"context": topic_ctx}))
 
     serp_json = str(state.serp_json_path) if state.serp_json_path else "/dev/null"
+    bluf_args = [
+        "--site", state.site_slug,
+        "--target-keyword", state.target_keyword,
+        "--topic-context", str(context_path),
+        "--friction-point", f"Key considerations for {state.target_keyword}",
+        "--serp-json", serp_json,
+        "--output", str(bluf_path),
+    ]
+    if state.evidence_path and state.evidence_path.exists():
+        bluf_args += ["--evidence-json", str(state.evidence_path)]
     try:
-        _run_tool(str(bluf_tool), [
-            "--site", state.site_slug,
-            "--target-keyword", state.target_keyword,
-            "--topic-context", str(context_path),
-            "--friction-point", f"Key considerations for {state.target_keyword}",
-            "--serp-json", serp_json,
-            "--output", str(bluf_path),
-        ], "E.17")
+        _run_tool(str(bluf_tool), bluf_args, "E.17")
         state.bluf_html = bluf_path.read_text()
         state.llm_calls += 1
     except RuntimeError as e:
@@ -2011,6 +2039,8 @@ def phase_f(state: PipelineState) -> None:
             args_list += ["--h2-format", h2["h2_format"]]
         if prior_sections_summary:
             args_list += ["--prior-sections-summary", prior_sections_summary]
+        if state.evidence_path and state.evidence_path.exists():
+            args_list += ["--evidence-json", str(state.evidence_path)]
 
         try:
             _run_tool(str(section_tool), args_list, f"F.18.{i+1}")
@@ -2103,6 +2133,8 @@ def phase_g(state: PipelineState) -> None:
     context_path = state.output_dir / f"{state.post_id}-topic-context.json"
     if context_path.exists():
         btf_faq_args += ["--topic-context", str(context_path)]
+    if state.evidence_path and state.evidence_path.exists():
+        btf_faq_args += ["--evidence-json", str(state.evidence_path)]
     try:
         _run_tool(str(faqs_tool), btf_faq_args, "G.21")
         state.btf_faqs_html = btf_path.read_text()
@@ -2862,6 +2894,7 @@ def _write_manifest(state: PipelineState) -> dict:
         "elapsed_seconds": round(elapsed, 1),
         "timestamp": datetime.now(timezone.utc).isoformat(),
         "phases_completed": state.phases_completed,
+        "evidence_status": state.evidence_status or "not run",
     }
 
     # Community-guide: include research_context metadata in manifest

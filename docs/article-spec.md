@@ -704,7 +704,50 @@ The content-production module MUST consume the following from `serp-research/ana
 
 > Implementation note: serp-research's current output does not include per-result word counts. Until that's added, compute-target-wc.py uses the fallback range (1800-2400) by default. When per-result word counts become available, the SERP-derived target takes precedence per the rule above.
 
-### 17.3 SERP unavailable fallback
+### 17.3 Evidence layer
+
+The evidence layer (`lib/evidence.py`) gives section writers real source
+material instead of writing from parametric memory. It runs once per article
+in Phase B (step B.8b), immediately after subtopic-gap extraction.
+
+**Evidence store (`{post_id}-evidence.json`):** A flat list of evidence items
+built from four sources:
+1. **Competitor passages** — `<p>` and `<li>` text nodes of 15-90 words from
+   the top-5 organic SERP results (reuses the same page cache as gap extraction).
+2. **PAA pairs** — each question+answer from `serp.paa_questions`.
+3. **AI Overview blocks** — each text block from the AI Overview.
+4. **Business facts** — from `sites/{site_slug}-business-facts.md`, with
+   CONFIRMED/VERIFY tier markers.
+
+Capped at ~400 items / ~200KB. Near-duplicate passages (>0.9 SequenceMatcher)
+are dropped.
+
+**Per-section selection (`select_evidence_for_section`):** For each section
+builder call (H2, BLUF, FAQ), the top items are selected by keyword-overlap
+scoring against the section title + target keyword. Confirmed business facts
+are boosted, then PAA, then competitor passages, with mild preference for
+lower SERP position. Returns within the char budget, never two near-duplicate
+passages.
+
+**Grounding rules (in section prompts):**
+- Ground specific factual assertions in evidence or confirmed business facts.
+  If the evidence doesn't support a specific figure, use directional language.
+- VERIFY items get conditional phrasing.
+- Never copy competitor passages verbatim — evidence is for factual grounding
+  only; all prose must be original and in brand voice.
+- Never mention or cite competitor URLs/brands in the article body.
+
+**Degradation ladder:**
+1. Full evidence store available → section gets evidence block.
+2. Evidence store build failed → `evidence_status: "failed: <reason>"` in
+   manifest; sections fall back to SERP snippets via `build_topic_context`.
+3. No SERP at all (`--allow-no-serp`) → no evidence, no snippets; existing
+   fallback path unchanged.
+
+The manifest MUST contain an `evidence_status` field for every run:
+`"ok (N items)"`, `"failed: <reason>"`, or `"skipped: no SERP data"`.
+
+### 17.4 SERP unavailable fallback
 If SerpAPI/SerpDev BOTH return errors or no key configured:
 - Log loudly. DO NOT proceed silently with degraded inputs.
 - Generation can proceed only with `--allow-no-serp` flag explicitly set.

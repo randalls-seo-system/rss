@@ -36,6 +36,7 @@ from lib.tool_utils import (
     eprint,
     extract_html,
     load_brand_voice,
+    load_brand_rules_block,
     load_prompt_template,
     render_prompt,
     validate_or_retry,
@@ -124,6 +125,7 @@ def main():
     parser.add_argument("--topic-context", required=True, help="Path to topic context JSON")
     parser.add_argument("--friction-point", required=True, help="Central friction/watch-out point")
     parser.add_argument("--serp-json", required=True, help="Path to SERP JSON")
+    parser.add_argument("--evidence-json", default="", help="Path to evidence store JSON")
     parser.add_argument("--output", help="Output file path (default: stdout)")
     args = parser.parse_args()
 
@@ -140,6 +142,19 @@ def main():
         Path(args.topic_context), serp, args.target_keyword
     )
 
+    # Build evidence block if evidence store is available
+    evidence_block = ""
+    if args.evidence_json:
+        from lib.evidence import select_evidence_for_section, render_evidence_block
+        ev_path = Path(args.evidence_json)
+        if ev_path.exists():
+            selected = select_evidence_for_section(
+                ev_path, args.target_keyword, args.target_keyword
+            )
+            evidence_block = render_evidence_block(selected)
+            if evidence_block:
+                eprint(f"[build-bluf] Evidence: {len(selected)} items for BLUF")
+
     # Load anchor pool
     pool = AnchorPool(args.site)
     candidates = pool.candidates_for_topic(args.target_keyword, max=3)
@@ -152,12 +167,16 @@ def main():
         anchor_lines = "(No anchor pool candidates available)"
 
     brand_voice = load_brand_voice(archetype) if archetype else ""
+    brand_rules = load_brand_rules_block(args.site)
+    if brand_rules:
+        brand_voice += f"\n\n{brand_rules}"
 
     # Render prompt
     template = load_prompt_template("bluf.md")
     prompt = render_prompt(template, {
         "TARGET_KEYWORD": args.target_keyword,
         "TOPIC_CONTEXT": topic_context,
+        "EVIDENCE_BLOCK": evidence_block,
         "FRICTION_POINT": args.friction_point,
         "ANCHOR_POOL_CANDIDATES": anchor_lines,
         "INJECT_BRAND_VOICE": brand_voice,
