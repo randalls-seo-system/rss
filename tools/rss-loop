@@ -125,8 +125,13 @@ Instructions:
     eprint(f"[loop] Attempting repair via claude -p for job {job_id}...")
     try:
         result = subprocess.run(
-            ["claude", "-p", "--max-turns", "5", repair_prompt],
+            ["claude", "-p",
+             "--max-turns", "5",
+             "--allowedTools", "Read", "Glob", "Grep", "Edit",
+             "Bash(python3:*,cat:*,ls:*)",
+             "--", repair_prompt],
             capture_output=True, text=True, timeout=600,
+            cwd=str(REPO_ROOT),
         )
         return result.returncode == 0 and "repair succeeded" in result.stdout.lower()
     except (subprocess.TimeoutExpired, FileNotFoundError):
