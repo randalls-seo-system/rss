@@ -29,6 +29,7 @@ sys.path.insert(0, str(MODULE_DIR))
 from bs4 import BeautifulSoup, NavigableString, Tag
 
 from lib.anchor_pool import AnchorPool
+from lib.link_guards import assert_externals_unchanged, is_internal, same_language
 from lib.linker_core import inject_link_in_paragraph as _inject_link_in_paragraph
 from lib.linker_core import is_restricted_zone
 from lib.tool_utils import eprint
@@ -109,6 +110,10 @@ def _is_in_restricted_zone(element) -> bool:
 
 def _is_body_paragraph(para, first_body_h2_offset: int, soup_str: str) -> bool:
     """Return True if a <p> element is in a valid body injection zone."""
+    # -1 sentinel means no safe zone exists — reject everything
+    if first_body_h2_offset < 0:
+        return False
+
     # Must not be in a restricted zone
     if _is_in_restricted_zone(para):
         return False
@@ -181,6 +186,47 @@ def _is_generic_anchor(anchor: str) -> bool:
     return False
 
 
+def _tokenize(s: str) -> list[str]:
+    """Split on whitespace, hyphen, or slash; lowercase; strip punctuation; drop empties."""
+    raw = re.split(r'[\s/\-]+', s.lower())
+    return [t for t in (re.sub(r'[^a-z0-9]', '', tok) for tok in raw) if t]
+
+
+def _norm_token(t: str) -> str:
+    """Normalize plural forms to singular.
+
+    -ies → -y  (policies → policy, properties → property)
+    -s   → drop (deductibles → deductible, contractors → contractor)
+    Short tokens (ho, gl, dp, sr, bop) pass through as-is — never dropped.
+    """
+    if len(t) >= 5 and t.endswith('ies'):
+        return t[:-3] + 'y'
+    if len(t) >= 4 and t.endswith('s'):
+        return t[:-1]
+    return t
+
+
+def _norm_set(s: str) -> set[str]:
+    """Tokenize a string and return its normalized token set."""
+    return {_norm_token(t) for t in _tokenize(s)}
+
+
+def _anchor_matches_dest(anchor_text: str, dest_slug: str, dest_title: str) -> bool:
+    """Return True if every content word in the anchor appears in the dest slug or title.
+
+    Uses unified tokenization that splits on whitespace, hyphens, and slashes,
+    then normalizes plural/singular. Prevents anchors like "commercial property"
+    from matching destinations about "vacant rental property" where only one
+    word overlaps, while correctly handling compound tokens like "wind/hail"
+    and short tokens like "ho-3".
+    """
+    anchor = {_norm_token(t) for t in _tokenize(anchor_text) if t not in _STOPWORDS}
+    if not anchor:
+        return False
+    dest = _norm_set(dest_slug) | _norm_set(dest_title)
+    return anchor.issubset(dest)
+
+
 # _inject_link_in_paragraph is now imported from lib.linker_core
 # _SKIP_PARENT_TAGS is defined there as well
 
@@ -227,11 +273,19 @@ def _find_matching_candidates(
     """Find anchor pool candidates whose anchor text appears in the text."""
     matches = []
 
+    # P6: Determine source article language for cross-language guard
+    _source_lang_url = site_domain  # fallback; caller can set via article_url
+
     for dest in pool._destinations:
         if exclude_post_id is not None and dest.get("id") == exclude_post_id:
             continue
 
         raw_url = dest.get("url", "")
+
+        # P6: Language boundary — skip cross-language destinations
+        if raw_url and site_domain:
+            if not same_language(_source_lang_url, raw_url, pool._site_slug if hasattr(pool, '_site_slug') else ''):
+                continue
         url = _normalize_link_url(raw_url, site_domain)
         if url in used_urls:
             continue
@@ -278,6 +332,11 @@ def _find_matching_candidates(
                 if best_match is None or content_count > best_match[0] or (content_count == best_match[0] and len(opt) > best_match[1]):
                     best_match = (content_count, len(opt), opt)
 
+        # Relevance gate: anchor content words must all appear in dest slug/title
+        if best_match is not None:
+            if not _anchor_matches_dest(best_match[2], dest.get("slug", ""), dest.get("title", "")):
+                best_match = None
+
         if best_match is None:
             continue
 
@@ -314,7 +373,12 @@ def _find_matching_candidates(
 # ---------------------------------------------------------------------------
 
 def _find_first_body_h2_offset(soup, soup_str: str) -> int:
-    """Find the string offset of the first body H2 (not BLUF/FAQ/resources)."""
+    """Find the string offset of the first body H2 (not BLUF/FAQ/resources).
+
+    Returns -1 if no safe injection zone exists (no body H2 found and no
+    rl-quick-grid to use as a boundary). A return of -1 causes
+    _is_body_paragraph to reject all paragraphs, preventing ATF injection.
+    """
     for h2 in soup.find_all("h2"):
         h2_text = h2.get_text(strip=True)
         # Skip BLUF
@@ -331,8 +395,17 @@ def _find_first_body_h2_offset(soup, soup_str: str) -> int:
         offset = soup_str.find(h2_str)
         if offset >= 0:
             return offset
-    # Fallback: treat everything as body (conservative — may inject in ATF)
-    return 0
+    # No body H2 found. Try rl-quick-grid end as safe boundary.
+    grid = soup.find("div", class_="rl-quick-grid")
+    if grid:
+        grid_str = str(grid)
+        grid_start = soup_str.find(grid_str)
+        if grid_start >= 0:
+            eprint("[inject-links] No body H2 found; using end of rl-quick-grid as ATF boundary")
+            return grid_start + len(grid_str)
+    # No body H2 and no rl-quick-grid: no safe injection zone — block all
+    eprint("[inject-links] No body H2 and no rl-quick-grid found; blocking all injection")
+    return -1
 
 
 # ---------------------------------------------------------------------------
@@ -476,6 +549,14 @@ def main():
                 used_anchors_global.add(m["anchor_text"].lower())
 
     eprint(f"[inject-links] Done: {total_injected} links injected")
+
+    # P5: Assert external links unchanged
+    output_html = str(soup)
+    ext_ok, ext_msg = assert_externals_unchanged(input_html, output_html, site_domain)
+    if not ext_ok:
+        eprint(f"P5 VIOLATION: {ext_msg}")
+        eprint("ABORTING — external links were modified during link injection")
+        sys.exit(1)
 
     if _dropped_triggers:
         unique_drops = {}

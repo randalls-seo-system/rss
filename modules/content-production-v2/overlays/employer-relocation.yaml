@@ -1,0 +1,52 @@
+intent: employer-relocation
+display_name: "Employer Relocation Guide"
+spec_reference: "job-types/rent-to-own.md (structure model); page-creation-spec.md Section 1"
+
+# When to include BLUF (Section 8.1)
+bluf_default: include
+
+# Body structural element preference (Section 9.4)
+body_default: mixed
+
+# Card slot definitions — 4 cards, 3 hints each
+card_slots:
+  - role: commute_card
+    h3_pattern: "The {Employer} Commute"
+    bullet_label_hints:
+      - "drive time and distance"
+      - "primary route"
+      - "rush hour reality"
+  - role: market_card
+    h3_pattern: "Key Market Facts for {Area}"
+    bullet_label_hints:
+      - "median home price"
+      - "new construction availability"
+      - "school district and property tax rate"
+  - role: fit_card
+    h3_pattern: "Who {Area} Fits Best"
+    bullet_label_hints:
+      - "strong fit profile"
+      - "who should think twice"
+      - "a comparison alternative"
+  - role: relocation_card
+    h3_pattern: "Relocating to Texas"
+    bullet_label_hints:
+      - "no state income tax"
+      - "property tax and homestead exemption"
+      - "insurance reality"
+
+# Callout preferences
+callout_preferences:
+  cost_surprise: ["situational_example"]
+  operator_note: ["authority_note"]
+  common_mistake: ["procedural_guidance"]
+
+# Default ATF FAQ patterns — exactly 3
+default_atf_faq_patterns:
+  - "Is {Area} a good place to live for {Employer} employees?"
+  - "How long is the commute from {Area} to {Employer}?"
+  - "What can a {Employer} salary buy in {Area}?"
+
+# H2 question floors
+question_h2_floor_when_paa_sparse: 3
+question_h2_floor_when_paa_rich: 4

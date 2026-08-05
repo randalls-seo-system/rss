@@ -247,14 +247,98 @@ def _check_placeholder_tokens(html: str) -> list[str]:
     return errors
 
 
-def sanitize_assembled_html(html: str) -> tuple[str, list[str]]:
-    """Run all sanitization checks on assembled article HTML.
+def _postprocess_structure(html: str, site: str = "") -> tuple[str, list[str]]:
+    """Postprocessor: add missing structural wrappers to assembled HTML.
+
+    Fixes that run on every article before deploy:
+    1. rl-page wrapper — wraps entire content in <div class="rl-page rl-page-{site}">
+    2. rl-quick-grid — wraps consecutive rl-quick-card elements in a grid container
+    3. H1 removal — removes any <h1> tag from post_content (WP renders title separately)
+    4. rl-cta-primary removal — removes ATF CTA link (hidden by CSS, cleaner to strip)
+    5. bullet-section wrappers — wraps bare <ul> in body <section> blocks
+
+    Returns (html, list_of_fixes_applied).
+    """
+    import re as _re
+    fixes = []
+
+    # 1. rl-page wrapper
+    if 'rl-page' not in html[:100]:
+        site_cls = f" rl-page-{site}" if site else ""
+        html = f'<div class="rl-page{site_cls}">\n<div class="rl-wrap">\n{html}\n</div>\n</div>'
+        fixes.append("rl-page wrapper added")
+
+    # 2. rl-quick-grid wrapper
+    if 'rl-quick-card' in html and 'rl-quick-grid' not in html:
+        first = html.find('<article class="rl-quick-card">')
+        if first != -1:
+            pos = first
+            last_end = first
+            for _ in range(4):
+                end = html.find('</article>', pos)
+                if end == -1:
+                    break
+                last_end = end + 10
+                pos = end + 10
+            cards = html[first:last_end]
+            html = html[:first] + '<div class="rl-quick-grid">' + cards + '</div>' + html[last_end:]
+            fixes.append("rl-quick-grid wrapper added")
+
+    # 2b. ATF FAQ heading — insert "Asked First" heading before the first ATF <details>
+    if 'rl-atf-faqhead' not in html and '<details>' in html:
+        # Find the first <details> that appears BEFORE any <section> (ATF area)
+        first_details = html.find('<details>')
+        first_section = html.find('<section')
+        if first_details != -1 and (first_section == -1 or first_details < first_section):
+            faq_heading = '<div class="rl-atf-faqhead"><span class="rl-kicker">Asked First</span>Top questions before you dig in</div>\n'
+            html = html[:first_details] + faq_heading + html[first_details:]
+            fixes.append("ATF FAQ heading added")
+
+    # 3. H1 removal
+    h1_match = _re.search(r'<h1[^>]*>.*?</h1>', html, _re.DOTALL)
+    if h1_match:
+        html = html[:h1_match.start()] + html[h1_match.end():]
+        fixes.append("H1 removed from content")
+
+    # 4. rl-cta-primary removal
+    if 'rl-cta-primary' in html:
+        html = _re.sub(r'<a[^>]*class="rl-cta-primary"[^>]*>[^<]*</a>\s*', '', html)
+        fixes.append("rl-cta-primary removed")
+
+    # 5. bullet-section wrappers for bare <ul> in body sections
+    body_start = html.find('<section>')
+    if body_start == -1:
+        body_start = html.find('<section ')
+    if body_start != -1:
+        head = html[:body_start]
+        body = html[body_start:]
+        colors = ['gray', 'blue', 'green', 'beige']
+        idx = [0]
+
+        def _wrap_ul(match):
+            color = colors[idx[0] % len(colors)]
+            idx[0] += 1
+            return f'<div class="bullet-section-{color}"><ul>\n<li>'
+
+        body = _re.sub(r'<ul>\s*\n?\s*<li>', _wrap_ul, body)
+        body = _re.sub(r'</ul>(?!\s*</div>)', '</ul></div>', body)
+        html = head + body
+        if idx[0] > 0:
+            fixes.append(f"{idx[0]} bullet-section wrappers added")
+
+    return html, fixes
+
+
+def sanitize_assembled_html(html: str, site: str = "") -> tuple[str, list[str]]:
+    """Run all sanitization checks and structural postprocessing on assembled article HTML.
 
     Args:
         html: The assembled article HTML (post step H.24, pre link injection).
+        site: Site slug (e.g., 'lrg') for site-specific wrapper classes.
 
     Returns:
-        (cleaned_html, errors) — cleaned_html has meta-commentary stripped.
+        (cleaned_html, errors) — cleaned_html has meta-commentary stripped
+        and structural postprocessing applied.
         errors is a list of structural issues found. If non-empty, the caller
         should hard-stop the pipeline.
     """
@@ -266,13 +350,19 @@ def sanitize_assembled_html(html: str) -> tuple[str, list[str]]:
         for item in stripped_items:
             eprint(f"  [Sanitizer] Stripped: {item}")
 
-    # 2. Structural checks (on the cleaned HTML)
+    # 2. Structural postprocessing (rl-page wrapper, rl-quick-grid, bullet-sections, H1/CTA removal)
+    cleaned, pp_fixes = _postprocess_structure(cleaned, site)
+    if pp_fixes:
+        for fix in pp_fixes:
+            eprint(f"  [Postprocessor] {fix}")
+
+    # 3. Structural checks (on the cleaned + postprocessed HTML)
     all_errors.extend(_check_tag_balance(cleaned))
     all_errors.extend(_check_p_nesting(cleaned))
     all_errors.extend(_check_faq_dedup(cleaned))
     all_errors.extend(_check_stray_angles(cleaned))
 
-    # 3. PUBLISH GATE: placeholder tokens and LLM refusal text
+    # 4. PUBLISH GATE: placeholder tokens and LLM refusal text
     all_errors.extend(_check_placeholder_tokens(cleaned))
 
     return cleaned, all_errors

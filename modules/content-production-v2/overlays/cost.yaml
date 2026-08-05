@@ -13,31 +13,27 @@ card_slots:
   - role: rates_by_category_card
     h3_pattern: "{Topic} Rates by Category"
     bullet_label_hints:
-      - "Standard rate:"
-      - "Reduced rate:"
-      - "Exempt category:"
-      - "Bottom line:"
+      - "standard rate"
+      - "reduced rate"
+      - "exempt category"
   - role: rates_by_scenario_card
     h3_pattern: "{Topic} by Down Payment Tier"
     bullet_label_hints:
-      - "First-time use:"
-      - "Subsequent use:"
-      - "Down payment offset:"
-      - "Break-even:"
+      - "first-time use scenario"
+      - "subsequent use scenario"
+      - "down payment offset or break-even"
   - role: exemptions_card
     h3_pattern: "Exemptions and Reductions"
     bullet_label_hints:
-      - "Common exemptions:"
-      - "Edge cases:"
-      - "Documentation:"
-      - "Timing matters:"
+      - "common exemptions"
+      - "edge cases"
+      - "documentation or timing"
   - role: examples_card
     h3_pattern: "Real-World {Topic} Examples"
     bullet_label_hints:
-      - "Purchase example:"
-      - "Refinance example:"
-      - "Exemption example:"
-      - "Worth noting:"
+      - "purchase example with dollar amount"
+      - "refinance example"
+      - "exemption example"
 
 # Callout type preferences per section role (Section 10.5)
 # Values are archetype-neutral — archetype YAML maps these to actual callout labels

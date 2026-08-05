@@ -13,31 +13,27 @@ card_slots:
   - role: option_a_card
     h3_pattern: "{Option A} at a Glance"
     bullet_label_hints:
-      - "Key advantage:"
-      - "Best suited for:"
-      - "Watch for:"
-      - "Bottom line:"
+      - "key advantage"
+      - "who this is best suited for"
+      - "main risk or trade-off"
   - role: option_b_card
     h3_pattern: "{Option B} at a Glance"
     bullet_label_hints:
-      - "Key advantage:"
-      - "Best suited for:"
-      - "Watch for:"
-      - "Bottom line:"
+      - "key advantage"
+      - "who this is best suited for"
+      - "main risk or trade-off"
   - role: who_picks_a_card
     h3_pattern: "When {Option A} Wins"
     bullet_label_hints:
-      - "Ideal scenario:"
-      - "Financial trigger:"
-      - "Timeline factor:"
-      - "Main takeaway:"
+      - "ideal scenario"
+      - "financial trigger"
+      - "timeline factor"
   - role: who_picks_b_card
     h3_pattern: "When {Option B} Wins"
     bullet_label_hints:
-      - "Ideal scenario:"
-      - "Financial trigger:"
-      - "Timeline factor:"
-      - "Main takeaway:"
+      - "ideal scenario"
+      - "financial trigger"
+      - "timeline factor"
 
 # Callout type preferences per section role (Section 10.5)
 # Values are archetype-neutral — archetype YAML maps these to actual callout labels

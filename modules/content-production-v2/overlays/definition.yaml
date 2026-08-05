@@ -13,31 +13,27 @@ card_slots:
   - role: definition_card
     h3_pattern: "What Is {Term}?"
     bullet_label_hints:
-      - "Core definition:"
-      - "Key distinction:"
-      - "Common misconception:"
-      - "Worth knowing:"
+      - "core definition"
+      - "key distinction from similar concepts"
+      - "a common misconception to address"
   - role: key_facts_card
     h3_pattern: "Key Facts About {Term}"
     bullet_label_hints:
-      - "Current figure:"
-      - "Eligibility:"
-      - "Timeline:"
-      - "Bottom line:"
+      - "current figure or threshold"
+      - "eligibility or qualification"
+      - "typical timeline"
   - role: why_matters_card
     h3_pattern: "Why {Term} Matters"
     bullet_label_hints:
-      - "Financial impact:"
-      - "Risk factor:"
-      - "Opportunity:"
-      - "Main takeaway:"
+      - "financial impact"
+      - "risk if ignored"
+      - "opportunity it creates"
   - role: common_confusions_card
     h3_pattern: "{Term} Misconceptions"
     bullet_label_hints:
-      - "Myth vs reality:"
-      - "Common mistake:"
-      - "Overlooked detail:"
-      - "Worth noting:"
+      - "myth versus reality"
+      - "a common mistake buyers make"
+      - "an overlooked detail"
 
 # Callout type preferences per section role (Section 10.5)
 # Values are archetype-neutral — archetype YAML maps these to actual callout labels

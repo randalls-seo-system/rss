@@ -89,12 +89,13 @@ _PREFERRED_DOMAINS = frozenset({
 })
 
 
-def _is_blocked_domain(domain: str) -> bool:
+def _is_blocked_domain(domain: str, extra_blocked: frozenset | None = None) -> bool:
     d = domain.lower()
-    if d in _BLOCKED_DOMAINS:
+    all_blocked = _BLOCKED_DOMAINS | (extra_blocked or frozenset())
+    if d in all_blocked:
         return True
-    # Subdomain check (e.g., blog.medium.com)
-    for blocked in _BLOCKED_DOMAINS:
+    # Subdomain check (e.g., blog.medium.com, locations.pizzahut.com)
+    for blocked in all_blocked:
         if d.endswith("." + blocked):
             return True
     return False
@@ -114,28 +115,40 @@ def _domain_priority(domain: str) -> int:
     return 2
 
 
-def build_resources_from_serp(serp: SerpData, site_domain: str = "") -> list[dict]:
+def build_resources_from_serp(
+    serp: SerpData,
+    site_domain: str = "",
+    forbidden_domains: list[str] | None = None,
+    forbidden_terms: list[str] | None = None,
+) -> list[dict]:
     """Extract resource items from SERP data.
 
     Draws from: primary_sources (authoritative), AI overview references,
-    then top organic results as fallback. Filters blocked domains and
-    self-citations. Prefers authoritative sources.
+    then top organic results as fallback. Filters blocked domains,
+    forbidden competitor domains/terms, and self-citations.
     """
     candidates: list[dict] = []
     seen_domains: set[str] = set()
     site_d = site_domain.lower().lstrip("www.") if site_domain else ""
+    extra_blocked = frozenset(d.lower() for d in (forbidden_domains or []))
+    ft_lower = [t.lower() for t in (forbidden_terms or [])]
 
     def _add(url: str, title: str, source: str, domain: str):
         d = domain.lower().lstrip("www.")
-        if d in seen_domains or _is_blocked_domain(d):
+        if d in seen_domains or _is_blocked_domain(d, extra_blocked):
             return
         # Self-citation filter (Fix F)
         if site_d and d == site_d:
             return
+        # Forbidden term in anchor text or title
+        anchor = format_anchor_text(source or domain, title)
+        anchor_lower = anchor.lower()
+        if any(ft in anchor_lower for ft in ft_lower):
+            return
         seen_domains.add(d)
         candidates.append({
             "url": url,
-            "anchor": format_anchor_text(source or domain, title),
+            "anchor": anchor,
             "domain": d,
             "priority": _domain_priority(d),
         })
@@ -260,7 +273,20 @@ def main():
         serp = SerpData(Path(args.serp_json))
         config = load_site_config(args.site)
         site_domain = config.get("SITE_DOMAIN", "")
-        items = build_resources_from_serp(serp, site_domain=site_domain)
+        # Load forbidden domains and terms from site config
+        fd_raw = config.get("FORBIDDEN_DOMAINS", "")
+        forbidden_domains = [d.strip() for d in fd_raw.split(",") if d.strip()]
+        ft_raw = config.get("FORBIDDEN_TERMS", "")
+        forbidden_terms = [t.strip() for t in ft_raw.split(",") if t.strip()]
+        if forbidden_domains:
+            eprint(f"[build-resources] Brand filter: {len(forbidden_domains)} forbidden domains")
+        if forbidden_terms:
+            eprint(f"[build-resources] Brand filter: {len(forbidden_terms)} forbidden terms")
+        items = build_resources_from_serp(
+            serp, site_domain=site_domain,
+            forbidden_domains=forbidden_domains,
+            forbidden_terms=forbidden_terms,
+        )
 
     # Hard fail per spec 15.6: need at least 3 items (relaxed from 5)
     if len(items) < 3:

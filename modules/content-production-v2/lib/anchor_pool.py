@@ -81,13 +81,24 @@ class AnchorPool:
         except (FileNotFoundError, Exception):
             pass
 
+    # Known WPE staging domains that should normalize to relative paths
+    _WPE_STAGING_HOSTS = frozenset({
+        "lrgrealtyblogs.wpenginepowered.com",
+        "lrgrealtyblogs.wpengine.com",
+        "valoannetwostg.wpenginepowered.com",
+    })
+
     def _normalize_url(self, url: str) -> str:
-        """Convert same-domain absolute URLs to relative paths."""
-        if not self._site_domain or not url:
+        """Convert same-domain or known-staging absolute URLs to relative paths."""
+        if not url:
             return url
         parsed = urlparse(url)
         host = parsed.netloc.lower().lstrip("www.")
-        if host == self._site_domain.lower().lstrip("www."):
+        # Match site domain
+        if self._site_domain and host == self._site_domain.lower().lstrip("www."):
+            return parsed.path or "/"
+        # Match known WPE staging domains
+        if host in self._WPE_STAGING_HOSTS:
             return parsed.path or "/"
         return url
 

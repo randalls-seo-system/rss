@@ -90,6 +90,7 @@ def main():
     parser.add_argument("--card-slot", required=True, help="Card slot role from overlay")
     parser.add_argument("--serp-json", required=True, help="Path to SERP JSON")
     parser.add_argument("--prior-cards-synthesis", default="", help="JSON array of prior card synthesis bullets")
+    parser.add_argument("--topic-context", default="", help="Path to topic-context JSON (from research-context)")
     parser.add_argument("--output", help="Output file path (default: stdout)")
     args = parser.parse_args()
 
@@ -123,6 +124,19 @@ def main():
     # Build topic context from SERP filtered by card's subtopic
     topic_filter = f"{slot.h3_pattern} {slot.role} {args.target_keyword}"
     topic_context = build_topic_context(serp, topic_filter)
+
+    # Prepend research context if provided (universal injection)
+    if args.topic_context:
+        import json as _json2
+        tc_path = Path(args.topic_context)
+        if tc_path.exists():
+            try:
+                tc_data = _json2.loads(tc_path.read_text())
+                rc_text = tc_data.get("context", "")
+                if rc_text:
+                    topic_context = rc_text + "\n\n" + topic_context
+            except Exception:
+                pass
 
     # Load brand voice + brand rules
     brand_voice = load_brand_voice(archetype) if archetype else ""

@@ -151,6 +151,21 @@ def load_brand_voice(archetype: str) -> str:
     return voice_path.read_text()
 
 
+def load_brand_rules_block(site_slug: str) -> str:
+    """Load per-site brand rules and return formatted prompt block.
+
+    Reads BRAND_VOICE_NOTES, COMPETITOR_MENTION_POLICY, PRICE_POLICY,
+    FORBIDDEN_TERMS, and REQUIRED_TONE from the site config. Returns a
+    formatted BRAND RULES block for injection into LLM prompts.
+
+    Returns empty string if no brand rules are configured.
+    """
+    from lib.site_config import load_site_config
+    from lib.brand_rules import load_brand_rules_block as _build_block
+    config = load_site_config(site_slug)
+    return _build_block(config)
+
+
 def load_business_facts(site_slug: str) -> str:
     """Load business-facts source-of-truth for a site.
 

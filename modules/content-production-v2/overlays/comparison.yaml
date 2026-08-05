@@ -13,31 +13,27 @@ card_slots:
   - role: top_pick_card
     h3_pattern: "Top Pick: {Winner}"
     bullet_label_hints:
-      - "Standout feature:"
-      - "Best for:"
-      - "Limitation:"
-      - "Bottom line:"
+      - "standout feature"
+      - "who this is best for"
+      - "main limitation"
   - role: runner_up_card
     h3_pattern: "Runner-Up: {Second}"
     bullet_label_hints:
-      - "Key strength:"
-      - "Best for:"
-      - "Trade-off:"
-      - "Worth noting:"
+      - "key strength"
+      - "who this is best for"
+      - "main trade-off"
   - role: niche_card
     h3_pattern: "Best for {Niche Use Case}"
     bullet_label_hints:
-      - "Unique advantage:"
-      - "Ideal user:"
-      - "Caveat:"
-      - "Main takeaway:"
+      - "unique advantage"
+      - "ideal user"
+      - "main caveat"
   - role: methodology_card
     h3_pattern: "How We Scored"
     bullet_label_hints:
-      - "Primary factor:"
-      - "Secondary factor:"
-      - "Tiebreaker:"
-      - "Worth noting:"
+      - "primary scoring factor"
+      - "secondary factor"
+      - "tiebreaker criterion"
 
 # Callout type preferences per section role (Section 10.5)
 # Values are archetype-neutral — archetype YAML maps these to actual callout labels

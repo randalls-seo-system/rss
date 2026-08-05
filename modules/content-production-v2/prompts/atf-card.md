@@ -21,24 +21,21 @@ Produce exactly this HTML structure:
 <article class="rl-quick-card">
   <h3>{Card title — derived from H3_PATTERN, rewritten if SERP context suggests a more natural label}</h3>
   <ul>
-    <li><strong>{Bullet label 1}:</strong> {Bullet content, 14-30 words}</li>
-    <li><strong>{Bullet label 2}:</strong> {Bullet content, 14-30 words}</li>
-    <li><strong>{Bullet label 3}:</strong> {Bullet content, 14-30 words}</li>
-    <li><strong>{Bullet label 4 — synthesis}:</strong> {Synthesis content, 18-35 words}</li>
+    <li>{Plain prose bullet, 14-30 words, no bold label prefix}</li>
+    <li>{Plain prose bullet, 14-30 words, no bold label prefix}</li>
+    <li>{Plain prose bullet, 14-30 words, no bold label prefix}</li>
   </ul>
 </article>
 ```
 
 ## Constraints
 
-- **Exactly 4 bullets.** Not 3, not 5.
+- **Exactly 3 bullets.** Not 4, not 2. Three plain prose bullets per card.
 - The **H3 card title** is a subtopic name derived from {{H3_PATTERN}}. Substitute template variables with article-specific values. You MAY rewrite the title if SERP context produces a more natural, specific label, but it must remain a subtopic name.
-- **Bullet labels** are 1-4 words each, end in a colon, wrapped in `<strong>`. Each label describes the bullet's specific content.
-- **Bullets 1-3:** 14-30 words each.
-- **Bullet 4 is the synthesis bullet:** 18-35 words. Usually contains a concrete number, threshold, break-even point, or consequence-rule that ties the card together. Use synthesis-flavored labels like "Bottom line:", "Break-even:", "Worth noting:", "Main takeaway:".
-- **Synthesis diversity:** If PRIOR_CARDS_SYNTHESIS is non-empty, your synthesis bullet (bullet 4) must NOT repeat a fact, statistic, or threshold already used in a prior card. Use a different angle: different number, different threshold, different consequence, different audience segment.
-- **Bullet labels** are unique within the card. No two labels should be identical or near-identical.
-- Use the {{BULLET_LABEL_HINTS}} as starting points, but adapt them to the actual content. The hints are suggestions, not mandatory text.
+- **Bullets are plain prose.** Do NOT start any bullet with a `<strong>Label:</strong>` run-in prefix. Each bullet is a complete statement that reads naturally from the first word. No bolded lead-ins.
+- **Each bullet is 14-30 words.**
+- **Synthesis diversity:** If PRIOR_CARDS_SYNTHESIS is non-empty, your bullets must NOT repeat a fact, statistic, or threshold already used in a prior card. Use a different angle.
+- Use the {{BULLET_LABEL_HINTS}} as thematic guidance, but adapt them to the actual content. They are suggestions, not mandatory text.
 - ZERO inline links. No `<a>` tags anywhere in the output.
 - Prefer concrete numbers over vague language. "$14,450 on a $400,000 loan" beats "a significant amount."
 
@@ -47,7 +44,8 @@ Produce exactly this HTML structure:
 Do NOT produce any of the following:
 
 - **Card title as a generic intent label:** "Best for", "Key advantage", "Watch out", "Pros and cons", "Key benefit", "Main risk", "Top pick" are all banned as card titles. The title must be a specific subtopic name.
-- **Identical or near-identical bullet labels** within the same card.
+- **Run-in bold labels:** Do NOT start any bullet with `<strong>Something:</strong>`. Write plain prose from the first word.
+- **4 or more bullets in a card.** Exactly 3.
 - Em dashes (use commas or periods instead)
 - Parentheses in body prose (restructure the sentence, or use commas)
 - Lowercase "veteran" or "military" — always capitalize Veteran and Military

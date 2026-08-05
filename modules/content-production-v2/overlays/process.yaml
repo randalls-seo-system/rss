@@ -13,31 +13,27 @@ card_slots:
   - role: prerequisites_card
     h3_pattern: "Before You Start"
     bullet_label_hints:
-      - "Required document:"
-      - "Eligibility check:"
-      - "Common blocker:"
-      - "Worth knowing:"
+      - "required document or form"
+      - "eligibility requirement"
+      - "a common blocker to watch for"
   - role: requirements_card
     h3_pattern: "What You Need"
     bullet_label_hints:
-      - "Must have:"
-      - "Strongly recommended:"
-      - "Optional but helpful:"
-      - "Bottom line:"
+      - "must-have item"
+      - "strongly recommended preparation"
+      - "optional but helpful step"
   - role: timeline_card
     h3_pattern: "Process Timeline"
     bullet_label_hints:
-      - "First step:"
-      - "Middle phase:"
-      - "Final stage:"
-      - "Typical duration:"
+      - "first step"
+      - "middle phase"
+      - "typical total duration"
   - role: costs_card
     h3_pattern: "What It Costs"
     bullet_label_hints:
-      - "Primary cost:"
-      - "Secondary cost:"
-      - "Ways to reduce:"
-      - "Break-even:"
+      - "primary cost"
+      - "secondary cost"
+      - "ways to reduce the total"
 
 # Callout type preferences per section role (Section 10.5)
 # Values are archetype-neutral — archetype YAML maps these to actual callout labels

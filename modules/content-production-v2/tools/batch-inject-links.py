@@ -21,9 +21,12 @@ TOOLS_DIR = Path(__file__).resolve().parent
 MODULE_DIR = TOOLS_DIR.parent
 REPO_ROOT = MODULE_DIR.parent.parent
 sys.path.insert(0, str(MODULE_DIR))
+sys.path.insert(0, str(REPO_ROOT / 'modules' / '_shared'))
 
 from bs4 import BeautifulSoup
 from lib.anchor_pool import AnchorPool
+from lib.deploy_lock import acquire_deploy_lock
+from lib.link_guards import assert_externals_unchanged, is_internal, same_language
 from lib.site_config import load_site_config
 
 
@@ -200,16 +203,10 @@ def _extract_existing_internal_urls(content: str, site_domain: str = "") -> set:
     existing = set()
     for match in href_pattern.finditer(content):
         href = match.group(1)
-        # Only internal links
         if not href:
             continue
-        is_internal = (
-            (href.startswith("/") and not href.startswith("//"))
-            or "valoannetwork.com" in href
-            or "valoannetwostg" in href
-            or (site_domain and site_domain in href)
-        )
-        if not is_internal:
+        # P5: Use shared is_internal guard (single source of truth)
+        if not is_internal(href, site_domain):
             continue
         normalized = _normalize_url(href, site_domain=site_domain)
         # Skip CTA allowlist — those are permitted to repeat
@@ -489,6 +486,10 @@ def main():
     parser.add_argument("--start", type=int, default=0, help="Start from this index")
     args = parser.parse_args()
 
+    # P7: Deploy lock
+    if not args.dry_run:
+        acquire_deploy_lock(args.site, tool_name='batch-inject-links')
+
     config = load_site_config(args.site)
     pool = AnchorPool(args.site)
     site_domain = config.get("SITE_DOMAIN", "")
@@ -542,14 +543,34 @@ def main():
         ))
         # Allow re-processing — some may have had manual links
 
+        # P6: Language boundary — exclude destinations in a different language
+        from lib.link_guards import detect_language
+        post_lang = detect_language(f'/{slug}/', args.site)
+        exclude_lang_ids = set()
+        for dest in pool._destinations:
+            dest_url = dest.get('url', '') or dest.get('slug', '')
+            if not same_language(f'/{slug}/', dest_url, args.site):
+                exclude_lang_ids.add(dest.get('id'))
+
         # Inject
         modified, link_count, details = inject_links_into_content(
-            content, pool, pid, internal_keywords, site_domain=site_domain
+            content, pool, pid, internal_keywords, site_domain=site_domain,
+            exclude_dest_ids=exclude_lang_ids if exclude_lang_ids else None,
         )
 
         if link_count == 0:
             print(f"{progress} {pid} {slug}: 0 links (no matches)")
             skipped += 1
+            continue
+
+        # P5: Assert external links unchanged
+        ext_ok, ext_msg = assert_externals_unchanged(content, modified, site_domain)
+        if not ext_ok:
+            print(f"{progress} P5 VIOLATION on {pid} {slug}: {ext_msg}")
+            errors += 1
+            if errors >= 3:
+                print("HARD STOP: P5 external-link violation")
+                break
             continue
 
         # Push

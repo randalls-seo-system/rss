@@ -35,28 +35,30 @@ def postprocess(html: str) -> str:
     soup = BeautifulSoup(html, "html.parser")
 
     # ── 1. Wrap consecutive <article class="rl-quick-card"> in rl-quick-grid ──
-    cards = soup.find_all("article", class_="rl-quick-card")
-    if cards:
-        # Find the first card and group consecutive siblings
-        first_card = cards[0]
-        card_group = [first_card]
-        node = first_card.next_sibling
-        while node:
-            if isinstance(node, NavigableString) and not node.strip():
-                node = node.next_sibling
-                continue
-            if hasattr(node, "get") and node.get("class") and "rl-quick-card" in node.get("class", []):
-                card_group.append(node)
-                node = node.next_sibling
-                continue
-            break
+    # Guard: skip if cards are already inside an rl-quick-grid wrapper
+    # (the sanitizer in html_sanitizer.py may have already added one).
+    if not soup.find("div", class_="rl-quick-grid"):
+        cards = soup.find_all("article", class_="rl-quick-card")
+        if cards:
+            first_card = cards[0]
+            card_group = [first_card]
+            node = first_card.next_sibling
+            while node:
+                if isinstance(node, NavigableString) and not node.strip():
+                    node = node.next_sibling
+                    continue
+                if hasattr(node, "get") and node.get("class") and "rl-quick-card" in node.get("class", []):
+                    card_group.append(node)
+                    node = node.next_sibling
+                    continue
+                break
 
-        if len(card_group) > 1:
-            grid_div = soup.new_tag("div", **{"class": "rl-quick-grid"})
-            first_card.insert_before(grid_div)
-            for card in card_group:
-                card.extract()
-                grid_div.append(card)
+            if len(card_group) > 1:
+                grid_div = soup.new_tag("div", **{"class": "rl-quick-grid"})
+                first_card.insert_before(grid_div)
+                for card in card_group:
+                    card.extract()
+                    grid_div.append(card)
 
     # ── 2. Add rl-table to bare <table> elements ──
     for table in soup.find_all("table"):
@@ -78,12 +80,16 @@ def postprocess(html: str) -> str:
         section["class"] = ["rl-section"]
 
         # If section contains a <ul>, wrap the UL in a bullet-section div
+        # Guard: skip if the <ul> is already inside a bullet-section-* wrapper
+        # (the sanitizer in html_sanitizer.py may have already added one).
         ul = section.find("ul")
         if ul:
-            color_class = BULLET_COLORS[color_idx % len(BULLET_COLORS)]
-            color_idx += 1
-            wrapper = soup.new_tag("div", **{"class": color_class})
-            ul.wrap(wrapper)
+            parent_classes = " ".join(ul.parent.get("class", []))
+            if "bullet-section-" not in parent_classes:
+                color_class = BULLET_COLORS[color_idx % len(BULLET_COLORS)]
+                color_idx += 1
+                wrapper = soup.new_tag("div", **{"class": color_class})
+                ul.wrap(wrapper)
 
     # ── 4. Wrap BLUF section UL in bullet-section-gray ──
     bluf = soup.find("section", class_="rl-bluf")
