@@ -15,10 +15,13 @@ import time
 from pathlib import Path
 
 MODULE_ROOT = Path(__file__).resolve().parents[1]
+REPO_ROOT = MODULE_ROOT.parent.parent
 sys.path.insert(0, str(MODULE_ROOT / 'lib'))
+sys.path.insert(0, str(REPO_ROOT / 'modules' / '_shared'))
 
 from ssh_session import SSHSession
 from php_template import generate_status_update_script
+from lib.deploy_lock import acquire_deploy_lock
 
 
 def main():
@@ -39,6 +42,9 @@ def main():
 
     if args.target_status == 'trash' and not args.confirm_trash:
         parser.error("--confirm-trash required for trash operations")
+
+    if not args.dry_run:
+        acquire_deploy_lock(args.site, tool_name='push-post-status')
 
     ssh = SSHSession(args.site, sleep_between=2)
 

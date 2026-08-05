@@ -142,8 +142,11 @@ def _convert_article_to_div(soup):
 
 
 def _fix_atf_head(soup):
-    """Wrap bare text in cnpAtfHead inside <h2> to match restyle v2 CSS."""
+    """Wrap bare text in cnpAtfHead inside <h2> and strip the kicker span."""
     for head in soup.find_all(class_="cnpAtfHead"):
+        # Remove the "Asked First" kicker span — Canopy uses only the H2
+        for kicker in head.find_all(class_="cnpkicker"):
+            kicker.decompose()
         for child in list(head.children):
             if isinstance(child, NavigableString) and child.strip():
                 h2 = soup.new_tag("h2")

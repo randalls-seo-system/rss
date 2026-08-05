@@ -159,5 +159,145 @@
     "slug": "framing-contractor-insurance-texas",
     "status": "publish",
     "category": "Contractors"
+  },
+  {
+    "id": 3589,
+    "title": "Workers Comp Cost by State",
+    "slug": "workers-comp-cost-by-state",
+    "status": "publish",
+    "category": "Workers Comp"
+  },
+  {
+    "id": 3523,
+    "title": "Excavation Contractor Insurance in Texas",
+    "slug": "excavation-contractor-insurance-texas",
+    "status": "publish",
+    "category": "Contractors"
+  },
+  {
+    "id": 3524,
+    "title": "Flooring Contractor Insurance in Texas",
+    "slug": "flooring-contractor-insurance-texas",
+    "status": "publish",
+    "category": "Contractors"
+  },
+  {
+    "id": 3542,
+    "title": "Mold Remediation Contractor Insurance in Texas",
+    "slug": "mold-remediation-contractor-insurance-texas",
+    "status": "publish",
+    "category": "Contractors & Builders"
+  },
+  {
+    "id": 3527,
+    "title": "Carpentry Contractor Insurance in Texas",
+    "slug": "carpentry-contractor-insurance-texas",
+    "status": "publish",
+    "category": "Contractors & Builders"
+  },
+  {
+    "id": 3616,
+    "title": "Is Workers' Comp Required in Texas? The One State Where It's Optional",
+    "slug": "is-workers-comp-required-in-texas",
+    "status": "publish",
+    "category": "Commercial Insurance"
+  },
+  {
+    "id": 3530,
+    "title": "Tile Contractor Insurance in Texas",
+    "slug": "tile-contractor-insurance-texas",
+    "status": "publish",
+    "category": "Contractors & Builders"
+  },
+  {
+    "id": 3533,
+    "title": "Steel Erection Contractor Insurance in Texas",
+    "slug": "steel-erection-contractor-insurance-texas",
+    "status": "publish",
+    "category": "Contractors & Builders"
+  },
+  {
+    "id": 3534,
+    "title": "Paving & Asphalt Contractor Insurance in Texas",
+    "slug": "paving-asphalt-contractor-insurance-texas",
+    "status": "publish",
+    "category": "Contractors & Builders"
+  },
+  {
+    "id": 3535,
+    "title": "Garage Door Installer Insurance in Texas",
+    "slug": "garage-door-installer-insurance-texas",
+    "status": "publish",
+    "category": "Contractors & Builders"
+  },
+  {
+    "id": 3537,
+    "title": "Fire Sprinkler Contractor Insurance in Texas",
+    "slug": "fire-sprinkler-contractor-insurance-texas",
+    "status": "publish",
+    "category": "Contractors & Builders"
+  },
+  {
+    "id": 3531,
+    "title": "Insulation Contractor Insurance in Texas",
+    "slug": "insulation-contractor-insurance-texas",
+    "status": "publish",
+    "category": "Contractors & Builders"
+  },
+  {
+    "id": 3525,
+    "title": "Solar Installer Insurance in Texas",
+    "slug": "solar-installer-insurance-texas",
+    "status": "publish",
+    "category": "Contractors & Builders"
+  },
+  {
+    "id": 3526,
+    "title": "Demolition Contractor Insurance in Texas",
+    "slug": "demolition-contractor-insurance-texas",
+    "status": "publish",
+    "category": "Contractors & Builders"
+  },
+  {
+    "id": 3539,
+    "title": "Well Drilling Contractor Insurance in Texas",
+    "slug": "well-drilling-contractor-insurance-texas",
+    "status": "draft",
+    "category": "Contractors & Builders"
+  },
+  {
+    "id": 3541,
+    "title": "Occupational Accident Insurance in Texas",
+    "slug": "occupational-accident-insurance-texas",
+    "status": "draft",
+    "category": "Contractors & Builders"
+  },
+  {
+    "id": 3543,
+    "title": "Scaffolding Contractor Insurance in Texas",
+    "slug": "scaffolding-contractor-insurance-texas",
+    "status": "draft",
+    "category": "Contractors & Builders"
+  },
+  {
+    "id": 3538,
+    "title": "Installation Floater Coverage in Texas",
+    "slug": "installation-floater-coverage-texas",
+    "status": "draft",
+    "category": "Contractors & Builders"
+  },
+  {
+    "id": 4050,
+    "title": "Force-Placed Insurance in Texas: How to Get Out of It",
+    "slug": "force-placed-insurance-texas",
+    "status": "draft",
+    "category": "Home Insurance"
+  },
+  {
+    "id": 4051,
+    "title": "Homeowners Claim Denied in Texas: What to Do",
+    "slug": "home-insurance-claim-denied-texas",
+    "status": "draft",
+    "category": "Home Insurance"
   }
 ]

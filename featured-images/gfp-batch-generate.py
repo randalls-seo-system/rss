@@ -243,29 +243,97 @@ The overall feel should be bold, appetizing, modern pizza branding — NOT a sto
 Aspect ratio is landscape (1536x1024). The image should look like a high-end food blog header graphic."""
 
 
-def clean_headline(title: str) -> str:
-    """Shorten title for image headline legibility."""
+def clean_headline(title: str, post_id: int = 0) -> str:
+    """Shorten title for image headline legibility.
+
+    Target: <= 38 chars, grammatically complete phrase.
+    Rules (applied in order):
+    1. Check manual overrides first
+    2. Strip year markers and trailing subtitles
+    3. Strip "Godfather's Pizza" prefix → just the topic
+    4. Shorten "Godfather's Pizza" mid-title → "Godfather's"
+    5. Drop "in San Antonio" / "San Antonio" suffix if > 35 chars
+    6. Truncate at word boundary, never splitting multi-word names
+    7. Strip trailing dangling words (prepositions, articles)
+    """
     import re
-    # Strip trailing year markers
-    title = re.sub(r'\s*\(20\d{2}\)\s*$', '', title)
-    # Strip trailing subtitles after em-dash or colon if the first part is long enough
-    # e.g. "Best Pizza in San Antonio: A Local's Complete Guide" -> "Best Pizza in San Antonio"
+    _OVERRIDES = {
+        48: "Godfather's Pizza Returns",
+        272: "Make Godfather's Taco Pizza",
+        286: "Best Toppings for Godfather's",
+        316: "Top 5 Specialty Pizzas",
+        433: "Godfather's Date Night",
+        662: "National Pie Day at Godfather's",
+        672: "Godfather's: SA's Top Comfort Food",
+        682: "Kids & Adults Agree: Godfather's",
+        691: "Win Your Super Bowl Party",
+        748: "Level Up Your Office Lunch",
+        859: "Host a Legendary Pizza Party",
+        871: "Ultimate Meat Lover's Guide",
+        979: "Best Birthday Party Pizza",
+        997: "Quinceañera Pizza Catering",
+        999: "Affordable Catering Options",
+        248: "Top 5 Godfather's Pizzas",
+        1052: "Cinco de Mayo Pizza Party",
+        1062: "Best Thick Crust Pizza",
+        1076: "Best Cold Sides with Pizza",
+        1098: "Godfather's & Texas Craft Beer",
+        1128: "Same-Day Pizza Catering",
+        1129: "Pizza Catering for 50 People",
+        1130: "Block Party Pizza",
+        1132: "End of Year School Party Pizza",
+        1135: "New Year's Eve Pizza Party",
+        1136: "Fourth of July Pizza Party",
+        1137: "Valentine's Day Pizza",
+        1138: "Christmas Pizza Party",
+        1149: "The Godfather's Comeback Story",
+        1155: "Allergen & Ingredient Guide",
+        1263: "Pizza vs Wings: Which Wins?",
+        1291: "Every Pizza Style Explained",
+    }
+    if post_id in _OVERRIDES:
+        return _OVERRIDES[post_id]
+    # 1. Strip trailing year/parenthetical
+    title = re.sub(r'\s*\(.*?\)\s*$', '', title)
+    # Strip trailing subtitles after em-dash or colon
     for sep in [' — ', ' – ', ': ']:
         if sep in title:
             parts = title.split(sep, 1)
-            if len(parts[0]) >= 20:
+            if len(parts[0]) >= 18:
                 title = parts[0]
                 break
-    # Strip "Godfather's Pizza" prefix ONLY if it leaves meaningful text
+    title = title.strip(' —-:,')
+
+    # 2. Strip "Godfather's Pizza" / "Godfathers" prefix if meaningful text remains
     stripped = re.sub(r"^Godfather'?s?\s+Pizza\s*", '', title, flags=re.IGNORECASE).strip(' —-:')
-    if len(stripped) >= 15 and not stripped.lower().startswith('vs'):
+    if len(stripped) >= 12 and not stripped.lower().startswith('vs'):
         title = stripped
-    title = title.strip(' —-:')
-    # Truncate for thumbnail legibility — cut at word boundary
-    if len(title) > 45:
-        cut = title[:45].rfind(' ')
-        if cut > 20:
+
+    # 3. Shorten "Godfather's Pizza/Pizzas" mid-title → "Godfather's" (saves 6-7 chars)
+    title = re.sub(r"Godfather'?s?\s+Pizzas?", "Godfather's", title, flags=re.IGNORECASE)
+
+    # 4. Drop "in San Antonio" / "San Antonio" suffix if still too long
+    if len(title) > 35:
+        title = re.sub(r',?\s*San Antonio\s*$', '', title, flags=re.IGNORECASE).strip(' ,')
+    if len(title) > 35:
+        title = re.sub(r'\s+in\s+San\s+Antonio', '', title, flags=re.IGNORECASE).strip()
+    if len(title) > 35:
+        title = re.sub(r'\s+at\s+Godfather\'s$', '', title, flags=re.IGNORECASE).strip()
+
+    # 5. Final truncation at word boundary (target 38)
+    if len(title) > 38:
+        cut = title[:38].rfind(' ')
+        if cut > 18:
             title = title[:cut]
+
+    # 6. Strip trailing dangling words (prepositions, articles, conjunctions)
+    _DANGLERS = {'at', 'for', 'in', 'with', 'to', 'the', 'a', 'an', 'and',
+                 'or', 'vs', 'of', 'on', 'is', 'by', 'from'}
+    words = title.strip().split()
+    while words and words[-1].lower().rstrip('.,!?') in _DANGLERS:
+        words.pop()
+    title = ' '.join(words)
+
     return title.strip()
 
 
@@ -419,7 +487,7 @@ def main():
     for i, post in enumerate(batch):
         pid = post["id"]
         title = post["title"]
-        headline = clean_headline(title)
+        headline = clean_headline(title, pid)
         scene = detect_scene(title)
 
         print(f"\n[{i+1}/{len(batch)}] Post {pid}: {title[:55]}...")

@@ -108,6 +108,18 @@ def _rename_classes(soup: BeautifulSoup) -> None:
 
 
 # ---------------------------------------------------------------------------
+# B2. Strip pipeline-only elements with no VALN equivalent
+# ---------------------------------------------------------------------------
+
+def _strip_pipeline_artifacts(soup: BeautifulSoup) -> None:
+    """Remove pipeline-injected elements that have no VALN design equivalent."""
+    # ATF FAQ heading ("Asked First / Top questions...") — VALN's <details>
+    # blocks stand alone without a heading wrapper.
+    for el in soup.find_all("div", class_="rl-atf-faqhead"):
+        el.decompose()
+
+
+# ---------------------------------------------------------------------------
 # C. Header restructure
 # ---------------------------------------------------------------------------
 
@@ -439,8 +451,11 @@ def _wrap_atf_faqs(soup: BeautifulSoup, slug: str) -> None:
     })
 
     section_head = soup.new_tag("div", attrs={"class": "vlnSectionHead"})
+    kicker = soup.new_tag("span", attrs={"class": "vlnKicker"})
+    kicker.string = "Asked First"
+    section_head.append(kicker)
     h2 = soup.new_tag("h2", attrs={"id": f"{slug}-faqs-heading"})
-    h2.string = "Frequently Asked Questions"
+    h2.string = "Top questions before you dig in"
     section_head.append(h2)
     faq_section.append(section_head)
 
@@ -576,6 +591,9 @@ def postprocess(html: str, slug: str, title_id: str,
                 category_slug: str, category_name: str,
                 breadcrumb_leaf: str) -> str:
     soup = BeautifulSoup(html, "html.parser")
+
+    # B2. Strip pipeline-only artifacts (before rename, uses rl-* classes)
+    _strip_pipeline_artifacts(soup)
 
     # A-B. Class renames + callout variant mapping
     _rename_classes(soup)

@@ -18,10 +18,13 @@ import time
 from pathlib import Path
 
 MODULE_ROOT = Path(__file__).resolve().parents[1]
+REPO_ROOT = MODULE_ROOT.parent.parent
 sys.path.insert(0, str(MODULE_ROOT / 'lib'))
+sys.path.insert(0, str(REPO_ROOT / 'modules' / '_shared'))
 
 from ssh_session import SSHSession
 from php_template import generate_meta_update_script
+from lib.deploy_lock import acquire_deploy_lock
 
 
 def main():
@@ -41,6 +44,9 @@ def main():
         parser.error("Must provide --post-id or --batch-csv")
     if args.post_id and not (args.meta_key and args.meta_value):
         parser.error("--meta-key and --meta-value required with --post-id")
+
+    if not args.dry_run:
+        acquire_deploy_lock(args.site, tool_name='push-post-meta')
 
     ssh = SSHSession(args.site, sleep_between=args.sleep_between)
 

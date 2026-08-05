@@ -19,9 +19,12 @@ import time
 from pathlib import Path
 
 MODULE_ROOT = Path(__file__).resolve().parents[1]
+REPO_ROOT = MODULE_ROOT.parent.parent
 sys.path.insert(0, str(MODULE_ROOT / 'lib'))
+sys.path.insert(0, str(REPO_ROOT / 'modules' / '_shared'))
 
 from ssh_session import SSHSession
+from lib.deploy_lock import acquire_deploy_lock
 
 
 def main():
@@ -35,6 +38,9 @@ def main():
                         help='Only update posts currently authored by this user')
     parser.add_argument('--dry-run', action='store_true')
     args = parser.parse_args()
+
+    if not args.dry_run:
+        acquire_deploy_lock(args.site, tool_name='bulk-update-author')
 
     ssh = SSHSession(args.site, sleep_between=2)
 

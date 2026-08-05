@@ -2,7 +2,7 @@
 /**
  * Plugin Name: LRG Article Styles
  * Description: Inlines rl-base.css + rl-cards.css on single posts for V3 article styling. LRG red/navy palette.
- * Version: 1.0.1
+ * Version: 1.0.2
  * Author: VALN Team
  */
 
@@ -11,14 +11,14 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 add_action( 'wp_head', function () {
-    if ( ! is_singular( 'post' ) ) {
+    if ( ! is_singular( array( 'post', 'listing_page' ) ) ) {
         return;
     }
     ?>
 <style id="lrg-article-styles">
 .rl-page {
   --rl-bg: #ffffff;
-  --rl-border: #e2e8f0;
+  --rl-border: #cbd5e1;
   --rl-card-radius: 24px;
   --rl-card-radius-sm: 18px;
   --rl-card-padding: 22px;
@@ -160,7 +160,7 @@ add_action( 'wp_head', function () {
 /* Cards */
 .rl-page .rl-card{
   background:#ffffff;
-  border:1px solid #e2e8f0;
+  border:1px solid #cbd5e1;
   border-radius:24px;
   box-shadow:0 12px 34px rgba(15,23,42,.10), 0 2px 10px rgba(15,23,42,.06);
 }
@@ -170,7 +170,7 @@ add_action( 'wp_head', function () {
 }
 
 /* Hero */
-.rl-page .rl-hero{ margin-bottom:18px; }
+.rl-page .rl-hero{ margin-bottom:8px; }
 
 .rl-page .rl-breadcrumb{
   display:flex;
@@ -384,7 +384,7 @@ add_action( 'wp_head', function () {
 
 .rl-page .rl-quick-card{
   border-radius:18px;
-  border:1px solid #fecaca;
+  border:1px solid #cbd5e1;
   background:linear-gradient(180deg, rgba(239,246,255,.96) 0%, rgba(255,255,255,.98) 100%);
   padding:14px 14px 12px;
   box-shadow:0 12px 30px rgba(15,23,42,.08);
@@ -417,7 +417,7 @@ add_action( 'wp_head', function () {
   overflow-x:auto;
   -webkit-overflow-scrolling:touch;
   border-radius:18px;
-  border:1px solid #e2e8f0;
+  border:1px solid #cbd5e1;
   background:#fff;
 }
 
@@ -428,7 +428,7 @@ add_action( 'wp_head', function () {
 .rl-page .rl-compare-table{
   width:100%;
   border-collapse:collapse;
-  table-layout:auto;
+  table-layout:fixed;
   font-size:13px;
 }
 
@@ -443,7 +443,7 @@ add_action( 'wp_head', function () {
 .rl-page .rl-table td,
 .rl-page .rl-compare-table th,
 .rl-page .rl-compare-table td{
-  border-bottom:1px solid #e2e8f0;
+  border-bottom:1px solid #cbd5e1;
   padding:10px 10px;
   text-align:left;
   vertical-align:top;
@@ -465,21 +465,27 @@ add_action( 'wp_head', function () {
   font-weight:850;
 }
 
-/* Keep key cells (like “30-year fixed”) on one line */
+/* Table layout: fixed widths for predictable columns */
+.rl-page .rl-table{
+  table-layout:fixed;
+}
+/* First column: compact label (~18%) */
 .rl-page .rl-table th:first-child,
 .rl-page .rl-table td:first-child{
-  white-space:nowrap;
-  width:46%;
+  white-space:normal;
+  width:18%;
 }
+/* Data columns: explicit equal split of remaining 82% */
 .rl-page .rl-table th:not(:first-child),
 .rl-page .rl-table td:not(:first-child){
-  white-space:nowrap;
+  white-space:normal;
+  width:41%;
 }
 
 /* Tool shell */
 .rl-page .rl-tool-shell{
   border-radius:24px;
-  border:1px solid #e2e8f0;
+  border:1px solid #cbd5e1;
   background:rgba(248,250,252,.92);
   padding:16px;
   box-shadow:0 12px 34px rgba(15,23,42,.10), 0 2px 10px rgba(15,23,42,.06);
@@ -512,7 +518,7 @@ add_action( 'wp_head', function () {
 .rl-page .rl-form,
 .rl-page .rl-result{
   border-radius:18px;
-  border:1px solid #e2e8f0;
+  border:1px solid #cbd5e1;
   background:#fff;
   padding:18px 18px 16px;
   box-shadow:0 12px 30px rgba(15,23,42,.08);
@@ -556,7 +562,7 @@ add_action( 'wp_head', function () {
 .rl-page .rl-form-input,
 .rl-page .rl-form-select{
   border-radius:12px;
-  border:1px solid #e2e8f0;
+  border:1px solid #cbd5e1;
   padding:10px 10px;
   background:#fff;
   color:#0f172a;
@@ -593,7 +599,7 @@ add_action( 'wp_head', function () {
 /* Callouts */
 .rl-page .rl-callout{
   border-radius:18px;
-  border:1px solid #e2e8f0;
+  border:1px solid #cbd5e1;
   background:#fff;
   padding:12px 12px 10px;
   box-shadow:0 12px 30px rgba(15,23,42,.08);
@@ -603,12 +609,12 @@ add_action( 'wp_head', function () {
 .rl-page .rl-callout p{ margin:0; color:#475569; font-size:13px; line-height:1.6; }
 
 .rl-page .rl-callout--warn{ border-color:#fed7aa; background:linear-gradient(180deg,#fffbeb 0%, #fff 100%); }
-.rl-page .rl-callout--blue{ border-color:#fecaca; background:linear-gradient(180deg,#fef2f2 0%, #fff 100%); }
+.rl-page .rl-callout--blue{ border-color:#bfdbfe; background:linear-gradient(180deg,#fef2f2 0%, #fff 100%); }
 
 /* Results */
 .rl-page .rl-result-main{
   border-radius:18px;
-  border:1px solid #e2e8f0;
+  border:1px solid #cbd5e1;
   background:linear-gradient(180deg,#f8fafc 0%, #fff 100%);
   padding:16px 16px 14px;
   margin-bottom:12px;
@@ -647,7 +653,7 @@ add_action( 'wp_head', function () {
 .rl-page .rl-stack{ display:grid; grid-template-columns:1fr; gap:12px; }
 .rl-page .rl-mini-card{
   border-radius:18px;
-  border:1px solid #e2e8f0;
+  border:1px solid #cbd5e1;
   background:linear-gradient(180deg,#fff 0%, #f8fafc 100%);
   padding:12px 12px 10px;
   box-shadow:0 12px 30px rgba(15,23,42,.08);
@@ -674,7 +680,7 @@ add_action( 'wp_head', function () {
   padding:12px 12px 10px;
   box-shadow:0 12px 30px rgba(15,23,42,.08);
   min-width:0;
-  border:1px solid #e2e8f0;
+  border:1px solid #cbd5e1;
 }
 .rl-page .rl-traffic-card[data-tone="green"]{ border-color:rgba(22,163,74,.35); }
 .rl-page .rl-traffic-card[data-tone="yellow"]{ border-color:rgba(202,138,4,.35); }
@@ -689,18 +695,18 @@ add_action( 'wp_head', function () {
 .rl-page .rl-faq,
 .rl-page .rl-faq-list{
   margin-top:12px;
-  border:1px solid #e2e8f0;
-  border-radius:24px;
-  background:#fff;
-  overflow:hidden;
-  box-shadow:0 18px 45px rgba(15,23,42,.10);
+  border:none;
+  border-radius:0;
+  background:transparent;
+  overflow:visible;
+  box-shadow:none;
 }
 
 .rl-page .rl-faq details,
 .rl-page .rl-faq-item{ border:0; }
 
 .rl-page .rl-faq details:not(:first-child),
-.rl-page .rl-faq-item:not(:first-child){ border-top:1px solid #e2e8f0; }
+.rl-page .rl-faq-item:not(:first-child){ border-top:1px solid #94a3b8; }
 
 .rl-page .rl-faq summary,
 .rl-page .rl-faq-item summary{
@@ -737,7 +743,7 @@ add_action( 'wp_head', function () {
 
 .rl-page .rl-faq .ans,
 .rl-page .rl-faqBody{
-  border-top:1px solid #e2e8f0;
+  border-top:1px solid #94a3b8;
   padding:12px 16px 16px;
 }
 
@@ -747,7 +753,7 @@ add_action( 'wp_head', function () {
 .rl-page .rl-refs,
 .rl-page .rl-sources{
   margin-top:12px;
-  border:1px solid #e2e8f0;
+  border:1px solid #cbd5e1;
   border-radius:24px;
   background:#fff;
   box-shadow:0 18px 45px rgba(15,23,42,.10);
@@ -1121,7 +1127,7 @@ add_action( 'wp_head', function () {
   .rl-page .rl-hero-quickCard,
   .rl-page .rl-hero-quickCard{
     background: #ffffff !important;
-    border: 1px solid #fecaca !important; /* light blue */
+    border: 1px solid #bfdbfe !important; /* light blue */
     border-radius: 18px !important;
     padding: 14px 14px 12px !important;
     box-shadow: none !important;
@@ -1204,7 +1210,7 @@ add_action( 'wp_head', function () {
 }
 
 /* Default link color inside RL pages (exclude buttons) */
-.rl-page a:not(.rl-btn):not(.rl-pill):not(.rl-pill){
+.rl-page a:not(.rl-btn):not(.rl-pill):not(.rl-pill):not(.nh-cta):not(.nh-sticky-btn):not(.rl-cta-primary):not(.rl-cta-pill){
   color: var(--vlnHeading) !important;
 }
 
@@ -1260,13 +1266,13 @@ add_action( 'wp_head', function () {
 }
 
 /* Text links (do NOT clobber buttons or pills) */
-.rl-page a:not(.rl-btn):not(.rl-pill):not(.rl-pill),
-.rl-page a:not(.rl-btn):not(.rl-pill):not(.rl-pill){
+.rl-page a:not(.rl-btn):not(.rl-pill):not(.rl-pill):not(.nh-cta):not(.nh-sticky-btn):not(.rl-cta-primary):not(.rl-cta-pill),
+.rl-page a:not(.rl-btn):not(.rl-pill):not(.rl-pill):not(.nh-cta):not(.nh-sticky-btn):not(.rl-cta-primary):not(.rl-cta-pill){
   color: var(--vlnHeading) !important;
   text-decoration: none;
 }
-.rl-page a:not(.rl-btn):not(.rl-pill):not(.rl-pill):hover,
-.rl-page a:not(.rl-btn):not(.rl-pill):not(.rl-pill):hover{
+.rl-page a:not(.rl-btn):not(.rl-pill):not(.rl-pill):not(.nh-cta):not(.nh-sticky-btn):not(.rl-cta-primary):not(.rl-cta-pill):hover,
+.rl-page a:not(.rl-btn):not(.rl-pill):not(.rl-pill):not(.nh-cta):not(.nh-sticky-btn):not(.rl-cta-primary):not(.rl-cta-pill):hover{
   text-decoration: underline;
 }
 
@@ -1407,8 +1413,8 @@ add_action( 'wp_head', function () {
 }
 
 /* Non-pill/non-button links use brand navy (keeps sources consistent) */
-.rl-page.rl-page a:not(.rl-btn):not(.rl-pill):not(.rl-pill),
-.rl-page.rl-page a:not(.rl-btn):not(.rl-pill):not(.rl-pill){
+.rl-page.rl-page a:not(.rl-btn):not(.rl-pill):not(.rl-pill):not(.nh-cta):not(.nh-sticky-btn):not(.rl-cta-primary):not(.rl-cta-pill),
+.rl-page.rl-page a:not(.rl-btn):not(.rl-pill):not(.rl-pill):not(.nh-cta):not(.nh-sticky-btn):not(.rl-cta-primary):not(.rl-cta-pill){
   color: var(--vlnHeading, #0F1F4A) !important;
 }
 
@@ -1977,7 +1983,7 @@ details.rl-faq{
 .rl-page .bullet-section-yellow,
 .rl-page .bullet-section-green,
 .rl-page .bullet-section-red{
-  border: 1px solid #e2e8f0;
+  border: 1px solid #cbd5e1;
   border-radius: 18px;
   padding: 14px 16px;
   margin: 16px 0;
@@ -2045,15 +2051,15 @@ details.rl-faq{
 .rl-page .bullet-section-gray,
 .rl-page .bullet-section-gray{
   background: #f8fafc;
-  border-color: #e2e8f0;
+  border-color: #cbd5e1;
   border-left: 6px solid #cbd5e1;
 }
 
 .rl-page .bullet-section-blue,
 .rl-page .bullet-section-blue{
   background: #fef2f2;
-  border-color: #fecaca;
-  border-left: 6px solid #C8102E;
+  border-color: #bfdbfe;
+  border-left: 6px solid #3b82f6;
 }
 
 .rl-page .bullet-section-yellow,
@@ -2142,7 +2148,7 @@ details.rl-faq{
 .rl-page .rl-callout.rl-pro-tip,
 .rl-page .rl-pro-tip{
   background: #fef2f2;
-  border-color: #fecaca;
+  border-color: #bfdbfe;
   border-left: 6px solid #C8102E;
 }
 
@@ -2256,7 +2262,7 @@ details.rl-faq{
 .rl-page .bullet-section-yellow,
 .rl-page .bullet-section-green,
 .rl-page .bullet-section-red{
-  border: 1px solid #e2e8f0;
+  border: 1px solid #cbd5e1;
   border-radius: 18px;
   padding: 14px 16px;
   margin: 16px 0;
@@ -2324,15 +2330,15 @@ details.rl-faq{
 .rl-page .bullet-section-gray,
 .rl-page .bullet-section-gray{
   background: #f8fafc;
-  border-color: #e2e8f0;
+  border-color: #cbd5e1;
   border-left: 6px solid #cbd5e1;
 }
 
 .rl-page .bullet-section-blue,
 .rl-page .bullet-section-blue{
   background: #fef2f2;
-  border-color: #fecaca;
-  border-left: 6px solid #C8102E;
+  border-color: #bfdbfe;
+  border-left: 6px solid #3b82f6;
 }
 
 .rl-page .bullet-section-yellow,
@@ -2421,7 +2427,7 @@ details.rl-faq{
 .rl-page .rl-callout.rl-pro-tip,
 .rl-page .rl-pro-tip{
   background: #fef2f2;
-  border-color: #fecaca;
+  border-color: #bfdbfe;
   border-left: 6px solid #C8102E;
 }
 
@@ -2483,8 +2489,8 @@ details.rl-faq{
 .bullet-section-yellow,
 .bullet-section-green,
 .bullet-section-red{
-  border: 1px solid #e2e8f0 !important;
-  border-left: 1px solid #e2e8f0 !important;   /* kills thick left stripe */
+  border: 1px solid #cbd5e1 !important;
+  border-left: 1px solid #cbd5e1 !important;   /* kills thick left stripe */
   border-radius: 18px !important;
   background: #f8fafc !important;
   background-image: none !important;          /* kills gradients if any */
@@ -2527,15 +2533,15 @@ details.rl-faq{
 .rl-callout--blue,
 .rl-callout.rl-pro-tip{
   background: #fef2f2 !important;
-  border-color: #fecaca !important;
-  border-left-color: #fecaca !important;
+  border-color: #bfdbfe !important;
+  border-left-color: #bfdbfe !important;
 }
 
 /* Gray “neutral” box */
 .bullet-section-gray{
   background: #f8fafc !important;
-  border-color: #e2e8f0 !important;
-  border-left-color: #e2e8f0 !important;
+  border-color: #cbd5e1 !important;
+  border-left-color: #cbd5e1 !important;
 }
 
 /* ---------- Cleaner typography + list spacing inside boxes ---------- */
@@ -2750,7 +2756,7 @@ details.rl-faq{
 .rl-page.rl-page .bullet-section-blue,
 .rl-page.rl-page .bullet-section-blue{
   background:#fef2f2 !important;
-  border-color:rgba(200,16,46,.35) !important;
+  border-color:rgba(59,130,246,.35) !important;
 }
 
 .rl-page.rl-page .bullet-section-gray,
@@ -2871,7 +2877,7 @@ details.rl-faq{
    ---------------------------------------------------------- */
 
 .rl-page .rl-bullet-section{
-  border: 1px solid #e2e8f0;
+  border: 1px solid #cbd5e1;
   border-radius: 18px;
   padding: 14px 16px;
   margin: 16px 0;
@@ -2905,7 +2911,7 @@ details.rl-faq{
 
 .rl-page .rl-bullet-section--blue{
   background: #fef2f2;
-  border-color: #fecaca;
+  border-color: #bfdbfe;
   border-left: 6px solid #C8102E;
 }
 
@@ -2923,7 +2929,7 @@ details.rl-faq{
 
 .rl-page .rl-bullet-section--gray{
   background: #f8fafc;
-  border-color: #e2e8f0;
+  border-color: #cbd5e1;
   border-left: 6px solid #94a3b8;
 }
 
@@ -2972,7 +2978,7 @@ details.rl-faq{
 
 .rl-page .rl-top-faq{
   margin-top: 12px;
-  border: 1px solid #e2e8f0;
+  border: 1px solid #cbd5e1;
   border-radius: 24px;
   background: #fff;
   overflow: hidden;
@@ -2980,7 +2986,7 @@ details.rl-faq{
 }
 
 .rl-page .rl-top-faq details{ border: 0; }
-.rl-page .rl-top-faq details:not(:first-child){ border-top: 1px solid #e2e8f0; }
+.rl-page .rl-top-faq details:not(:first-child){ border-top: 1px solid #cbd5e1; }
 
 .rl-page .rl-top-faq summary{
   cursor: pointer;
@@ -3011,7 +3017,7 @@ details.rl-faq{
 .rl-page .rl-top-faq details[open] summary:after{ content: "\2013"; }
 
 .rl-page .rl-top-faq .rl-faqBody{
-  border-top: 1px solid #e2e8f0;
+  border-top: 1px solid #cbd5e1;
   padding: 12px 16px 16px;
   color: #475569;
   line-height: 1.75;
@@ -3029,17 +3035,17 @@ details.rl-faq{
 .rl-page .rl-mini-table{
   width: 100%;
   border-collapse: collapse;
-  table-layout: auto;
+  table-layout: fixed;
   font-size: 13px;
   border-radius: 12px;
   overflow: hidden;
-  border: 1px solid #e2e8f0;
+  border: 1px solid #cbd5e1;
   margin: 12px 0;
 }
 
 .rl-page .rl-mini-table th,
 .rl-page .rl-mini-table td{
-  border-bottom: 1px solid #e2e8f0;
+  border-bottom: 1px solid #cbd5e1;
   padding: 8px 10px;
   text-align: left;
   vertical-align: top;
@@ -3171,3 +3177,934 @@ details.rl-faq{
 </style>
     <?php
 }, 5 );
+
+/**
+ * Patch CSS — appended 2026-05-23 to improve quick-card grid, FAQ
+ * accordion, pill jump links, CTA buttons, byline, and hide the
+ * Divi-level categories line above article H1.
+ *
+ * Fires AFTER the main article-styles wp_head action so these rules
+ * win on specificity conflicts.
+ */
+add_action( 'wp_head', 'lrg_article_styles_patch_v1', 11 );
+
+function lrg_article_styles_patch_v1() {
+    if ( ! is_singular( array( 'post', 'listing_page' ) ) ) return;
+    ?>
+    <style id="lrg-article-styles-patch-v1">
+      /* ============================================================
+         PATCH v1 — Article page styling fixes
+         ============================================================ */
+
+      /* CSS variables (mirror homepage/category styling) */
+      .rl-page,
+      .rl-page-lrg {
+        --lrg-navy: #0F1F4A;
+        --lrg-navy-deep: #08142B;
+        --lrg-navy-soft: #1A2C52;
+        --lrg-red: #C8102E;
+        --lrg-red-bright: #DC2538;
+        --lrg-gold: #D4A574;
+        --lrg-gold-bright: #E8C094;
+        --lrg-cream: #FAFAF7;
+        --lrg-paper: #F5F2EC;
+        --lrg-gray-100: #cbd5e1;
+        --lrg-gray-200: #D1D5DB;
+        --lrg-gray-400: #64748B;
+        --lrg-gray-500: #475569;
+        --lrg-gray-700: #1F2937;
+        font-family: 'Inter', -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+      }
+
+      /* Hide the Divi-level "Categories: Home Buying, LRG Blog" line.
+         Backup safety in case layout 4846 edit misses it. */
+      body.single-post .entry-meta,
+      body.single-post .post-meta,
+      body.single-post .et_post_meta_wrapper,
+      body.single-post .et_pb_post_title_meta_inner,
+      body.single-post .et_pb_post_categories,
+      body.single-post #left-area .post-categories {
+        display: none !important;
+      }
+
+      /* QUICK-ANSWER GRID — proper 2x2 layout */
+      .rl-page .rl-quick-grid {
+        display: grid !important;
+        grid-template-columns: repeat(2, 1fr) !important;
+        gap: 20px !important;
+        margin: 8px 0 24px !important;
+      }
+      .rl-page .rl-quick-card {
+        background: var(--lrg-cream) !important;
+        border: 1px solid var(--lrg-gray-100) !important;
+        border-left: 3px solid var(--lrg-red) !important;
+        border-radius: 10px !important;
+        padding: 20px 22px !important;
+        margin: 0 !important;
+      }
+      .rl-page .rl-quick-card h4 {
+        font-family: 'Fraunces', Georgia, serif !important;
+        font-size: 17px !important;
+        font-weight: 600 !important;
+        color: var(--lrg-navy) !important;
+        margin: 0 0 10px !important;
+        letter-spacing: -0.01em !important;
+      }
+      .rl-page .rl-quick-card ul {
+        margin: 0 !important;
+        padding-left: 18px !important;
+      }
+      .rl-page .rl-quick-card li {
+        font-size: 14px !important;
+        line-height: 1.55 !important;
+        color: var(--lrg-gray-500) !important;
+        margin-bottom: 8px !important;
+      }
+      .rl-page .rl-quick-card li:last-child { margin-bottom: 0 !important; }
+
+      .rl-page .rl-quick-head {
+        display: flex;
+        align-items: baseline;
+        gap: 14px;
+        margin-bottom: 12px;
+        flex-wrap: wrap;
+      }
+      .rl-page .rl-quick-head strong {
+        font-family: 'Fraunces', serif;
+        font-size: 18px;
+        font-weight: 600;
+        color: var(--lrg-navy);
+      }
+      .rl-page .rl-quick-head span {
+        font-size: 13.5px;
+        color: var(--lrg-gray-400);
+      }
+
+      /* FAQ ACCORDION — details/summary */
+      .rl-page details {
+        background: var(--lrg-white, #fff);
+        border: 1px solid var(--lrg-gray-100);
+        border-radius: 8px;
+        padding: 0;
+        margin-bottom: 10px;
+        overflow: hidden;
+        transition: all 0.2s;
+      }
+      .rl-page details[open] {
+        border-color: var(--lrg-navy);
+        box-shadow: 0 4px 16px rgba(15, 31, 74, 0.08);
+      }
+      .rl-page details summary {
+        cursor: pointer;
+        padding: 16px 22px;
+        font-family: 'Fraunces', serif;
+        font-size: 16px;
+        font-weight: 600;
+        color: var(--lrg-navy);
+        list-style: none;
+        position: relative;
+        padding-right: 50px;
+        transition: background 0.18s;
+      }
+      .rl-page details summary::-webkit-details-marker { display: none; }
+      .rl-page details summary::after {
+        content: '+';
+        position: absolute;
+        right: 22px;
+        top: 50%;
+        transform: translateY(-50%);
+        font-size: 22px;
+        font-weight: 400;
+        color: var(--lrg-red);
+        line-height: 1;
+        transition: transform 0.2s;
+      }
+      .rl-page details[open] summary::after {
+        content: '−';
+      }
+      .rl-page details summary:hover { background: var(--lrg-cream); }
+      .rl-page details summary span { display: inline; }
+      .rl-page .rl-faqBody {
+        padding: 0 22px 18px;
+        font-size: 14.5px;
+        line-height: 1.6;
+        color: var(--lrg-gray-500);
+      }
+
+      /* PILL JUMP LINKS */
+      .rl-page .rl-pill {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 8px 16px;
+        border-radius: 22px;
+        background: var(--lrg-cream);
+        color: var(--lrg-navy) !important;
+        font-size: 13.5px;
+        font-weight: 500;
+        border: 1px solid var(--lrg-gray-100);
+        text-decoration: none !important;
+        margin: 4px 4px 4px 0;
+        transition: all 0.18s;
+      }
+      .rl-page .rl-pill:hover {
+        background: var(--lrg-navy);
+        color: var(--lrg-white, #fff) !important;
+        border-color: var(--lrg-navy);
+        transform: translateY(-1px);
+      }
+      .rl-page .rl-ctas {
+        display: flex;
+        gap: 10px;
+        flex-wrap: wrap;
+        margin: 20px 0;
+      }
+
+      /* CTA BUTTONS — rl-btn variants */
+      .rl-page .rl-btn,
+      .rl-page button.rl-btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 11px 24px;
+        border-radius: 8px;
+        font-size: 14.5px;
+        font-weight: 600;
+        text-decoration: none !important;
+        cursor: pointer;
+        border: none;
+        transition: all 0.2s;
+        font-family: inherit;
+      }
+      .rl-page .rl-btn--primary,
+      .rl-page button.rl-btn--primary {
+        background: var(--lrg-navy);
+        color: var(--lrg-white, #fff) !important;
+      }
+      .rl-page .rl-btn--primary:hover {
+        background: var(--lrg-navy-deep);
+        transform: translateY(-1px);
+        box-shadow: 0 8px 20px rgba(15, 31, 74, 0.20);
+      }
+      .rl-page .rl-btn--secondary {
+        background: var(--lrg-cream);
+        color: var(--lrg-navy) !important;
+        border: 1px solid var(--lrg-gray-200);
+      }
+      .rl-page .rl-btn--secondary:hover {
+        background: var(--lrg-paper);
+        border-color: var(--lrg-navy);
+      }
+      .rl-page .rl-btn--ghost {
+        background: transparent;
+        color: var(--lrg-navy) !important;
+        border: 1px solid var(--lrg-gray-200);
+      }
+      .rl-page .rl-btn--ghost:hover {
+        background: var(--lrg-cream);
+        border-color: var(--lrg-navy);
+      }
+
+      /* HERO BLOCK */
+      .rl-page .rl-hero {
+        background: var(--lrg-cream);
+        border-left: 4px solid var(--lrg-red);
+        padding: 28px 30px 24px;
+        margin: 0 0 32px;
+        border-radius: 0 10px 10px 0;
+      }
+      .rl-page .rl-hero p:first-child {
+        font-size: 16.5px;
+        line-height: 1.65;
+        color: var(--lrg-gray-700);
+        margin: 0 0 18px;
+      }
+      .rl-page .rl-next-pill {
+        background: rgba(255,255,255,0.7);
+        padding: 10px 14px;
+        border-radius: 6px;
+        margin: 14px 0;
+        font-size: 14px;
+        color: var(--lrg-navy);
+        border-left: 2px solid var(--lrg-gold);
+      }
+      .rl-page .rl-next-pill strong {
+        color: var(--lrg-red);
+        margin-right: 4px;
+      }
+
+      /* SECTION HEADINGS */
+      .rl-page .rl-section {
+        margin: 40px 0;
+      }
+      .rl-page .rl-section h3 {
+        font-family: 'Fraunces', serif;
+        font-size: clamp(20px, 2vw, 26px);
+        font-weight: 500;
+        line-height: 1.25;
+        color: var(--lrg-navy);
+        letter-spacing: -0.015em;
+        margin: 0 0 16px;
+      }
+      .rl-page .rl-top-faq h3 {
+        font-family: 'Fraunces', serif;
+        font-size: 22px;
+        font-weight: 500;
+        color: var(--lrg-navy);
+        margin: 0 0 16px;
+      }
+
+      /* BULLET SECTIONS — color-coded callouts */
+      .rl-page .bullet-section-gray,
+      .rl-page .bullet-section-blue,
+      .rl-page .bullet-section-green {
+        padding: 22px 26px;
+        border-radius: 10px;
+        margin: 22px 0;
+        border-left: 4px solid;
+      }
+      .rl-page .bullet-section-gray {
+        background: var(--lrg-cream);
+        border-left-color: var(--lrg-gray-400);
+      }
+      .rl-page .bullet-section-blue {
+        background: rgba(15, 31, 74, 0.04);
+        border-left-color: var(--lrg-navy);
+      }
+      .rl-page .bullet-section-green {
+        background: rgba(60, 140, 80, 0.06);
+        border-left-color: #3C8C50;
+      }
+      .rl-page .bullet-section-gray ul,
+      .rl-page .bullet-section-blue ul,
+      .rl-page .bullet-section-green ul {
+        margin: 0;
+        padding-left: 22px;
+      }
+      .rl-page .bullet-section-gray li,
+      .rl-page .bullet-section-blue li,
+      .rl-page .bullet-section-green li {
+        font-size: 15px;
+        line-height: 1.6;
+        margin-bottom: 10px;
+        color: var(--lrg-gray-700);
+      }
+      .rl-page .bullet-section-gray li:last-child,
+      .rl-page .bullet-section-blue li:last-child,
+      .rl-page .bullet-section-green li:last-child { margin-bottom: 0; }
+      .rl-page .bullet-section-gray strong,
+      .rl-page .bullet-section-blue strong,
+      .rl-page .bullet-section-green strong {
+        color: var(--lrg-navy);
+        font-weight: 600;
+      }
+
+      /* BYLINE BLOCK (Written by / Reviewed by / Updated) */
+      .rl-page .rl-byline,
+      body.single-post .author-byline,
+      body.single-post .post-byline {
+        background: var(--lrg-cream);
+        border: 1px solid var(--lrg-gray-100);
+        border-radius: 10px;
+        padding: 18px 22px;
+        margin: 0 0 28px;
+        display: flex;
+        align-items: center;
+        gap: 16px;
+        font-size: 14px;
+        color: var(--lrg-gray-500);
+        line-height: 1.5;
+      }
+
+      /* RESOURCES LIST */
+      .rl-page .neighborhood-cluster,
+      .rl-page .rl-section ul {
+        margin: 16px 0;
+        padding-left: 22px;
+      }
+      .rl-page .rl-section ul li {
+        margin-bottom: 8px;
+        line-height: 1.5;
+      }
+      .rl-page .rl-section a {
+        color: var(--lrg-red) !important;
+        text-decoration: underline;
+        text-decoration-color: rgba(200, 16, 46, 0.3);
+        text-underline-offset: 3px;
+        transition: text-decoration-color 0.2s;
+      }
+      .rl-page .rl-section a:hover {
+        text-decoration-color: var(--lrg-red);
+      }
+
+      /* RESPONSIVE */
+      @media (max-width: 720px) {
+        .rl-page .rl-quick-grid {
+          grid-template-columns: 1fr !important;
+        }
+        .rl-page .rl-hero {
+          padding: 22px 20px 18px;
+        }
+        .rl-page .rl-section h3 {
+          font-size: 20px;
+        }
+      }
+
+
+      /* === TOC sidebar sticky positioning === */
+      @media (min-width: 981px) {
+        /* Sidebar column MUST stretch to row height for position:sticky to work.
+           The sticky child needs a taller parent to scroll against. */
+        .et_pb_column_1_tb_body .et_pb_text {
+          position: -webkit-sticky;
+          position: sticky;
+          top: var(--rss-toc-sticky-top, 100px);
+          align-self: flex-start;
+          flex-grow: 0;
+          max-height: calc(100vh - 120px);
+          overflow-y: auto;
+        }
+      }
+      @media (max-width: 980px) {
+        .et_pb_column_1_tb_body .et_pb_text {
+          position: static;
+        }
+      }
+      /* === Breadcrumb separator spacing (2026-05-28) === */
+      /* Breadcrumb is injected by rss-meta-header outside .rl-page wrapper */
+      .rl-breadcrumb span[aria-hidden="true"] {
+        margin: 0 6px;
+        color: #94a3b8;
+      }
+
+      /* === RSS TOC sidebar: LRG brand red override (#3B0000) === */
+      .rss-toc-title { color: #3B0000 !important; }
+      .rss-cta-line1, .rss-cta-line3 { color: #3B0000 !important; }
+      .rss-toc-sticky-cta-text { color: #3B0000 !important; }
+      .rss-toc ul li a:hover { color: #6B1515 !important; text-decoration: underline !important; }
+
+      /* === Patch v1.0 — missing class rules (added 2026-05-27) === */
+
+      /* CTA primary button — used in 381 posts, was unstyled */
+      .rl-page .rl-cta-primary {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        background: var(--lrg-red, #C8102E);
+        color: #ffffff !important;
+        font-weight: 600;
+        font-size: 16px;
+        padding: 12px 22px;
+        border-radius: 8px;
+        text-decoration: none;
+        border: 0;
+        transition: background 0.15s ease, transform 0.15s ease;
+        box-shadow: 0 2px 6px rgba(15, 31, 74, 0.12);
+      }
+      .rl-page .rl-cta-primary:hover {
+        background: #a30c24;
+        color: #ffffff;
+        transform: translateY(-1px);
+        text-decoration: none;
+      }
+      .rl-page .rl-cta-primary:focus {
+        outline: 2px solid var(--lrg-navy, #0F1F4A);
+        outline-offset: 2px;
+      }
+
+      /* Mid-article CTA wrapper */
+      .rl-page .rl-cta-mid {
+        margin: 36px 0;
+        padding: 24px;
+        background: var(--lrg-cream, #fdf8f0);
+        border-radius: 12px;
+        /* border-left removed — was adding red accent to CTA buttons */
+        text-align: center;
+      }
+
+      /* CTA pill (mid-article variant) */
+      .rl-page .rl-cta-pill {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        background: var(--lrg-navy, #0F1F4A);
+        color: #ffffff;
+        font-weight: 600;
+        font-size: 15px;
+        padding: 10px 20px;
+        border-radius: 999px;
+        text-decoration: none;
+        transition: background 0.15s ease, transform 0.15s ease;
+      }
+      .rl-page .rl-cta-pill:hover {
+        background: #1a2c5e;
+        color: #ffffff;
+        text-decoration: none;
+        transform: translateY(-1px);
+      }
+
+      /* === Fix B: CTA button contrast (2026-05-27) ===
+         The consistency-override rule .rl-page a:not(.rl-btn):not(.rl-pill)
+         forces color: var(--vlnHeading) !important on all non-btn/pill links.
+         .rl-cta-primary and .rl-cta-pill are <a> tags that pass through
+         those :not() filters, so their color:#fff gets overridden to navy.
+         Result: navy text on red/navy bg = invisible. Fix: !important white. */
+      .rl-page a.rl-cta-primary:not(.rl-btn):not(.rl-pill),
+      .rl-page a.rl-cta-primary:not(.rl-btn):not(.rl-pill):hover {
+        color: #ffffff !important;
+        -webkit-text-fill-color: #ffffff !important;
+      }
+      .rl-page a.rl-cta-pill:not(.rl-btn):not(.rl-pill),
+      .rl-page a.rl-cta-pill:not(.rl-btn):not(.rl-pill):hover {
+        color: #ffffff !important;
+        -webkit-text-fill-color: #ffffff !important;
+      }
+
+      /* === Fix A: Remove bold from body links, add underline (2026-05-27) ===
+         rl-lrg-theme.css sets .rl-page a { font-weight:800 } globally.
+         Bold was the ONLY visual link cue — link color (#0F1F4A) is nearly
+         identical to body text (#0f172a). Matches Squarespace live site:
+         .main-content a { color:#1a365d; font-weight:500; text-decoration:underline }
+         Exclusions preserve CTA/btn/pill/breadcrumb weights. */
+      .rl-page a:not(.rl-btn):not(.rl-pill):not(.rl-cta-primary):not(.rl-cta-pill) {
+        font-weight: inherit;
+        text-decoration: underline;
+      }
+      .rl-page a:not(.rl-btn):not(.rl-pill):not(.rl-cta-primary):not(.rl-cta-pill):hover {
+        text-decoration: none;
+      }
+
+      /* Jump nav bar */
+      .rl-page .rl-jump-nav {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        padding: 14px 18px;
+        margin: 20px 0 28px;
+        background: #f8fafc;
+        border-radius: 10px;
+        border: 1px solid #cbd5e1;
+        font-size: 14px;
+      }
+      .rl-page .rl-jump-nav a {
+        color: var(--lrg-navy, #0F1F4A);
+        text-decoration: none;
+        padding: 4px 10px;
+        border-radius: 6px;
+        transition: background 0.15s ease;
+      }
+      .rl-page .rl-jump-nav a:hover {
+        background: #e2e8f0;
+        text-decoration: none;
+      }
+      @media (max-width: 720px) {
+        .rl-page .rl-jump-nav {
+          font-size: 13px;
+          padding: 12px 14px;
+        }
+      }
+
+      /* Resources footer */
+      .rl-page .rl-resources {
+        margin-top: 40px;
+        padding: 24px;
+        background: #f8fafc;
+        border-radius: 10px;
+        border-top: 3px solid var(--lrg-navy, #0F1F4A);
+      }
+      .rl-page .rl-resources h2 {
+        font-size: 18px;
+        margin: 0 0 12px;
+        color: var(--lrg-navy, #0F1F4A);
+      }
+      .rl-page .rl-resources ul {
+        margin: 0;
+        padding-left: 20px;
+        font-size: 14px;
+        line-height: 1.7;
+      }
+      .rl-page .rl-resources a {
+        color: var(--lrg-navy, #0F1F4A);
+        text-decoration: underline;
+      }
+
+      /* Bullet section beige variant — 19 posts use this */
+      .rl-page .bullet-section-beige {
+        background: #faf6ed;
+        border-left: 4px solid var(--lrg-gold, #c9a961);
+        border-radius: 8px;
+        padding: 18px 22px;
+        margin: 18px 0;
+      }
+      .rl-page .bullet-section-beige ul {
+        margin: 0;
+        padding-left: 20px;
+      }
+      .rl-page .bullet-section-beige li {
+        margin-bottom: 8px;
+        line-height: 1.6;
+      }
+
+      /* === BLUF (Bottom Line Up Front) container === */
+      .rl-page section.rl-bluf {
+        border: 1px solid #cbd5e1;
+        border-left: 4px solid var(--lrg-navy, #0F1F4A);
+        border-radius: 10px;
+        padding: 22px 26px;
+        margin: 32px 0;
+        background: #f8fafc;
+      }
+
+            /* === CTA white text: ensure .nh-cta.ghost inside .rl-page renders white === */
+      .rl-page a.nh-cta.ghost,
+      .rl-page a.nh-cta.ghost:hover {
+        color: #ffffff !important;
+        -webkit-text-fill-color: #ffffff !important;
+      }
+
+            /* Hero block: hide duplicate children, keep intro paragraph */
+      .rl-page .rl-hero > h1,
+      .rl-page .rl-hero .rl-eyebrow,
+      .rl-page .rl-hero .rl-hero-eyebrow,
+      .rl-page .rl-hero .rl-cta-primary,
+      .rl-page .rl-hero .rl-breadcrumb,
+      .rl-page .rl-card.rl-hero .rl-card-inner > h1 {
+        display: none !important;
+      }
+      .rl-page .rl-card.rl-hero,
+      .rl-page header.rl-hero {
+        border: none !important;
+        border-left: none !important;
+        box-shadow: none !important;
+        background: transparent !important;
+        border-radius: 0 !important;
+        padding: 0 !important;
+        margin: 0 0 16px !important;
+      }
+      .rl-page .rl-card.rl-hero .rl-card-inner {
+        padding: 0 !important;
+      }
+
+      /* === End patch v1.0 === */
+
+      /* === Listing pages: hide on-page featured image (thumbnail-only for feed/social) === */
+      body.single-listing_page .post-meta + img {
+        display: none !important;
+      }
+      body.single-listing_page .et_post_meta_wrapper > img {
+        display: none !important;
+      }
+
+      /* === End listing page patch === */
+
+      /* === nh-fact-card component (serves nh-blk + lrgBlogPage posts) ===
+         Specificity: section.nh-blk = (0,1,1) + .nh-fact-card .row = (0,2,0) = (0,3,1)
+         Ties body.neighborhood-guide (0,1,1) + .nh-fact-card .row (0,2,0) = (0,3,1)
+         Wins via source order: lrg-article-styles.php outputs AFTER the 20KB inline block */
+      section.nh-blk .nh-fact-card, .lrgBlogPage .nh-fact-card {
+        background:#fff; border:1px solid #d8dee8; border-radius:12px;
+        box-shadow:0 1px 3px rgba(16,24,40,.06); overflow:hidden; margin:0 0 16px;
+      }
+      section.nh-blk .nh-fact-card .h, .lrgBlogPage .nh-fact-card .h {
+        font-weight:700; font-size:16px; color:#fff;
+        padding:14px 18px; border-bottom:none; background:#0b1b3a;
+      }
+      section.nh-blk .nh-fact-card dl, .lrgBlogPage .nh-fact-card dl { margin:0; padding:0; }
+      section.nh-blk .nh-fact-card .row, .lrgBlogPage .nh-fact-card .row {
+        display:flex; flex-direction:column; gap:4px;
+        padding:12px 18px; border-bottom:1px solid #dbe1e8;
+      }
+      section.nh-blk .nh-fact-card .row:last-child, .lrgBlogPage .nh-fact-card .row:last-child { border-bottom:0; }
+      section.nh-blk .nh-fact-card .row:hover, .lrgBlogPage .nh-fact-card .row:hover { background:#f8fafc; }
+      section.nh-blk .nh-fact-card .row b, .lrgBlogPage .nh-fact-card .row b { color:#64748b; font-weight:600; }
+      section.nh-blk .nh-fact-card .row span, .lrgBlogPage .nh-fact-card .row span { color:#1e293b; text-align:left; font-weight:400; }
+
+
+      /* === Visible borders for fact-card rows + FAQ toggles ===
+         !important beats block 0 var()-based rules at tied specificity.
+         Narrowly scoped to .nh-fact-card/.nh-faq — zero blast radius. */
+      section.nh-blk .nh-fact-card .row, .lrgBlogPage .nh-fact-card .row {
+        border-bottom:1px solid #cbd5e1 !important;
+      }
+      section.nh-blk .nh-fact-card .row:last-child, .lrgBlogPage .nh-fact-card .row:last-child {
+        border-bottom:0 !important;
+      }
+      section.nh-blk .nh-fact-card .h, .lrgBlogPage .nh-fact-card .h {
+        border-bottom:none !important;
+      }
+      section.nh-blk .nh-faq, .lrgBlogPage .nh-faq {
+        border:1px solid #cbd5e1 !important; border-radius:12px; overflow:hidden;
+        background:#fff;
+      }
+      section.nh-blk .nh-faq details, .lrgBlogPage .nh-faq details {
+        border-bottom:1px solid #cbd5e1 !important;
+      }
+      section.nh-blk .nh-faq details:last-child, .lrgBlogPage .nh-faq details:last-child {
+        border-bottom:0 !important;
+      }
+      section.nh-blk .nh-faq summary, .lrgBlogPage .nh-faq summary {
+        padding:14px 18px; cursor:pointer; font-weight:600; color:#0f2747;
+        list-style:none; display:flex; justify-content:space-between; align-items:center;
+      }
+
+
+      /* === Token override: darken border tokens on neighborhood-guide pages ===
+         Ties body.neighborhood-guide scope from Block 0 at (0,1,1),
+         wins via source order (this block loads after Block 0) */
+      body.neighborhood-guide {
+        --line: #cbd5e1;
+        --line-soft: #dbe1e8;
+      }
+
+
+      /* === Contributor Bio Card ===
+         Standing pattern for all contributor/agent-authored articles.
+         Inserted after Resources Used, before FAQ schema in post_content.
+         Scoped under .rl-page to inherit the article design vocabulary.
+         Social icons via inline SVG data URIs — no external icon library. */
+      .rl-page .rl-contributor-bio { margin: 40px 0 32px; }
+      .rl-page .rl-bio-card {
+        display: flex;
+        gap: 24px;
+        align-items: flex-start;
+        background: #f8fafc;
+        border: 1px solid #0F1F4A;
+        border-radius: 14px;
+        padding: 28px 28px 24px;
+        box-shadow: 0 1px 4px rgba(15,31,74,0.04);
+      }
+      .rl-page .rl-bio-photo { flex: 0 0 auto; }
+      .rl-page .rl-bio-photo img {
+        width: 96px;
+        height: 96px;
+        border-radius: 50%;
+        object-fit: cover;
+        border: 3px solid #fff;
+        box-shadow: 0 2px 8px rgba(15,31,74,0.10);
+      }
+      .rl-page .rl-bio-text { flex: 1 1 0%; min-width: 0; }
+      .rl-page .rl-bio-name {
+        font-family: inherit;
+        font-size: 18px;
+        font-weight: 700;
+        color: #0f172a;
+        margin: 0 0 4px;
+        line-height: 1.3;
+      }
+      .rl-page .rl-bio-role {
+        font-size: 13px;
+        color: #64748b;
+        margin: 0 0 10px;
+        line-height: 1.4;
+        letter-spacing: 0.01em;
+      }
+      .rl-page .rl-bio-body {
+        font-size: 14.5px;
+        line-height: 1.65;
+        color: #334155;
+        margin: 0 0 14px;
+      }
+      /* Social links row — pill buttons with inline SVG icons */
+      .rl-page .rl-bio-socials {
+        display: flex;
+        gap: 10px;
+        flex-wrap: wrap;
+      }
+      .rl-page .rl-bio-socials a {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        font-size: 12.5px;
+        font-weight: 600;
+        text-decoration: none;
+        padding: 5px 13px 5px 10px;
+        border-radius: 7px;
+        border: 1px solid rgba(15,31,74,0.12);
+        color: #334155;
+        background: #fff;
+        transition: background 0.15s, color 0.15s, border-color 0.15s;
+      }
+      .rl-page .rl-bio-socials a::before {
+        content: "";
+        display: inline-block;
+        width: 16px;
+        height: 16px;
+        flex-shrink: 0;
+        background-size: contain;
+        background-repeat: no-repeat;
+        background-position: center;
+      }
+      /* LinkedIn */
+      .rl-page .rl-bio-socials a[aria-label="LinkedIn"]::before {
+        background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%230A66C2'%3E%3Cpath d='M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433a2.062 2.062 0 01-2.063-2.065 2.064 2.064 0 112.063 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z'/%3E%3C/svg%3E");
+      }
+      .rl-page .rl-bio-socials a[aria-label="LinkedIn"]:hover {
+        background: #0A66C2; color: #fff; border-color: #0A66C2;
+      }
+      .rl-page .rl-bio-socials a[aria-label="LinkedIn"]:hover::before {
+        background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23fff'%3E%3Cpath d='M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433a2.062 2.062 0 01-2.063-2.065 2.064 2.064 0 112.063 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z'/%3E%3C/svg%3E");
+      }
+      /* Facebook */
+      .rl-page .rl-bio-socials a[aria-label="Facebook"]::before {
+        background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%231877F2'%3E%3Cpath d='M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z'/%3E%3C/svg%3E");
+      }
+      .rl-page .rl-bio-socials a[aria-label="Facebook"]:hover {
+        background: #1877F2; color: #fff; border-color: #1877F2;
+      }
+      .rl-page .rl-bio-socials a[aria-label="Facebook"]:hover::before {
+        background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23fff'%3E%3Cpath d='M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z'/%3E%3C/svg%3E");
+      }
+      /* Instagram */
+      .rl-page .rl-bio-socials a[aria-label="Instagram"]::before {
+        background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23E4405F'%3E%3Cpath d='M12 0C8.74 0 8.333.015 7.053.072 5.775.132 4.905.333 4.14.63c-.789.306-1.459.717-2.126 1.384S.935 3.35.63 4.14C.333 4.905.131 5.775.072 7.053.012 8.333 0 8.74 0 12s.015 3.667.072 4.947c.06 1.277.261 2.148.558 2.913a6.06 6.06 0 001.384 2.126A6.06 6.06 0 004.14 23.37c.766.296 1.636.499 2.913.558C8.333 23.988 8.74 24 12 24s3.667-.015 4.947-.072c1.277-.06 2.148-.262 2.913-.558a6.06 6.06 0 002.126-1.384 6.06 6.06 0 001.384-2.126c.296-.765.499-1.636.558-2.913.06-1.28.072-1.687.072-4.947s-.015-3.667-.072-4.947c-.06-1.277-.262-2.149-.558-2.913a6.06 6.06 0 00-1.384-2.126A6.06 6.06 0 0019.86.63c-.765-.297-1.636-.499-2.913-.558C15.667.012 15.26 0 12 0zm0 2.16c3.203 0 3.585.016 4.85.071 1.17.055 1.805.249 2.227.415.562.217.96.477 1.382.896.419.42.679.819.896 1.381.164.422.36 1.057.413 2.227.057 1.266.07 1.646.07 4.85s-.015 3.585-.074 4.85c-.061 1.17-.256 1.805-.421 2.227a3.81 3.81 0 01-.899 1.382 3.81 3.81 0 01-1.38.896c-.42.164-1.065.36-2.235.413-1.274.057-1.649.07-4.859.07-3.211 0-3.586-.015-4.859-.074-1.171-.061-1.816-.256-2.236-.421a3.81 3.81 0 01-1.379-.899 3.81 3.81 0 01-.9-1.38c-.165-.42-.359-1.065-.42-2.235-.045-1.26-.061-1.649-.061-4.844 0-3.196.016-3.586.061-4.861.061-1.17.255-1.814.42-2.234a3.81 3.81 0 01.9-1.381 3.81 3.81 0 011.379-.898c.42-.166 1.051-.361 2.221-.421 1.275-.045 1.65-.06 4.859-.06l.045.03zm0 3.678a6.162 6.162 0 100 12.324 6.162 6.162 0 100-12.324zM12 16c-2.21 0-4-1.79-4-4s1.79-4 4-4 4 1.79 4 4-1.79 4-4 4zm7.846-10.405a1.441 1.441 0 11-2.88 0 1.441 1.441 0 012.88 0z'/%3E%3C/svg%3E");
+      }
+      .rl-page .rl-bio-socials a[aria-label="Instagram"]:hover {
+        background: #E4405F; color: #fff; border-color: #E4405F;
+      }
+      .rl-page .rl-bio-socials a[aria-label="Instagram"]:hover::before {
+        background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23fff'%3E%3Cpath d='M12 0C8.74 0 8.333.015 7.053.072 5.775.132 4.905.333 4.14.63c-.789.306-1.459.717-2.126 1.384S.935 3.35.63 4.14C.333 4.905.131 5.775.072 7.053.012 8.333 0 8.74 0 12s.015 3.667.072 4.947c.06 1.277.261 2.148.558 2.913a6.06 6.06 0 001.384 2.126A6.06 6.06 0 004.14 23.37c.766.296 1.636.499 2.913.558C8.333 23.988 8.74 24 12 24s3.667-.015 4.947-.072c1.277-.06 2.148-.262 2.913-.558a6.06 6.06 0 002.126-1.384 6.06 6.06 0 001.384-2.126c.296-.765.499-1.636.558-2.913.06-1.28.072-1.687.072-4.947s-.015-3.667-.072-4.947c-.06-1.277-.262-2.149-.558-2.913a6.06 6.06 0 00-1.384-2.126A6.06 6.06 0 0019.86.63c-.765-.297-1.636-.499-2.913-.558C15.667.012 15.26 0 12 0zm0 2.16c3.203 0 3.585.016 4.85.071 1.17.055 1.805.249 2.227.415.562.217.96.477 1.382.896.419.42.679.819.896 1.381.164.422.36 1.057.413 2.227.057 1.266.07 1.646.07 4.85s-.015 3.585-.074 4.85c-.061 1.17-.256 1.805-.421 2.227a3.81 3.81 0 01-.899 1.382 3.81 3.81 0 01-1.38.896c-.42.164-1.065.36-2.235.413-1.274.057-1.649.07-4.859.07-3.211 0-3.586-.015-4.859-.074-1.171-.061-1.816-.256-2.236-.421a3.81 3.81 0 01-1.379-.899 3.81 3.81 0 01-.9-1.38c-.165-.42-.359-1.065-.42-2.235-.045-1.26-.061-1.649-.061-4.844 0-3.196.016-3.586.061-4.861.061-1.17.255-1.814.42-2.234a3.81 3.81 0 01.9-1.381 3.81 3.81 0 011.379-.898c.42-.166 1.051-.361 2.221-.421 1.275-.045 1.65-.06 4.859-.06l.045.03zm0 3.678a6.162 6.162 0 100 12.324 6.162 6.162 0 100-12.324zM12 16c-2.21 0-4-1.79-4-4s1.79-4 4-4 4 1.79 4 4-1.79 4-4 4zm7.846-10.405a1.441 1.441 0 11-2.88 0 1.441 1.441 0 012.88 0z'/%3E%3C/svg%3E");
+      }
+      /* TikTok */
+      .rl-page .rl-bio-socials a[aria-label="TikTok"]::before {
+        background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23000'%3E%3Cpath d='M12.525.02c1.31-.02 2.61-.01 3.91-.02.08 1.53.63 3.09 1.75 4.17 1.12 1.11 2.7 1.62 4.24 1.79v4.03c-1.44-.05-2.89-.35-4.2-.97-.57-.26-1.1-.59-1.62-.93-.01 2.92.01 5.84-.02 8.75-.08 1.4-.54 2.79-1.35 3.94-1.31 1.92-3.58 3.17-5.91 3.21-1.43.08-2.86-.31-4.08-1.03-2.02-1.19-3.44-3.37-3.65-5.71-.02-.5-.03-1-.01-1.49.18-1.9 1.12-3.72 2.58-4.96 1.66-1.44 3.98-2.13 6.15-1.72.02 1.48-.04 2.96-.04 4.44-.99-.32-2.15-.23-3.02.37-.63.41-1.11 1.04-1.36 1.75-.21.51-.15 1.07-.14 1.61.24 1.64 1.82 3.02 3.5 2.87 1.12-.01 2.19-.66 2.77-1.61.19-.33.4-.67.41-1.06.1-1.79.06-3.57.07-5.36.01-4.03-.01-8.05.02-12.07z'/%3E%3C/svg%3E");
+      }
+      .rl-page .rl-bio-socials a[aria-label="TikTok"]:hover {
+        background: #111; color: #fff; border-color: #111;
+      }
+      .rl-page .rl-bio-socials a[aria-label="TikTok"]:hover::before {
+        background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23fff'%3E%3Cpath d='M12.525.02c1.31-.02 2.61-.01 3.91-.02.08 1.53.63 3.09 1.75 4.17 1.12 1.11 2.7 1.62 4.24 1.79v4.03c-1.44-.05-2.89-.35-4.2-.97-.57-.26-1.1-.59-1.62-.93-.01 2.92.01 5.84-.02 8.75-.08 1.4-.54 2.79-1.35 3.94-1.31 1.92-3.58 3.17-5.91 3.21-1.43.08-2.86-.31-4.08-1.03-2.02-1.19-3.44-3.37-3.65-5.71-.02-.5-.03-1-.01-1.49.18-1.9 1.12-3.72 2.58-4.96 1.66-1.44 3.98-2.13 6.15-1.72.02 1.48-.04 2.96-.04 4.44-.99-.32-2.15-.23-3.02.37-.63.41-1.11 1.04-1.36 1.75-.21.51-.15 1.07-.14 1.61.24 1.64 1.82 3.02 3.5 2.87 1.12-.01 2.19-.66 2.77-1.61.19-.33.4-.67.41-1.06.1-1.79.06-3.57.07-5.36.01-4.03-.01-8.05.02-12.07z'/%3E%3C/svg%3E");
+      }
+      /* Mobile stacking */
+      @media (max-width: 600px) {
+        .rl-page .rl-bio-card {
+          flex-direction: column;
+          align-items: center;
+          text-align: center;
+          padding: 24px 20px;
+          gap: 16px;
+        }
+        .rl-page .rl-bio-photo img { width: 88px; height: 88px; }
+        .rl-page .rl-bio-socials { justify-content: center; }
+      }
+
+      /* === Tool pages: durable byline visual suppression (mu-plugin) ===
+         Hides the rss-mh byline header on all /tools/ child pages + hub.
+         Schema markup stays in the DOM — visual hide only.
+         Replaces fragile per-page inline <style> blocks in post_content. */
+      
+      /* === Suggested Articles grid fix (scoped to #gridView) ===
+         1. Image width matches card width (no overflow)
+         2. Column gap between the 3 cards
+         3. Image top corners match card rounding */
+      #gridView .et_pb_posts.et_grid_module {
+        gap: 24px !important;
+      }
+      #gridView .et_pb_post {
+        overflow: hidden;
+        border-radius: 10px;
+        border: 1px solid #e5e7eb;
+      }
+
+      /* === Suggested Articles image — prevent headline text clipping ===
+         The GPT-generated featured images have headline text on the left 40%.
+         With object-fit:cover, the left side gets cropped. Use object-fit:contain
+         with a dark fallback bg, OR use aspect-ratio to match the source 3:2. */
+      #gridView .et_pb_image_container {
+        width: 100% !important;
+        max-width: 100% !important;
+        overflow: hidden;
+        background: #0b1b3a;
+      }
+      #gridView .et_pb_image_container img {
+        width: 100% !important;
+        max-width: 100% !important;
+        height: auto !important;
+        display: block;
+        border-radius: 0;
+        object-fit: contain;
+        object-position: center;
+        aspect-ratio: 3 / 2;
+      }
+
+      #gridView .et_pb_image_container a.entry-featured-image-url {
+        display: block;
+        margin-bottom: 0 !important;
+      }
+      #gridView .et_pb_post .entry-title,
+      #gridView .et_pb_post .post-meta,
+      #gridView .et_pb_post .post-content {
+        padding-left: 16px;
+        padding-right: 16px;
+      }
+      #gridView .et_pb_post .entry-title {
+        padding-top: 14px;
+      }
+      #gridView .et_pb_post .post-content {
+        padding-bottom: 16px;
+      }
+
+
+
+      /* === Resources Used / Fuentes — clean bullet list ===
+         Override callout card styling inside rl-resources so it renders
+         as a simple bulleted list, not bordered card boxes. */
+      .rl-page footer.rl-resources .rl-callout,
+      .rl-page footer.rl-resources .rl-disclosure,
+      body.neighborhood-guide footer.rl-resources .rl-callout,
+      body.neighborhood-guide .rl-resources .rl-disclosure {
+        background: transparent !important;
+        border: none !important;
+        border-left: none !important;
+        box-shadow: none !important;
+        padding: 0 !important;
+        margin: 0 !important;
+      }
+      .rl-page footer.rl-resources ul,
+      body.neighborhood-guide .rl-resources ul {
+        list-style: disc;
+        padding-left: 20px;
+        margin: 8px 0;
+      }
+      .rl-page footer.rl-resources li,
+      body.neighborhood-guide .rl-resources li {
+        padding: 4px 0;
+        font-size: 13.5px;
+        color: #475569;
+        line-height: 1.55;
+      }
+      .rl-page footer.rl-resources li a,
+      body.neighborhood-guide .rl-resources li a {
+        color: #0b5cab;
+      }
+
+      body.parent-pageid-6242 [class*="rss-mh"],
+      body.page-id-6242 [class*="rss-mh"] {
+        display: none !important;
+      }
+
+      /* ── rl-qstats strip (4-stat row) ── */
+      .rl-page .rl-qstats{display:grid;grid-template-columns:repeat(4,1fr);gap:1px;background:#e2e8f0;border-radius:12px;overflow:hidden;margin:1.5rem 0}
+      .rl-page .rl-qs{background:#fff;padding:18px 14px;text-align:center}
+      .rl-page .rl-qs .v{font-size:1.35rem;font-weight:700;color:#0b1b3a;line-height:1.2}
+      .rl-page .rl-qs .l{font-size:.78rem;color:#64748b;margin-top:4px;text-transform:uppercase;letter-spacing:.04em;font-weight:500}
+      @media(max-width:640px){
+        .rl-page .rl-qstats{grid-template-columns:repeat(2,1fr)}
+        .rl-page .rl-qs .v{font-size:1.1rem}
+      }
+
+      /* ── rl-rating-bars (4 scored bars) ── */
+      .rl-page .rl-rating-bars{margin:1rem 0 1.5rem;display:flex;flex-direction:column;gap:10px}
+      .rl-page .rl-rating-bar{display:grid;grid-template-columns:110px 1fr 60px;align-items:center;gap:10px}
+      .rl-page .rb-label{font-size:.85rem;font-weight:600;color:#0b1b3a;text-align:right}
+      .rl-page .rb-track{height:10px;background:#e2e8f0;border-radius:5px;overflow:hidden}
+      .rl-page .rb-fill{height:100%;background:linear-gradient(90deg,#0b1b3a,#1a3a6b);border-radius:5px;transition:width .6s ease}
+      .rl-page .rb-val{font-size:.82rem;font-weight:600;color:#334155;white-space:nowrap}
+      .rl-page .rb-val small{font-weight:400;color:#94a3b8;font-size:.75rem}
+      @media(max-width:640px){
+        .rl-page .rl-rating-bar{grid-template-columns:80px 1fr 50px;gap:6px}
+        .rl-page .rb-label{font-size:.78rem}
+      }
+
+    </style>
+    <?php
+}
