@@ -28,16 +28,20 @@
 | Loan types covered | Conventional, FHA, VA, USDA, Jumbo, Refinance | CONFIRMED |
 | Service model | Multi-lender comparison — not a direct lender | CONFIRMED |
 | Cost to borrower | Free to compare — lenders pay | VERIFY |
+| Phone channel | None. No "call us" language anywhere, ever. The only CTA is the lead form at /compare-loan-offers/ | CONFIRMED |
 
 ---
 
-## 3. Content Authority
+## 3. Licensing & Authorship
 
 | Fact | Value | Status |
 |------|-------|--------|
+| TLN is a lender? | NO. TLN does not originate loans and is not a lender | CONFIRMED |
+| Named author | Taylor Tassone, Owner and Mortgage Broker, Tayton Capital LLC | CONFIRMED |
+| Author NMLS (personal) | 1299614 | CONFIRMED |
+| Author company NMLS | Tayton Capital, LLC — NMLS #2106875 | CONFIRMED |
+| Licensure citation rule | Articles may cite Taylor Tassone's personal NMLS licensure. They must NEVER imply TLN itself is a licensed lender | CONFIRMED |
 | Editorial voice | Expert lending guidance, second-person neutral | CONFIRMED |
-| Author byline | The Lenders Network Team | CONFIRMED |
-| NMLS licensing | VERIFY — check if TLN holds an NMLS license | VERIFY |
 
 ---
 
@@ -49,3 +53,4 @@
 | Approval times | NEVER state specific timelines unless sourced from a lender program |
 | Lender names | NEVER name specific partner lenders unless explicitly approved |
 | Market stats | Use durable phrasing per pipeline volatile-number rules |
+| Phone / contact | NEVER use "call us" or suggest a phone channel — TLN has no phone line |
