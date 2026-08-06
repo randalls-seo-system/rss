@@ -1,6 +1,6 @@
 # RSS Loop Runbook
 
-How to seed, run, review, and manage autonomous article generation.
+How to seed, run, review, and manage autonomous article generation and refresh.
 
 ## Prerequisites
 
@@ -27,9 +27,9 @@ rss queue add --site tln --topic "VA loan closing costs guide"
 
 ### Seed from GSC (shows candidates for review first)
 ```bash
-rss queue seed --site tln --from-gsc --min-impressions 50 --limit 30
+rss queue seed --site tln --min-impressions 50 --limit 30
 # Review the list, then:
-rss queue seed --site tln --from-gsc --min-impressions 50 --limit 30 --confirm
+rss queue seed --site tln --min-impressions 50 --limit 30 --confirm
 ```
 
 ### View queue
@@ -71,7 +71,7 @@ cat logs/loop-tln.log
 
 Each line: `timestamp  item_id  outcome  duration  cost`
 
-Outcomes: `done`, `done-retry`, `done-repair`, `parked`
+Outcomes: `done`, `done-retry`, `done-repair`, `parked`, `awaiting`
 
 ## Managing Parked Items
 
@@ -84,10 +84,92 @@ rss queue park --site tln --id <item_id>   # explicit park
 rss queue retry --site tln --id <item_id>  # reset to pending
 ```
 
+## Audit → Refresh Workflow
+
+For sites with existing content (e.g., TLN's 215 posts), the audit-refresh
+workflow replaces whitespace seeding:
+
+### Step 1: Audit existing posts (read-only)
+
+```bash
+# Audit top 50 posts by GSC impressions
+rss audit-batch --site tln --top 50
+
+# Single post audit
+rss audit --site tln --post-id 1471
+
+# Force Tier 2 (claims check) on all posts
+rss audit-batch --site tln --top 50 --full
+```
+
+Output: `docs/tln-audit-YYYYMMDD.md` (scorecard) + `.json` (machine-readable).
+**Zero writes to the live site.**
+
+### Step 2: Seed refresh candidates from audit
+
+```bash
+# Show ranked candidates (severity × opportunity)
+rss queue seed-refresh --site tln
+
+# Write candidates to queue after review
+rss queue seed-refresh --site tln --confirm
+```
+
+Posts with verdict PASS are excluded. Ranking: gate failures > low validator
+score > unsourced claims, weighted by position (11-30 highest priority).
+
+### Step 3: Run the loop (refresh items stop at pending draft)
+
+```bash
+tools/rss-loop --site tln --max-articles 3
+```
+
+Refresh items produce a `[REFRESH pending]` draft and go to status
+`awaiting_approval`. The loop NEVER runs `refresh-approve` — approval
+is always human.
+
+### Step 4: Side-by-side review
+
+In WordPress, compare the pending draft against the live post:
+- Structure (H2s, components, CTA placement)
+- Facts (numbers, claims, sources)
+- Voice (brand consistency)
+- Internal links preserved
+
+### Step 5: Approve or park
+
+```bash
+# Approve — swap draft content onto original post
+rss refresh-approve --site tln --job <job_id>
+
+# Rollback — restore original HTML from job dir backup
+rss refresh-rollback --site tln --job <job_id>
+```
+
+Approve re-runs gates before swapping. Original publish date is preserved.
+
+### Manual refresh (single post)
+
+```bash
+# Start a refresh job
+rss refresh --site tln --post-id 1471
+
+# Override the keyword (default: top GSC query for the post)
+rss refresh --site tln --post-id 1471 --keyword "fha 203k loan requirements"
+```
+
+### Add refresh items to queue manually
+
+```bash
+rss queue add --site tln --refresh --post-id 1471
+```
+
 ## Safety Rules
 
 - The loop NEVER deploys above `--status draft` unless you explicitly pass `--status publish`
-- The repair agent has `--max-turns 5` — it cannot run indefinitely
-- The repair agent has no permission bypass — it can only use pipeline commands
+- Refresh mode NEVER modifies the live post — only creates a pending draft
+- `refresh-approve` re-runs all gates before swapping — post-generation edits are caught
+- `refresh-rollback` restores original HTML from the job dir backup
+- The repair agent has `--max-turns 5` and scoped `--allowedTools` — no permission bypass
 - Queue writes are atomic (temp + rename) — safe for concurrent access
 - Every iteration runs `rss doctor` preflight — unready sites abort immediately

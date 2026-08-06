@@ -1,8 +1,10 @@
 """Article generation queue — per-site, file-backed, atomic writes.
 
 Queue file: sites/<slug>/queue.json
-Items: {id, topic, target_keyword, intent_hint, status, added, attempts, last_failure, job_id}
-Status: pending | in_progress | done | parked
+Items: {id, topic, target_keyword, intent_hint, status, added, attempts, last_failure, job_id,
+        mode, post_id}
+Status: pending | in_progress | done | parked | awaiting_approval
+Mode: "new" (default) | "refresh"
 
 All writes use temp-file + rename for atomicity — the loop and a human
 may both touch the queue concurrently.
@@ -113,6 +115,117 @@ def retry_item(site_slug: str, item_id: str) -> None:
             item["status"] = "pending"
             break
     save_queue(site_slug, items)
+
+
+def add_refresh_item(site_slug: str, post_id: int, keyword: str = "",
+                     slug: str = "") -> dict:
+    """Add a refresh-mode item to the queue."""
+    items = load_queue(site_slug)
+    item = {
+        "id": uuid.uuid4().hex[:12],
+        "topic": keyword or slug or f"refresh-{post_id}",
+        "target_keyword": keyword,
+        "intent_hint": "",
+        "status": "pending",
+        "added": datetime.now(timezone.utc).isoformat(),
+        "attempts": 0,
+        "last_failure": "",
+        "job_id": "",
+        "mode": "refresh",
+        "post_id": post_id,
+    }
+    items.append(item)
+    save_queue(site_slug, items)
+    return item
+
+
+def mark_awaiting_approval(site_slug: str, item_id: str, job_id: str = "") -> None:
+    """Mark a refresh item as awaiting human approval."""
+    items = load_queue(site_slug)
+    for item in items:
+        if item["id"] == item_id:
+            item["status"] = "awaiting_approval"
+            if job_id:
+                item["job_id"] = job_id
+            break
+    save_queue(site_slug, items)
+
+
+def seed_from_audit(site_slug: str, limit: int = 20) -> list[dict]:
+    """Seed refresh candidates from the latest audit JSON.
+
+    Ranking: defect severity (gate failures > low validator > unsourced claims)
+             × opportunity (pos 11-30 highest, 31-50 next, 51+ lowest).
+    Posts with verdict PASS are excluded.
+
+    Returns candidates for human review (not written to queue).
+    """
+    docs_dir = REPO_ROOT / "docs"
+    # Find the latest audit JSON for this site
+    audit_files = sorted(docs_dir.glob(f"{site_slug}-audit-*.json"), reverse=True)
+    if not audit_files:
+        return []
+
+    audit_data = json.loads(audit_files[0].read_text())
+    results = audit_data.get("results", [])
+
+    existing_queue = load_queue(site_slug)
+    queued_post_ids = {
+        i.get("post_id") for i in existing_queue
+        if i.get("mode") == "refresh" and i.get("status") in ("pending", "in_progress", "awaiting_approval")
+    }
+
+    candidates = []
+    for r in results:
+        if r.get("verdict") == "PASS":
+            continue
+        pid = r.get("post_id")
+        if pid in queued_post_ids:
+            continue
+
+        # Compute severity score
+        severity = 0
+        severity += len(r.get("hard_failures", [])) * 10
+        severity += len(r.get("quality_gate_failures", [])) * 8
+        severity += len(r.get("artifact_hits", [])) * 5
+        severity += r.get("unsourced_claims", 0) * 2
+        severity += r.get("volatile_claims", 0) * 1
+
+        # Soft assertion failures as minor signal
+        soft_total = r.get("soft_total_count", 0)
+        soft_pass = r.get("soft_pass_count", 0)
+        if soft_total > 0:
+            severity += (soft_total - soft_pass) * 1
+
+        # Opportunity weight by position
+        pos = r.get("position", 100)
+        if 11 <= pos <= 30:
+            opportunity = 3.0  # striking distance — highest priority
+        elif 1 <= pos <= 10:
+            opportunity = 1.5  # already ranking, refresh still valuable
+        elif 31 <= pos <= 50:
+            opportunity = 2.0
+        else:
+            opportunity = 1.0
+
+        score = severity * opportunity
+
+        candidates.append({
+            "post_id": pid,
+            "slug": r.get("slug", ""),
+            "title": r.get("title", ""),
+            "top_query": r.get("top_query", ""),
+            "position": pos,
+            "impressions": r.get("impressions", 0),
+            "verdict": r.get("verdict", ""),
+            "severity": severity,
+            "opportunity": opportunity,
+            "score": score,
+            "reasons": r.get("verdict_reasons", []),
+        })
+
+    candidates.sort(key=lambda x: x["score"], reverse=True)
+    return candidates[:limit]
 
 
 def seed_from_gsc(site_slug: str, min_impressions: int = 50,
