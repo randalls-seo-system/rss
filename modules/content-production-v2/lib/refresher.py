@@ -203,7 +203,7 @@ if (is_wp_error($r)) {{ echo json_encode(['ok'=>false,'e'=>$r->get_error_message
 else {{ echo json_encode(['ok'=>true,'id'=>$r,'len'=>strlen($c)]); }}
 """
     stdout2, rc2 = ssh_pipe_php(config, php_deploy, timeout=30)
-    ssh_run(config, f"rm -f {content_path}", timeout=10)
+    ssh_run(config, f"rm -f {content_path}", timeout=30)
 
     job["refresh"]["pending_draft_id"] = draft_id
     mark_stage(job, "create_pending_draft", "done", draft_id=draft_id)
@@ -343,7 +343,7 @@ if (is_wp_error($r)) {{ echo json_encode(['ok'=>false,'e'=>$r->get_error_message
 else {{ echo json_encode(['ok'=>true,'id'=>$r,'len'=>strlen($c)]); }}
 """
     stdout, rc = ssh_pipe_php(config, php_swap, timeout=30)
-    ssh_run(config, f"rm -f {content_path}", timeout=10)
+    ssh_run(config, f"rm -f {content_path}", timeout=30)
 
     if rc != 0:
         eprint(f"[refresh-approve] Swap failed: rc={rc}")
@@ -430,7 +430,7 @@ if (is_wp_error($r)) {{ echo json_encode(['ok'=>false,'e'=>$r->get_error_message
 else {{ echo json_encode(['ok'=>true,'id'=>$r,'len'=>strlen($c)]); }}
 """
     stdout, rc = ssh_pipe_php(config, php, timeout=30)
-    ssh_run(config, f"rm -f {content_path}", timeout=10)
+    ssh_run(config, f"rm -f {content_path}", timeout=30)
 
     if rc != 0:
         eprint(f"[refresh-rollback] Failed: rc={rc}")
