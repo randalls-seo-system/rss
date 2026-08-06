@@ -489,6 +489,15 @@ components per article — strip where 4 sourced stats exist, BLUF
 kcards conversion where the article has a BLUF. Tracked with
 per-article NO-STRIP/NO-KCARDS reasons where they don't apply.
 
+## lrg-article-styles.php — PROD-AUTHORITATIVE
+
+modules/wordpress-stack/lrg-article-styles.php is a capture of the
+LIVE file on WP Engine (v1.0.4, captured 2026-08-05). The live version
+is AHEAD of prior repo versions. DO NOT deploy this file back to prod
+without reconciliation — deploying would regress prod. Treat the live
+WP Engine copy as authoritative until this file is fully reconciled
+and tested.
+
 ## Prod credentials
 
 Prod SSH credentials (key ~/.ssh/wpengine_valn to lrgrealtyblog) are

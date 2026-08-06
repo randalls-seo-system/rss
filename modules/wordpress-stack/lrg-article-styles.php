@@ -2,7 +2,7 @@
 /**
  * Plugin Name: LRG Article Styles
  * Description: Inlines rl-base.css + rl-cards.css on single posts for V3 article styling. LRG red/navy palette.
- * Version: 1.0.2
+ * Version: 1.0.4
  * Author: VALN Team
  */
 
@@ -12,7 +12,9 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 add_action( 'wp_head', function () {
     if ( ! is_singular( array( 'post', 'listing_page' ) ) ) {
-        return;
+        if ( ! ( is_page() && (int) wp_get_post_parent_id( get_the_ID() ) === 6242 ) ) {
+            return;
+        }
     }
     ?>
 <style id="lrg-article-styles">
@@ -23,7 +25,7 @@ add_action( 'wp_head', function () {
   --rl-card-radius-sm: 18px;
   --rl-card-padding: 22px;
   --rl-card-shadow: 0 12px 34px rgba(15, 23, 42, 0.10), 0 2px 10px rgba(15, 23, 42, 0.06);
-  --rl-card-shadow-sm: 0 12px 30px rgba(15, 23, 42, 0.08);
+  --rl-card-shadow-sm: none;
   --rl-primary-dark: #0F1F4A;
   --rl-text-muted: #475569;
   --rl-font-weight-heavy: 900;
@@ -45,11 +47,11 @@ add_action( 'wp_head', function () {
     radial-gradient(900px 500px at 88% 12%, rgba(200,16,46,.10), transparent 60%),
     #f8f9fa;
 
-  padding:28px 16px 72px;
+  padding:10px 16px 72px;
 }
 
 @media (max-width:640px){
-  .rl-page{ padding:20px 12px 64px; }
+  .rl-page{ padding:10px 12px 64px; }
 }
 
 .rl-page,
@@ -382,12 +384,51 @@ add_action( 'wp_head', function () {
 }
 @media (max-width:860px){ .rl-page .rl-quick-grid{ grid-template-columns:minmax(0,1fr); } }
 
+/* ── Quick stat strip (rl-qstats) ── */
+.rl-page .rl-qstats{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-top:24px}
+.rl-page .rl-qs{background:#fff;border:1px solid var(--line);border-top:3px solid var(--navy);border-radius:12px;padding:16px;text-align:center;box-shadow:var(--shadow)}
+.rl-page .rl-qs .v{font-family:var(--serif);font-size:24px;font-weight:600;color:var(--navy);line-height:1}
+.rl-page .rl-qs .l{margin-top:6px;font-size:11px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
+@media(max-width:860px){.rl-page .rl-qstats{grid-template-columns:1fr 1fr}}
+@media(max-width:560px){.rl-page .rl-qstats{grid-template-columns:1fr 1fr}}
+/* ── Key cards (rl-kcards) — section-level summary cards ── */
+.rl-page .rl-kcards{display:grid;grid-template-columns:repeat(2,1fr);gap:14px;margin:18px 0}
+.rl-page .rl-kcard{background:#fff;border:1px solid var(--line);border-left:3px solid var(--navy);border-radius:12px;padding:14px 16px;box-shadow:var(--shadow)}
+.rl-page .rl-kcard .k{font-family:var(--serif);font-size:15px;font-weight:600;color:var(--navy);margin-bottom:4px}
+.rl-page .rl-kcard .t{font-size:14px;line-height:1.5}
+.rl-page .rl-kcards .rl-kcard:last-child:nth-child(odd){grid-column:1/-1}
+@media (max-width:700px){ .rl-page .rl-kcards{grid-template-columns:minmax(0,1fr)} }
+
+/* ── BLUF bullets as cards (site-wide, CSS only) ── */
+.rl-page section.rl-bluf ul{display:grid;grid-template-columns:repeat(2,1fr);gap:14px;margin:18px 0;padding-left:0;list-style:none}
+.rl-page section.rl-bluf ul li{background:#fff;border:1px solid var(--line);border-left:3px solid var(--navy);border-radius:12px;padding:14px 16px;box-shadow:var(--shadow);font-size:14px;line-height:1.5;margin:0;display:block}
+.rl-page section.rl-bluf ul li::marker{content:none}
+.rl-page section.rl-bluf ul li:last-child:nth-child(odd){grid-column:1/-1}
+@media(max-width:700px){.rl-page section.rl-bluf ul{grid-template-columns:minmax(0,1fr)}}
+
+
+/* -- BULLET-SECTION COLOR UNIFICATION -- single light neutral -- */
+.rl-page .bullet-section-green,
+.rl-page .bullet-section-yellow,
+.rl-page .bullet-section-red,
+.rl-page .bullet-section-gray,
+.rl-page .bullet-section-blue,
+.rl-page .bullet-section-beige,
+.rl-page .rl-bullet-section--green,
+.rl-page .rl-bullet-section--blue,
+.rl-page .rl-bullet-section--red,
+.rl-page .rl-bullet-section--yellow,
+.rl-page .rl-bullet-section--gray{
+  background:rgba(15,31,74,0.04)!important;
+  border-left-color:var(--navy)!important;
+}
+
+
 .rl-page .rl-quick-card{
   border-radius:18px;
   border:1px solid #cbd5e1;
-  background:linear-gradient(180deg, rgba(239,246,255,.96) 0%, rgba(255,255,255,.98) 100%);
+  background:#ffffff;
   padding:14px 14px 12px;
-  box-shadow:0 12px 30px rgba(15,23,42,.08);
 }
 .rl-page .rl-quick-card h3{ font-size:15px; font-weight:900; margin-bottom:8px; color:#0F1F4A; }
 
@@ -521,7 +562,6 @@ add_action( 'wp_head', function () {
   border:1px solid #cbd5e1;
   background:#fff;
   padding:18px 18px 16px;
-  box-shadow:0 12px 30px rgba(15,23,42,.08);
   min-width:0;
 }
 @media (max-width:640px){
@@ -602,7 +642,6 @@ add_action( 'wp_head', function () {
   border:1px solid #cbd5e1;
   background:#fff;
   padding:12px 12px 10px;
-  box-shadow:0 12px 30px rgba(15,23,42,.08);
   margin-top:12px;
 }
 .rl-page .rl-callout h3{ font-size:15px; margin:0 0 6px; }
@@ -656,7 +695,6 @@ add_action( 'wp_head', function () {
   border:1px solid #cbd5e1;
   background:linear-gradient(180deg,#fff 0%, #f8fafc 100%);
   padding:12px 12px 10px;
-  box-shadow:0 12px 30px rgba(15,23,42,.08);
 }
 
 .rl-page .rl-mini-card h3{ font-size:15px; margin:0 0 8px; }
@@ -678,7 +716,6 @@ add_action( 'wp_head', function () {
   border-radius:18px;
   background:#fff;
   padding:12px 12px 10px;
-  box-shadow:0 12px 30px rgba(15,23,42,.08);
   min-width:0;
   border:1px solid #cbd5e1;
 }
@@ -703,48 +740,55 @@ add_action( 'wp_head', function () {
 }
 
 .rl-page .rl-faq details,
-.rl-page .rl-faq-item{ border:0; }
+.rl-page .rl-faq-item{
+  background:#fff;
+  border:1px solid #e4e7ee;
+  border-left:4px solid #c8102e;
+  border-radius:11px;
+  margin-bottom:12px;
+  overflow:hidden;
+}
 
-.rl-page .rl-faq details:not(:first-child),
-.rl-page .rl-faq-item:not(:first-child){ border-top:1px solid #94a3b8; }
+.rl-page .rl-faq details[open],
+.rl-page .rl-faq-item[open]{
+  border-color:#f3ccd3;
+  border-left-color:#c8102e;
+}
 
 .rl-page .rl-faq summary,
 .rl-page .rl-faq-item summary{
-  cursor:pointer;
   list-style:none;
-  padding:16px 16px;
-  font-weight:950;
-  color:#0f172a;
+  cursor:pointer;
+  padding:18px 22px;
+  font-weight:600;
+  color:#091A35;
+  font-size:1.01rem;
   display:flex;
-  align-items:center;
   justify-content:space-between;
-  gap:10px;
+  align-items:center;
+  gap:14px;
 }
 
 .rl-page .rl-faq summary::-webkit-details-marker,
 .rl-page .rl-faq-item summary::-webkit-details-marker{ display:none; }
 
-/* Default +/- icon if page doesn't provide custom icon */
 .rl-page .rl-faq summary:after{
   content:"+";
-  width:28px; height:28px;
-  display:inline-flex;
-  align-items:center;
-  justify-content:center;
-  border-radius:999px;
-  border:1px solid #cbd5e1;
-  background:#f8fafc;
-  color:#64748b;
-  font-weight:950;
+  color:#c8102e;
+  font-size:1.5rem;
+  font-weight:400;
   flex:0 0 auto;
+  line-height:1;
 }
 
-.rl-page .rl-faq details[open] summary:after{ content:"–"; }
+.rl-page .rl-faq details[open] summary:after{ content:"\2212"; }
 
 .rl-page .rl-faq .ans,
 .rl-page .rl-faqBody{
-  border-top:1px solid #94a3b8;
-  padding:12px 16px 16px;
+  padding:0 22px 20px;
+  color:#475067;
+  font-size:.97rem;
+  line-height:1.6;
 }
 
 .rl-page .rl-faq .ans p{ margin:0; color:#475569; }
@@ -1159,8 +1203,8 @@ add_action( 'wp_head', function () {
    ========================================================== */
 
 .rl-page{
-  background: linear-gradient(180deg, #eaf2ff 0%, #f6f9ff 42%, #ffffff 100%) !important;
-  padding: 44px 0 !important;
+  background: #ffffff !important;
+  padding: 10px 0 44px !important;
 }
 
 .rl-page :is(h1,h2,h3,h4,h5,h6,p,ul,ol,li,a,span,strong,em,small,button,input,select,textarea,label,summary,dt,dd){
@@ -1251,7 +1295,7 @@ add_action( 'wp_head', function () {
 .rl-page{
   font-family: var(--vlnFont) !important;
   color: var(--vlnInk) !important;
-  background: linear-gradient(180deg, #e8f1ff 0%, #ffffff 30%) !important;
+  background: #ffffff !important;
 }
 
 .rl-page :where(p,li,span,small,strong,em,summary,label,button,input,select,textarea,th,td,dt,dd),
@@ -1495,59 +1539,14 @@ add_action( 'wp_head', function () {
   white-space: normal !important;
 }
 
-/* FAQ: replace browser outline (which can get clipped) with an inset focus/open ring */
-.rl-page.rl-page .rl-faq summary:focus,
-.rl-page.rl-page .rl-faq summary:focus-visible,
-.rl-page.rl-page .rl-faq summary:focus,
-.rl-page.rl-page .rl-faq summary:focus-visible{
-  outline: none !important;
-}
+/* FAQ focus handling (matches bare-details red-spine design) */
+.rl-page .rl-faq summary:focus,
+.rl-page .rl-faq-item summary:focus{ outline:none; }
 
-.rl-page.rl-page .rl-faq summary,
-.rl-page.rl-page .rl-faq summary{
-  border-radius: 16px;
-}
-
-.rl-page.rl-page .rl-faq summary:focus-visible,
-.rl-page.rl-page .rl-faq details[open] > summary,
-.rl-page.rl-page .rl-faq summary:focus-visible,
-.rl-page.rl-page .rl-faq details[open] > summary{
-  box-shadow: inset 0 0 0 2px rgba(200,16,46,.45);
-}
-
-/* =======================
-   PATCH 1.4.12
-   Fix:
-   - FAQ open/focus ring corners: replace inset box-shadow with a true rounded border drawn inside
-     the summary row. This eliminates occasional anti-alias “missing corner” artifacts.
-   ======================= */
-
-/* Turn off the inset shadow ring from 1.4.11 */
-.rl-page.rl-page .rl-faq summary:focus-visible,
-.rl-page.rl-page .rl-faq details[open] > summary,
-.rl-page.rl-page .rl-faq summary:focus-visible,
-.rl-page.rl-page .rl-faq details[open] > summary{
-  box-shadow: none !important;
-}
-
-/* Draw a crisp rounded ring *inside* the summary row */
-.rl-page.rl-page .rl-faq summary::before,
-.rl-page.rl-page .rl-faq summary::before{
-  content: "";
-  position: absolute;
-  inset: 2px;
-  border-radius: 14px;
-  border: 2px solid rgba(200,16,46,.45);
-  opacity: 0;
-  pointer-events: none;
-  transition: opacity .15s ease;
-}
-
-.rl-page.rl-page .rl-faq summary:focus-visible::before,
-.rl-page.rl-page .rl-faq details[open] > summary::before,
-.rl-page.rl-page .rl-faq summary:focus-visible::before,
-.rl-page.rl-page .rl-faq details[open] > summary::before{
-  opacity: 1;
+.rl-page .rl-faq summary:focus-visible,
+.rl-page .rl-faq-item summary:focus-visible{
+  outline:2px solid #c8102e;
+  outline-offset:2px;
 }
 
 
@@ -1618,55 +1617,6 @@ details.rl-faq{
   z-index: 1;
 }
 
-/* If a FAQ section is built with plain <details> (no .rl-faq wrapper),
-   still apply a sane accordion style inside RL wrappers. */
-.rl-page details,
-.rl-page details{
-  background: #fff;
-  border: 1px solid #c9d8ff;
-  border-radius: 16px;
-  overflow: hidden;
-}
-.rl-page details + details,
-.rl-page details + details{
-  margin-top: 12px;
-}
-.rl-page details > summary,
-.rl-page details > summary{
-  list-style: none;
-  cursor: pointer;
-  padding: 16px 18px;
-  font-weight: 700;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  outline: none;
-}
-.rl-page details > summary::after,
-.rl-page details > summary::after{
-  content: "+";
-  font-size: 18px;
-  line-height: 1;
-  width: 32px;
-  height: 32px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border: 1px solid #c9d8ff;
-  border-radius: 999px;
-  flex: 0 0 32px;
-  color: #0F1F4A;
-}
-.rl-page details[open] > summary::after,
-.rl-page details[open] > summary::after{
-  content: "–";
-}
-.rl-page details > *:not(summary),
-.rl-page details > *:not(summary){
-  padding: 0 18px 16px;
-  color: #334155;
-}
 /* ===========================
    RL Traffic-Light Callouts
    Scoped to .rl-page only
@@ -3189,7 +3139,11 @@ details.rl-faq{
 add_action( 'wp_head', 'lrg_article_styles_patch_v1', 11 );
 
 function lrg_article_styles_patch_v1() {
-    if ( ! is_singular( array( 'post', 'listing_page' ) ) ) return;
+    if ( ! is_singular( array( 'post', 'listing_page' ) ) ) {
+        if ( ! ( is_page() && (int) wp_get_post_parent_id( get_the_ID() ) === 6242 ) ) {
+            return;
+        }
+    }
     ?>
     <style id="lrg-article-styles-patch-v1">
       /* ============================================================
@@ -3280,50 +3234,6 @@ function lrg_article_styles_patch_v1() {
         color: var(--lrg-gray-400);
       }
 
-      /* FAQ ACCORDION — details/summary */
-      .rl-page details {
-        background: var(--lrg-white, #fff);
-        border: 1px solid var(--lrg-gray-100);
-        border-radius: 8px;
-        padding: 0;
-        margin-bottom: 10px;
-        overflow: hidden;
-        transition: all 0.2s;
-      }
-      .rl-page details[open] {
-        border-color: var(--lrg-navy);
-        box-shadow: 0 4px 16px rgba(15, 31, 74, 0.08);
-      }
-      .rl-page details summary {
-        cursor: pointer;
-        padding: 16px 22px;
-        font-family: 'Fraunces', serif;
-        font-size: 16px;
-        font-weight: 600;
-        color: var(--lrg-navy);
-        list-style: none;
-        position: relative;
-        padding-right: 50px;
-        transition: background 0.18s;
-      }
-      .rl-page details summary::-webkit-details-marker { display: none; }
-      .rl-page details summary::after {
-        content: '+';
-        position: absolute;
-        right: 22px;
-        top: 50%;
-        transform: translateY(-50%);
-        font-size: 22px;
-        font-weight: 400;
-        color: var(--lrg-red);
-        line-height: 1;
-        transition: transform 0.2s;
-      }
-      .rl-page details[open] summary::after {
-        content: '−';
-      }
-      .rl-page details summary:hover { background: var(--lrg-cream); }
-      .rl-page details summary span { display: inline; }
       .rl-page .rl-faqBody {
         padding: 0 22px 18px;
         font-size: 14.5px;
@@ -3503,9 +3413,9 @@ function lrg_article_styles_patch_v1() {
       .rl-page .rl-byline,
       body.single-post .author-byline,
       body.single-post .post-byline {
-        background: var(--lrg-cream);
-        border: 1px solid var(--lrg-gray-100);
-        border-radius: 10px;
+        background: transparent;
+        border: none;
+        border-radius: 0;
         padding: 18px 22px;
         margin: 0 0 28px;
         display: flex;
@@ -3586,6 +3496,25 @@ function lrg_article_styles_patch_v1() {
       /* === Patch v1.0 — missing class rules (added 2026-05-27) === */
 
       /* CTA primary button — used in 381 posts, was unstyled */
+      
+      /* Hide ATF hero CTA — baked into 357 posts, not needed (2026-06-24) */
+      .rl-page .rl-hero .rl-cta-primary { display: none !important; }
+
+      /* Collapse entire hero container — eyebrow + h1 are decorative in post_content (2026-06-24) */
+      .rl-page .rl-hero { display: none !important; }
+      .nh-page .rl-hero { display: none !important; }
+
+      /* Unscoped hero hide — fires regardless of wrapper class (2026-06-25) */
+      header.rl-hero { display: none !important; margin: 0 !important; padding: 0 !important; }
+
+      /* Collapse jump-nav top margin when hero above it is hidden (2026-06-25) */
+      .rl-page .rl-hero + .rl-jump-nav,
+      .nh-page .rl-hero + .rl-jump-nav,
+      header.rl-hero + .rl-jump-nav {
+        margin-top: 0 !important;
+      }
+
+
       .rl-page .rl-cta-primary {
         display: inline-flex;
         align-items: center;
@@ -3708,7 +3637,8 @@ function lrg_article_styles_patch_v1() {
       .rl-page .rl-resources {
         margin-top: 40px;
         padding: 24px;
-        background: #f8fafc;
+        background: #ffffff;
+        border: 1px solid #e2e8f0;
         border-radius: 10px;
         border-top: 3px solid var(--lrg-navy, #0F1F4A);
       }
@@ -3766,7 +3696,6 @@ function lrg_article_styles_patch_v1() {
       .rl-page .rl-hero > h1,
       .rl-page .rl-hero .rl-eyebrow,
       .rl-page .rl-hero .rl-hero-eyebrow,
-      .rl-page .rl-hero .rl-cta-primary,
       .rl-page .rl-hero .rl-breadcrumb,
       .rl-page .rl-card.rl-hero .rl-card-inner > h1 {
         display: none !important;
@@ -4082,29 +4011,38 @@ function lrg_article_styles_patch_v1() {
         display: none !important;
       }
 
-      /* ── rl-qstats strip (4-stat row) ── */
-      .rl-page .rl-qstats{display:grid;grid-template-columns:repeat(4,1fr);gap:1px;background:#e2e8f0;border-radius:12px;overflow:hidden;margin:1.5rem 0}
-      .rl-page .rl-qs{background:#fff;padding:18px 14px;text-align:center}
-      .rl-page .rl-qs .v{font-size:1.35rem;font-weight:700;color:#0b1b3a;line-height:1.2}
-      .rl-page .rl-qs .l{font-size:.78rem;color:#64748b;margin-top:4px;text-transform:uppercase;letter-spacing:.04em;font-weight:500}
-      @media(max-width:640px){
-        .rl-page .rl-qstats{grid-template-columns:repeat(2,1fr)}
-        .rl-page .rl-qs .v{font-size:1.1rem}
-      }
+    
+/* Body link visibility fix — prose links render LRG red with underline.
+   Exclusion list mirrors lines 1210/1261. Added 2026-07-17 */
+.rl-page a:not(.rl-btn):not(.rl-pill):not(.nh-cta):not(.nh-sticky-btn):not(.rl-cta-primary):not(.rl-cta-pill):not([class*="breadcrumb"]):not([class*="jump"]):not([class*="bio-social"]) {
+  color: #C8102E !important;
+  text-decoration: underline !important;
+  text-decoration-color: rgba(200, 16, 46, 0.4) !important;
+  text-underline-offset: 2px;
+  transition: text-decoration-color 0.15s;
+}
+.rl-page a:not(.rl-btn):not(.rl-pill):not(.nh-cta):not(.nh-sticky-btn):not(.rl-cta-primary):not(.rl-cta-pill):not([class*="breadcrumb"]):not([class*="jump"]):not([class*="bio-social"]):hover {
+  text-decoration-color: #C8102E !important;
+}
 
-      /* ── rl-rating-bars (4 scored bars) ── */
-      .rl-page .rl-rating-bars{margin:1rem 0 1.5rem;display:flex;flex-direction:column;gap:10px}
-      .rl-page .rl-rating-bar{display:grid;grid-template-columns:110px 1fr 60px;align-items:center;gap:10px}
-      .rl-page .rb-label{font-size:.85rem;font-weight:600;color:#0b1b3a;text-align:right}
-      .rl-page .rb-track{height:10px;background:#e2e8f0;border-radius:5px;overflow:hidden}
-      .rl-page .rb-fill{height:100%;background:linear-gradient(90deg,#0b1b3a,#1a3a6b);border-radius:5px;transition:width .6s ease}
-      .rl-page .rb-val{font-size:.82rem;font-weight:600;color:#334155;white-space:nowrap}
-      .rl-page .rb-val small{font-weight:400;color:#94a3b8;font-size:.75rem}
-      @media(max-width:640px){
-        .rl-page .rl-rating-bar{grid-template-columns:80px 1fr 50px;gap:6px}
-        .rl-page .rb-label{font-size:.78rem}
-      }
 
-    </style>
+/* Article page gutters — comfortable reading width at laptop/desktop (2026-07-26) */
+.et_pb_section_0_tb_body.et_pb_section {
+    padding-left: 48px !important;
+    padding-right: 48px !important;
+}
+@media (max-width: 980px) {
+    .et_pb_section_0_tb_body.et_pb_section {
+        padding-left: 20px !important;
+        padding-right: 20px !important;
+    }
+}
+@media (max-width: 640px) {
+    .et_pb_section_0_tb_body.et_pb_section {
+        padding-left: 12px !important;
+        padding-right: 12px !important;
+    }
+}
+</style>
     <?php
 }
