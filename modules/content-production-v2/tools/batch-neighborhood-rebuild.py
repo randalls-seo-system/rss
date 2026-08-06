@@ -17,6 +17,7 @@ Usage:
 import argparse
 import json
 import os
+import re
 import subprocess
 import sys
 import time
@@ -29,6 +30,34 @@ REPO_ROOT = MODULE_DIR.parent.parent
 sys.path.insert(0, str(MODULE_DIR))
 
 from lib.tool_utils import eprint
+
+# ── PUBLISH GUARD ──
+# Protected post IDs: flagship pages that must never be overwritten.
+PROTECTED_POST_IDS = {2794, 2790, 2797, 2095}
+
+
+def _assert_no_publish(queue: list[dict]) -> None:
+    """Hard abort if any queue entry would publish or touch protected posts."""
+    for entry in queue:
+        pid = entry.get("post_id", 0)
+        if pid in PROTECTED_POST_IDS:
+            eprint(f"HARD ABORT: post_id {pid} is a protected flagship page. "
+                   f"Remove it from the queue.")
+            sys.exit(1)
+        status = entry.get("post_status", "")
+        if status == "publish":
+            eprint(f"HARD ABORT: queue entry for post {pid} has "
+                   f"post_status=publish. This batch produces FILES ONLY.")
+            sys.exit(1)
+    eprint("  [GUARD] Publish guard: PASS (0 publish entries, 0 protected IDs)")
+
+
+def _assert_no_wp_writes(cmd_args: list[str]) -> None:
+    """Pre-exec check: abort if subprocess args contain wp post create/update."""
+    joined = " ".join(str(a) for a in cmd_args)
+    if "wp post create" in joined or "wp post update" in joined:
+        eprint(f"HARD ABORT: wp post create/update detected in subprocess args.")
+        sys.exit(1)
 
 
 def load_queue(queue_path: str) -> list[dict]:
@@ -274,6 +303,9 @@ def main():
     queue = load_queue(args.queue_json)
     output_dir = Path(args.output_dir)
     output_dir.mkdir(parents=True, exist_ok=True)
+
+    # PUBLISH GUARD: hard abort before anything else
+    _assert_no_publish(queue)
 
     eprint(f"{'=' * 70}")
     eprint(f"BATCH NEIGHBORHOOD REBUILD")
