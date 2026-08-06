@@ -182,13 +182,19 @@ VERIFIED_REQUIRED_FIELDS = {
     "schools": ["feeder_elementary", "feeder_middle", "feeder_high", "district"],
     "costs": ["property_tax_rate", "hoa_dues"],
 }
+# Sentinel values: explicitly declared "known unverified." The gate
+# accepts these as valid — distinct from a missing key or empty string,
+# which still hard-fails (nobody checked vs. checked and unverifiable).
+VERIFIED_SENTINELS = {"VERIFY_BY_ADDRESS", "UNVERIFIED"}
 
 
 def validate_verified_data(data):
     """Hard-fail if the verified block is missing or has placeholder tokens.
 
-    The 'verified' key in the data JSON must contain real, human-researched
-    values for schools and costs. LLM must NOT supply these.
+    Every field in VERIFIED_REQUIRED_FIELDS must be present and non-empty.
+    A field set to a sentinel (VERIFY_BY_ADDRESS, UNVERIFIED) passes the
+    gate — it means someone deliberately marked it as unverifiable.
+    A missing key or empty string fails — it means nobody checked.
     """
     verified = data.get("verified")
     if not verified:
@@ -200,14 +206,18 @@ def validate_verified_data(data):
     schools = verified.get("schools", {})
     for field in VERIFIED_REQUIRED_FIELDS["schools"]:
         val = schools.get(field, "")
-        if not val or any(tok in str(val) for tok in placeholders):
-            errors.append(f"verified.schools.{field} is missing or placeholder: '{val}'")
+        if not val:
+            errors.append(f"verified.schools.{field} is missing or empty")
+        elif val not in VERIFIED_SENTINELS and any(tok in str(val) for tok in placeholders):
+            errors.append(f"verified.schools.{field} has placeholder: '{val}'")
 
     costs = verified.get("costs", {})
     for field in VERIFIED_REQUIRED_FIELDS["costs"]:
         val = costs.get(field, "")
-        if not val or any(tok in str(val) for tok in placeholders):
-            errors.append(f"verified.costs.{field} is missing or placeholder: '{val}'")
+        if not val:
+            errors.append(f"verified.costs.{field} is missing or empty")
+        elif val not in VERIFIED_SENTINELS and any(tok in str(val) for tok in placeholders):
+            errors.append(f"verified.costs.{field} has placeholder: '{val}'")
 
     return errors
 
@@ -222,19 +232,37 @@ def build_verified_facts_string(data):
     costs = verified.get("costs", {})
 
     lines = []
+    _SENTINELS = {"VERIFY_BY_ADDRESS", "UNVERIFIED"}
     if schools:
+        district = schools.get('district', '')
         lines.append("AUTHORITATIVE SCHOOL DATA (use verbatim, do NOT substitute):")
-        lines.append(f"  District: {schools.get('district', '')}")
-        lines.append(f"  Feeder elementary: {schools.get('feeder_elementary', '')}")
-        lines.append(f"  Feeder middle: {schools.get('feeder_middle', '')}")
-        lines.append(f"  Feeder high school: {schools.get('feeder_high', '')}")
+        lines.append(f"  District: {district}")
+        for field, label in [("feeder_elementary", "Feeder elementary"),
+                             ("feeder_middle", "Feeder middle"),
+                             ("feeder_high", "Feeder high school")]:
+            val = schools.get(field, "")
+            if val in _SENTINELS:
+                lines.append(f"  {label}: UNKNOWN — do NOT name any specific campus. "
+                             f"Write: 'School assignments vary by address — verify "
+                             f"current campus with {district}.'")
+            else:
+                lines.append(f"  {label}: {val}")
+        if schools.get("secondary_district"):
+            lines.append(f"  Secondary district: {schools['secondary_district']} "
+                         f"(assignments vary by address within this area)")
         if schools.get("rating_source_url"):
             lines.append(f"  Rating source: {schools['rating_source_url']}")
         if schools.get("notes"):
             lines.append(f"  Notes: {schools['notes']}")
     if costs:
         lines.append("AUTHORITATIVE COST DATA (use verbatim, do NOT substitute):")
-        lines.append(f"  Property tax rate: {costs.get('property_tax_rate', '')}")
+        tax_val = costs.get('property_tax_rate', '')
+        if tax_val in _SENTINELS:
+            lines.append(f"  Property tax rate: UNVERIFIED — do NOT state an exact "
+                         f"percentage. Write: 'Verify current tax rate with the "
+                         f"county appraisal district.'")
+        else:
+            lines.append(f"  Property tax rate: {tax_val}")
         lines.append(f"  HOA dues: {costs.get('hoa_dues', '')}")
         if costs.get("hoa_mgmt"):
             lines.append(f"  HOA management: {costs['hoa_mgmt']}")
@@ -380,7 +408,7 @@ def fix_school_contradictions(html, data):
     verified = data.get("verified", {})
     schools = verified.get("schools", {})
     feeder_high = schools.get("feeder_high", "")
-    if not feeder_high or feeder_high.lower().startswith("varies"):
+    if not feeder_high or feeder_high in VERIFIED_SENTINELS or feeder_high.lower().startswith("varies"):
         return html, []
 
     import re as _re
@@ -411,7 +439,7 @@ def assert_school_consistency(html, data):
     verified = data.get("verified", {})
     schools = verified.get("schools", {})
     feeder_high = schools.get("feeder_high", "")
-    if not feeder_high or feeder_high.lower().startswith("varies"):
+    if not feeder_high or feeder_high in VERIFIED_SENTINELS or feeder_high.lower().startswith("varies"):
         return []
 
     errors = []
@@ -690,7 +718,7 @@ def assemble_guide(nb, city, metro, data, prose, callouts, cta_ref, listings_url
     costs = verified.get("costs", {})
     detail_items = [
         {"val": costs.get("price_range", "See guide"), "label": "Median Price Range"},
-        {"val": costs.get("property_tax_rate", "Verify"), "label": "Tax Rate"},
+        {"val": "Verify with CAD" if costs.get("property_tax_rate", "") in VERIFIED_SENTINELS else costs.get("property_tax_rate", "Verify"), "label": "Tax Rate"},
         {"val": costs.get("hoa_dues", "Varies") or "None", "label": "HOA"},
         {"val": data.get("housing_era", "See below"), "label": "Housing Stock"},
     ]
