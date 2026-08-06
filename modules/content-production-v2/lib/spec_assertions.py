@@ -642,6 +642,42 @@ def assert_body_word_count_fallback_range(soup: BeautifulSoup, context: dict) ->
 _BANNED_PHRASES = [
     r"\bdiscover\b", r"\bexplore\b", r"\bvibrant communities\b",
     r"\bdive into\b", r"\blet's\b", r"\bwe'll cover\b",
+    # Mortgage standard additions (exact/near-exact phrase matches)
+    r"navigating the complexities of",
+    r"financial journey",
+    r"homeownership journey",
+    r"dream home",
+    r"turn your dreams into reality",
+    r"make your dreams come true",
+    r"take the first step",
+    r"peace of mind",
+    r"game changer",
+    r"one-stop shop",
+    r"look no further",
+    r"we'?ve got you covered",
+    r"rest assured",
+    r"it is worth noting",
+    r"at the end of the day",
+    r"whether you are a first-time buyer",
+    r"from first-time buyers to",
+    r"not only does this,? but it also",
+    r"more than just",
+    r"designed with you in mind",
+    r"a wide range of",
+    r"a variety of options",
+    r"best-in-class",
+    r"industry-leading",
+    r"hassle-free",
+    r"stress-free",
+    r"easy and convenient",
+    r"expert guidance every step",
+    r"deep dive",
+    r"\bunlock\b",
+    r"\bempower\b",
+    r"\belevate\b",
+    r"tailored solution",
+    r"unique needs",
+    r"comprehensive solution",
 ]
 _BANNED_RE = re.compile("|".join(_BANNED_PHRASES), re.IGNORECASE)
 
@@ -801,8 +837,9 @@ _AI_LEXICON_RE = re.compile("|".join(_AI_LEXICON), re.IGNORECASE)
 
 _AI_PHRASE_PATTERNS = [
     re.compile(r"in today'?s\s+\w+\s+landscape", re.I),
-    re.compile(r"it'?s important to note", re.I),
+    re.compile(r"it'?s? important to note", re.I),
     re.compile(r"when it comes to\b", re.I),
+    re.compile(r"in today'?s fast-paced world", re.I),
 ]
 
 
@@ -1418,6 +1455,101 @@ def assert_cg_military_fit(soup: BeautifulSoup, context: dict) -> AssertionResul
 
 
 # ---------------------------------------------------------------------------
+# 18.4.11+ Extended anti-pattern checks
+# ---------------------------------------------------------------------------
+
+_SYMMETRICAL_PATTERNS = [
+    re.compile(r"(?:it\s+is|it'?s)\s+not\s+just\s+about\s+\w[\w\s,]{2,30}[.;!]\s*(?:it\s+is|it'?s|that'?s)\s+about\b", re.I),
+    re.compile(r"the\s+answer\s+is\s+not\s+one-?size-?fits-?all", re.I),
+    re.compile(r"by\s+understanding\s+\w[\w\s,]+,\s*\w[\w\s,]+,\s*and\s+\w[\w\s,]+,\s*you\s+can", re.I),
+    re.compile(r"this\s+guide\s+will\s+walk\s+you\s+through\s+everything", re.I),
+    re.compile(r"whether\s+you\s+are\s+\w[\w\s,]+,\s*\w[\w\s,]+,\s*or\s+\w[\w\s,]+,\s*there\s+is", re.I),
+    re.compile(r"from\s+\w[\w\s]+\s+to\s+\w[\w\s]+,\s*the\s+benefits\s+are\s+clear", re.I),
+]
+
+
+def assert_no_symmetrical_construction(soup: BeautifulSoup, context: dict) -> AssertionResult:
+    """18.4.11 No symmetrical AI constructions (mortgage standard)."""
+    text = soup.get_text(separator=" ", strip=True)
+    for pat in _SYMMETRICAL_PATTERNS:
+        m = pat.search(text)
+        if m:
+            return AssertionResult(False, "hard",
+                f"Symmetrical AI construction: '{m.group()[:70]}'", "18.4.11")
+    return AssertionResult(True, "hard", None, "18.4.11")
+
+
+# Overuse word list (soft/warn). Thresholds are per 1000 words.
+# EXPLICITLY EXCLUDE "may" and "can" — compliance hedging in mortgage content
+# requires these words frequently ("borrowers may qualify", "you can apply").
+# Penalizing them would force writers to remove legally required hedging.
+_OVERUSE_WORDS = {
+    "help": 5,
+    "ensure": 3,
+    "provide": 4,
+    "offer": 4,
+    "solution": 3,
+    "strategy": 3,
+    "personalized": 2,
+    "flexible": 3,
+    "affordable": 3,
+    "competitive": 3,
+    "trusted": 2,
+    "expert": 3,
+    "landscape": 2,
+    # "explore" and "navigate" are already hard-banned in 18.4.2/18.4.9
+    # "discover" and "leverage" are already hard-banned
+    # "may" and "can" are EXCLUDED — see comment above
+}
+
+
+def assert_no_word_overuse(soup: BeautifulSoup, context: dict) -> AssertionResult:
+    """18.5.10 Warn when overuse words exceed per-1000-word frequency threshold.
+
+    Soft/warn only — does not block. "may" and "can" are explicitly excluded
+    because compliance hedging in mortgage content requires them.
+    """
+    text = soup.get_text(separator=" ", strip=True).lower()
+    word_count = len(text.split())
+    if word_count < 200:
+        return AssertionResult(True, "soft", None, "18.5.10")
+
+    scale = word_count / 1000.0
+    overused = []
+    for word, threshold_per_k in _OVERUSE_WORDS.items():
+        count = len(re.findall(r"\b" + word + r"\b", text))
+        allowed = max(1, int(threshold_per_k * scale))
+        if count > allowed:
+            overused.append(f"'{word}' {count}x (max {allowed})")
+
+    if overused:
+        return AssertionResult(False, "soft",
+            f"Overused words: {'; '.join(overused[:5])}", "18.5.10")
+    return AssertionResult(True, "soft", None, "18.5.10")
+
+
+def assert_no_keyword_stuffed_headings(soup: BeautifulSoup, context: dict) -> AssertionResult:
+    """18.5.11 Warn if target keyword appears in more than half the H2s."""
+    keyword = context.get("target_keyword", "")
+    if not keyword or len(keyword.split()) < 2:
+        return AssertionResult(True, "soft", None, "18.5.11")
+
+    sections = _get_body_h2_sections(soup)
+    if len(sections) < 4:
+        return AssertionResult(True, "soft", None, "18.5.11")
+
+    kw_lower = keyword.lower()
+    kw_count = sum(1 for h2, _ in sections if kw_lower in _text_of(h2).lower())
+    ratio = kw_count / len(sections)
+
+    if ratio > 0.5:
+        return AssertionResult(False, "soft",
+            f"Target keyword '{keyword}' in {kw_count}/{len(sections)} H2s "
+            f"({ratio:.0%}, max 50%)", "18.5.11")
+    return AssertionResult(True, "soft", None, "18.5.11")
+
+
+# ---------------------------------------------------------------------------
 # Export lists
 # ---------------------------------------------------------------------------
 
@@ -1461,6 +1593,7 @@ ALL_HARD_ASSERTIONS: list[Callable] = [
     assert_semicolon_density,
     assert_no_ai_lexicon,
     assert_no_not_x_its_y,
+    assert_no_symmetrical_construction,
     # 18.CG Community-guide (intent-gated: vacuous pass for other intents)
     assert_cg_builder_comparison,
     assert_cg_cost_strip,
@@ -1480,6 +1613,8 @@ ALL_SOFT_ASSERTIONS: list[Callable] = [
     assert_faq_topic_relevance,
     assert_no_near_duplicate_sections,
     assert_no_excessive_repetition,
+    assert_no_word_overuse,
+    assert_no_keyword_stuffed_headings,
     # 18.CG Community-guide soft (intent-gated)
     assert_cg_data_strip,
     assert_cg_military_fit,
