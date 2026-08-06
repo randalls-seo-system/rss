@@ -397,6 +397,32 @@ def run_one_guide(entry: dict, site: str, output_dir: Path, resume: bool = False
             else:
                 eprint(f"  [FH] No automated hits")
 
+            # qstat consistency check (advisory)
+            try:
+                from bs4 import BeautifulSoup as _BS
+                _soup = _BS(html, "html.parser")
+                qstat_issues = []
+                for qs in _soup.find_all("div", class_="nh-sc-item"):
+                    val_el = qs.find(class_=lambda c: c and "sc-val" in c)
+                    lbl_el = qs.find(class_=lambda c: c and "sc-label" in c)
+                    if not val_el or not lbl_el:
+                        continue
+                    val = val_el.get_text(strip=True)
+                    lbl = lbl_el.get_text(strip=True).lower()
+                    if "isd" in lbl or "district" in lbl:
+                        try:
+                            claimed = int(re.search(r'\d+', val).group())
+                            isd_mentions = len(re.findall(r'\b\w+\s+ISD\b', _soup.get_text(" ")))
+                            if claimed > 0 and isd_mentions < claimed:
+                                qstat_issues.append(f"Header claims {claimed} ISDs but body mentions ~{isd_mentions}")
+                        except (AttributeError, ValueError):
+                            pass
+                if qstat_issues:
+                    status["qstat_flags"] = qstat_issues
+                    eprint(f"  [QSTAT] {len(qstat_issues)} consistency flag(s)")
+            except Exception:
+                pass
+
             # Confabulation guard (advisory)
             confab_flags = _check_confabulation_risk(html, entry)
             if confab_flags:
@@ -404,6 +430,13 @@ def run_one_guide(entry: dict, site: str, output_dir: Path, resume: bool = False
                 eprint(f"  [CONFAB] {len(confab_flags)} heritage/history flag(s)")
                 for cf in confab_flags:
                     eprint(f"    {cf['detail'][:80]}")
+
+            # Prompt-only checks label
+            status["prompt_only_checks"] = [
+                "school_claim_caution: NOT PROGRAMMATICALLY CHECKED",
+                "durable_phrasing: NOT PROGRAMMATICALLY CHECKED",
+                "geographic_accuracy_details: NOT PROGRAMMATICALLY CHECKED",
+            ]
 
             eprint(f"  [VERIFY OK] V={report.verified_count} W={report.wrong_count} "
                    f"C={report.couldnt_verify_count} H={report.human_flag_count}")
