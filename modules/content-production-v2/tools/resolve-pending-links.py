@@ -19,6 +19,7 @@ For each pending entry:
 
 import argparse
 import json
+import os
 import sys
 from pathlib import Path
 
@@ -27,9 +28,11 @@ sys.path.insert(0, str(MODULE_DIR))
 
 from lib.topic_graph import (
     resolve_pending_entries, dedupe_spoke_candidates, enrich_anchor_pool,
-    REPO_ROOT,
 )
 from lib.queue import load_queue, add_item
+
+# Injectable repo root: respects RSS_REPO_ROOT env var (for testing)
+REPO_ROOT = Path(os.environ.get("RSS_REPO_ROOT", Path(__file__).resolve().parent.parent.parent.parent))
 
 
 def _load_slug_map(site_slug: str) -> dict[str, int]:
@@ -47,21 +50,11 @@ def _load_slug_map(site_slug: str) -> dict[str, int]:
 
 
 def _load_gsc_query_pages(site_slug: str) -> dict[str, str]:
-    """Load query→slug mapping from cached GSC data or audit results.
+    """Load query→slug mapping from the audit's cached GSC page data.
 
-    Checks two sources (in priority order):
-    1. sites/<slug>/gsc-query-pages.json — dedicated cache built by doctor/audit
-    2. docs/<slug>-audit-*.json — audit results with top_query per post
+    Source: docs/<slug>-audit-*.json — each result has top_query + slug.
+    Built by: rss audit-batch --site <slug> --top N
     """
-    # Source 1: dedicated cache
-    cache_path = REPO_ROOT / "sites" / site_slug / "gsc-query-pages.json"
-    if cache_path.exists():
-        try:
-            return json.loads(cache_path.read_text())
-        except json.JSONDecodeError:
-            pass
-
-    # Source 2: audit results
     docs_dir = REPO_ROOT / "docs"
     audit_files = sorted(docs_dir.glob(f"{site_slug}-audit-*.json"), reverse=True)
     if audit_files:
@@ -71,8 +64,7 @@ def _load_gsc_query_pages(site_slug: str) -> dict[str, str]:
             for r in audit.get("results", []):
                 if r.get("top_query") and r.get("slug"):
                     mapping[r["top_query"].lower()] = r["slug"]
-            if mapping:
-                return mapping
+            return mapping
         except (json.JSONDecodeError, KeyError):
             pass
 

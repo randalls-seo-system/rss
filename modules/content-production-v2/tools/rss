@@ -419,9 +419,7 @@ def cmd_doctor(args):
         checks["post_inventory"] = "WARN: no post-inventory.json (resolve-pending-links will fail closed)"
 
     gsc_prop = config.get("integrations", {}).get("gsc_property", "")
-    gsc_cache = REPO_ROOT / "sites" / args.site / "gsc-query-pages.json"
-    if gsc_prop and not gsc_cache.exists():
-        # Check if audit data has mappings
+    if gsc_prop:
         docs_dir = REPO_ROOT / "docs"
         audit_files = sorted(docs_dir.glob(f"{args.site}-audit-*.json"), reverse=True)
         has_audit_queries = False
@@ -434,9 +432,11 @@ def cmd_doctor(args):
         if has_audit_queries:
             checks["gsc_query_cache"] = "pass (from audit)"
         else:
-            checks["gsc_query_cache"] = "WARN: GSC configured but no query→page cache (resolver linked_existing will miss GSC signal)"
-    elif gsc_prop:
-        checks["gsc_query_cache"] = "pass"
+            checks["gsc_query_cache"] = (
+                "WARN: GSC configured but no audit with query data found. "
+                "Run: rss audit-batch --site " + args.site + " --top 50 "
+                "(resolver linked_existing will miss GSC signal until then)"
+            )
 
     _doctor_report(checks, args.json)
     has_fail = any(v.startswith("FAIL") for v in checks.values())

@@ -197,74 +197,85 @@ class TestResolution(unittest.TestCase):
 class TestFailClosedInventory(unittest.TestCase):
     """Empty inventory must produce hard error, zero resolutions."""
 
+    RESOLVER = str(MODULE_DIR / "tools" / "resolve-pending-links.py")
+    PENDING_ENTRY = {
+        "topic": "test topic for resolution",
+        "anchor_phrase": "test topic",
+        "source_post_id": 999,
+        "source_url": "/test-article/",
+        "source_job": "test-job",
+        "discovered_from": "corpus",
+        "date": "2026-01-01",
+    }
+
+    def _build_layout(self, tmpdir, include_inventory=False):
+        """Build a minimal repo layout under tmpdir."""
+        jobs_dir = Path(tmpdir) / "jobs" / "test-job"
+        jobs_dir.mkdir(parents=True)
+        sites_dir = Path(tmpdir) / "sites" / "testsite"
+        sites_dir.mkdir(parents=True)
+
+        (jobs_dir / "999-pending-links.json").write_text(
+            json.dumps([self.PENDING_ENTRY])
+        )
+
+        if include_inventory:
+            (sites_dir / "post-inventory.json").write_text(
+                json.dumps({"test-slug": 999})
+            )
+
     def test_empty_inventory_exits_1_no_writes(self):
         """resolve-pending-links with pending entries but NO post-inventory.json
-        must exit 1, stderr must mention 'inventory', and no queue/resolution
+        must exit 1, stderr must contain 'inventory', and no queue/resolution
         files are written."""
         import subprocess, tempfile, shutil
 
         tmpdir = tempfile.mkdtemp()
         try:
-            # Build a minimal repo layout
-            jobs_dir = Path(tmpdir) / "jobs" / "test-job"
-            jobs_dir.mkdir(parents=True)
-            sites_dir = Path(tmpdir) / "sites" / "testsite"
-            sites_dir.mkdir(parents=True)
+            self._build_layout(tmpdir, include_inventory=False)
 
-            # One pending entry
-            (jobs_dir / "999-pending-links.json").write_text(json.dumps([{
-                "topic": "test topic for resolution",
-                "anchor_phrase": "test topic",
-                "source_post_id": 999,
-                "source_url": "/test-article/",
-                "source_job": "test-job",
-                "discovered_from": "corpus",
-                "date": "2026-01-01",
-            }]))
+            env = {**os.environ, "RSS_REPO_ROOT": tmpdir}
+            result = subprocess.run(
+                [sys.executable, self.RESOLVER, "--site", "testsite", "--all-jobs"],
+                capture_output=True, text=True, timeout=10, env=env,
+            )
 
-            # NO post-inventory.json — inventory is empty
+            self.assertEqual(result.returncode, 1,
+                f"Expected exit 1 with empty inventory, got {result.returncode}.\n"
+                f"stdout: {result.stdout[:200]}\nstderr: {result.stderr[:200]}")
+            self.assertIn("inventory", result.stderr.lower(),
+                f"stderr must mention 'inventory': {result.stderr[:300]}")
 
-            # Patch REPO_ROOT in the resolver script via env/cwd trick:
-            # We run the script directly and it uses its own REPO_ROOT.
-            # Instead, test the library function's guard path.
-            # The CLI loads _load_slug_map which returns {} for missing file,
-            # then the if-not-slug_map guard fires.
-
-            # Run the actual CLI against this temp layout
-            import lib.topic_graph as tg
-            orig_root = tg.REPO_ROOT
-            tg.REPO_ROOT = Path(tmpdir)
-
-            # Also patch resolve-pending-links' _load_slug_map
-            # Simpler: just call the resolver's main logic inline
-            from lib.topic_graph import resolve_pending_entries
-            from lib.queue import load_queue
-
-            # Load pending entries
-            entries = json.loads((jobs_dir / "999-pending-links.json").read_text())
-            self.assertEqual(len(entries), 1)
-
-            # Load slug map (should be empty — no post-inventory.json)
-            inv_path = Path(tmpdir) / "sites" / "testsite" / "post-inventory.json"
-            slug_map = json.loads(inv_path.read_text()) if inv_path.exists() else {}
-            self.assertEqual(len(slug_map), 0, "Slug map must be empty for this test")
-
-            # The CLI guard: if not slug_map → exit 1
-            # We verify the guard condition here
-            self.assertFalse(bool(slug_map),
-                "Empty inventory must trigger fail-closed guard")
-
-            # Verify no resolution files were written
-            resolution_files = list(jobs_dir.glob("*-resolution.json"))
+            # No resolution files anywhere
+            resolution_files = list(Path(tmpdir).rglob("*-resolution*.json"))
             self.assertEqual(len(resolution_files), 0,
-                "No resolution file should be written with empty inventory")
+                f"No resolution files should exist: {resolution_files}")
 
-            # Verify no queue changes
+            # No queue file
             queue_path = Path(tmpdir) / "sites" / "testsite" / "queue.json"
             self.assertFalse(queue_path.exists(),
-                "No queue file should be created with empty inventory")
+                "No queue.json should be created with empty inventory")
+        finally:
+            shutil.rmtree(tmpdir, ignore_errors=True)
 
-            tg.REPO_ROOT = orig_root
+    def test_with_inventory_exits_0_writes_resolution(self):
+        """Positive twin: same layout WITH post-inventory.json → exit 0."""
+        import subprocess, tempfile, shutil
+
+        tmpdir = tempfile.mkdtemp()
+        try:
+            self._build_layout(tmpdir, include_inventory=True)
+
+            env = {**os.environ, "RSS_REPO_ROOT": tmpdir}
+            result = subprocess.run(
+                [sys.executable, self.RESOLVER, "--site", "testsite", "--all-jobs"],
+                capture_output=True, text=True, timeout=10, env=env,
+            )
+
+            self.assertEqual(result.returncode, 0,
+                f"Expected exit 0 with inventory present, got {result.returncode}.\n"
+                f"stderr: {result.stderr[:300]}")
+            self.assertIn("Resolution:", result.stdout)
         finally:
             shutil.rmtree(tmpdir, ignore_errors=True)
 

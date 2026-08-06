@@ -24,11 +24,12 @@ changes; only a new producer that emits entries with that tag.
 """
 
 import json
+import os
 import re
 from datetime import datetime, timezone
 from pathlib import Path
 
-REPO_ROOT = Path(__file__).resolve().parent.parent.parent.parent
+REPO_ROOT = Path(os.environ.get("RSS_REPO_ROOT", Path(__file__).resolve().parent.parent.parent.parent))
 
 
 def collect_pending_from_corpus(
