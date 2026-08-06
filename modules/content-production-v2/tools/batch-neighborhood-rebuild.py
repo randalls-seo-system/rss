@@ -171,6 +171,61 @@ def _check_confabulation_risk(html: str, entry: dict) -> list[dict]:
     return flags
 
 
+# ── UNVERIFIED TAX RATE CHECK (HARD FLAG) ──
+# If tax rate is unverified, the generator must NOT state an exact rate.
+# Uses proximity matching: any percentage within 60 chars of "tax".
+_PERCENT_PATTERN = re.compile(r'\d+\.?\d*\s*%')
+_TAX_EXEMPT_TERMS = {"exemption", "exempt", "funding fee", "down payment",
+                     "interest rate", "va funding", "earnest money",
+                     "commission", "appreciation"}
+
+
+def _check_unverified_tax_rate(html: str, entry: dict) -> list[dict]:
+    """HARD FLAG: detect exact tax rate claims when rate is unverified."""
+    data_json = entry.get("data_json", "")
+    if data_json and Path(data_json).exists():
+        try:
+            data = json.loads(Path(data_json).read_text())
+            verified_rate = data.get("verified", {}).get("costs", {}).get("property_tax_rate", "")
+            if verified_rate:
+                return []
+        except Exception:
+            pass
+
+    text = re.sub(r'<[^>]+>', ' ', html)
+    text = re.sub(r'\s+', ' ', text).strip()
+    text_lower = text.lower()
+
+    flags = []
+    for m in _PERCENT_PATTERN.finditer(text):
+        # Check if "tax" appears within 60 chars before or after
+        window_start = max(0, m.start() - 60)
+        window_end = min(len(text), m.end() + 60)
+        window = text_lower[window_start:window_end]
+        if "tax" not in window:
+            continue
+        # Exclude non-tax-rate percentages. Use asymmetric window:
+        # wider before the % (40 chars — exemption language precedes the number)
+        # tight after (15 chars — "2.44%, before the homestead exemption" should
+        # still fire because "exemption" is AFTER the number, not describing it)
+        excl_start = max(0, m.start() - 40)
+        excl_end = min(len(text), m.end() + 15)
+        excl_window = text_lower[excl_start:excl_end]
+        if any(term in excl_window for term in _TAX_EXEMPT_TERMS):
+            continue
+        ctx_start = max(0, m.start() - 40)
+        ctx_end = min(len(text), m.end() + 40)
+        flags.append({
+            "type": "unverified_tax_rate",
+            "claim": m.group(0),
+            "context": text[ctx_start:ctx_end].strip(),
+            "post_id": entry.get("post_id", 0),
+            "severity": "HARD",
+        })
+
+    return flags
+
+
 # ── NULL-FEEDER CAMPUS HALLUCINATION CHECK (HARD FLAG) ──
 # If verified feeder data is null for a level, the generator must name
 # NO specific campus at that level. A named campus with null feeders
@@ -529,6 +584,17 @@ def run_one_guide(entry: dict, site: str, output_dir: Path, resume: bool = False
                 for cf in confab_flags:
                     eprint(f"    {cf['detail'][:80]}")
 
+            # Unverified tax rate check (HARD flag)
+            tax_flags = _check_unverified_tax_rate(html, entry)
+            if tax_flags:
+                status["tax_rate_hard_flags"] = tax_flags
+                eprint(f"  [TAX-HARD] {len(tax_flags)} exact tax rate(s) with unverified data:")
+                for tf in tax_flags:
+                    eprint(f"    HARD: {tf['context'][:70]}")
+            else:
+                status["tax_rate_check"] = "ran, no exact rates found"
+                eprint(f"  [TAX] Ran clean — no exact unverified rates")
+
             # Null-feeder hallucination check (HARD flag)
             feeder_flags = _check_null_feeder_hallucination(html, entry)
             hard_feeder = [f for f in feeder_flags if f["severity"] == "HARD"]
@@ -603,6 +669,7 @@ def build_consolidated_queue(all_statuses: list, output_dir: Path) -> dict:
         "sparse_serp": [],
         "feeder_hard_flags": [],
         "feeder_soft_flags": [],
+        "tax_rate_hard_flags": [],
     }
 
     for status in all_statuses:
@@ -649,6 +716,11 @@ def build_consolidated_queue(all_statuses: list, output_dir: Path) -> dict:
             sf["keyword"] = status["keyword"]
             queue["feeder_soft_flags"].append(sf)
 
+        # Tax rate flags (HARD)
+        for tf in status.get("tax_rate_hard_flags", []):
+            tf["keyword"] = status["keyword"]
+            queue["tax_rate_hard_flags"].append(tf)
+
     # Em-dash totals
     emdash_total = sum(s.get("emdash_count", 0) for s in all_statuses)
     emdash_guides_with = sum(1 for s in all_statuses if s.get("emdash_count", 0) > 0)
@@ -669,6 +741,7 @@ def build_consolidated_queue(all_statuses: list, output_dir: Path) -> dict:
         "sparse_serp_read_manually": len(queue["sparse_serp"]),
         "feeder_hard_MUST_FIX": len(queue["feeder_hard_flags"]),
         "feeder_soft_review": len(queue["feeder_soft_flags"]),
+        "tax_rate_hard_MUST_FIX": len(queue["tax_rate_hard_flags"]),
         "emdash_total": emdash_total,
         "emdash_guides_affected": emdash_guides_with,
     }
