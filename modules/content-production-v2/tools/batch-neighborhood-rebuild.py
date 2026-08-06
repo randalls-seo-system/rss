@@ -171,6 +171,87 @@ def _check_confabulation_risk(html: str, entry: dict) -> list[dict]:
     return flags
 
 
+# ── FAIR HOUSING SCANNER ──
+# Validated against 30 live July 29-31 guides: 35 hits, 23/30 guides.
+FH_TIER1_PHRASES = [
+    "best for families", "ideal for families", "perfect for families",
+    "great for families", "safe for families",
+    "family-friendly", "family friendly", "young families",
+    "young professionals", "young professional",
+    "empty nesters", "empty-nesters", "older-money", "older money",
+    "best for young", "best for seniors", "ideal for retirees",
+    "best for military families", "ideal for military", "perfect for military",
+    "safest neighborhood", "safest area", "safest community",
+    "safe neighborhood", "safe community", "safe area",
+    "affluent community", "affluent neighborhood",
+    "upscale community", "exclusive community", "exclusive neighborhood",
+]
+FH_FIT_SECTION_PATTERNS = [
+    r"families\s+who\s+(?:want|prioritize|prefer|seek|need|require|value)",
+    r"families\s+wanting", r"families\s+seeking",
+    r"military\s+families",
+    r"retirees\s+who", r"retirees$",
+    r"seniors\s+who", r"couples\s+who", r"singles\s+who",
+    r"\bfamilies$",
+]
+FH_TIER2_PATTERNS = [
+    (r"\bsafest\b", "safest (unsourced superlative)"),
+    (r"\bretirees\b", "retirees (demographic)"),
+    (r"(?<!young\s)\bprofessionals\b", "professionals (demographic)"),
+]
+
+
+def _scan_fair_housing(html: str, post_id: int) -> list[dict]:
+    """Scan for Fair Housing compliance issues. Returns advisory flags."""
+    try:
+        from bs4 import BeautifulSoup
+    except ImportError:
+        return []
+
+    hits = []
+    soup = BeautifulSoup(html, "html.parser")
+    text = soup.get_text(" ", strip=True)
+    text_lower = text.lower()
+
+    # Tier 1: exact phrase matches
+    for phrase in FH_TIER1_PHRASES:
+        idx = text_lower.find(phrase.lower())
+        if idx >= 0:
+            start = max(0, idx - 60)
+            end = min(len(text), idx + len(phrase) + 60)
+            hits.append({
+                "tier": 1, "phrase": phrase,
+                "sentence": text[start:end].strip(),
+                "post_id": post_id,
+            })
+
+    # Tier 1b: fit-section <dt> demographic labels
+    for panel in soup.find_all("div", class_=lambda c: c and "nh-panel" in c):
+        for dt in panel.find_all("dt"):
+            dt_lower = dt.get_text(strip=True).lower()
+            for pat in FH_FIT_SECTION_PATTERNS:
+                if re.search(pat, dt_lower):
+                    hits.append({
+                        "tier": 1,
+                        "phrase": f"fit-section: '{dt.get_text(strip=True)[:80]}'",
+                        "sentence": dt.get_text(strip=True),
+                        "post_id": post_id,
+                    })
+                    break
+
+    # Tier 2: context-dependent
+    for pattern, label in FH_TIER2_PATTERNS:
+        m = re.search(pattern, text_lower)
+        if m and not any(h["sentence"][:30] in text[max(0,m.start()-60):m.end()+60] for h in hits):
+            hits.append({
+                "tier": 2, "phrase": f"{label}: '{m.group()}'",
+                "sentence": text[max(0,m.start()-60):min(len(text),m.end()+60)].strip(),
+                "post_id": post_id,
+            })
+
+    return hits
+
+
 def load_queue(queue_path: str) -> list[dict]:
     """Load the rebuild queue JSON.
 
@@ -297,6 +378,14 @@ def run_one_guide(entry: dict, site: str, output_dir: Path, resume: bool = False
                 status["thin_data_flag"] = risk["flag"]
                 eprint(f"  [THIN-DATA] {risk['flag']}")
             status["elapsed"] = gen_elapsed
+
+            # Fair Housing scan (advisory)
+            fh_hits = _scan_fair_housing(html, post_id)
+            if fh_hits:
+                status["fh_flags"] = fh_hits
+                eprint(f"  [FH] {len(fh_hits)} compliance flag(s)")
+            else:
+                eprint(f"  [FH] No automated hits")
 
             # Confabulation guard (advisory)
             confab_flags = _check_confabulation_risk(html, entry)
