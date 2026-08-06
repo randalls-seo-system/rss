@@ -423,6 +423,8 @@ def main():
     parser.add_argument("--target-keyword", default="", help="Article target keyword (broadens candidate matching)")
     parser.add_argument("--article-url", default="", help="Article URL for pending-links context")
     parser.add_argument("--exclude-post-id", type=int, default=None, help="Exclude this post ID from anchor pool (self-link prevention)")
+    parser.add_argument("--topic-candidates", default="", help="JSON file with topic candidates for pending-link discovery (source-agnostic: each item has {topic, discovered_from, ...})")
+    parser.add_argument("--source-job", default="", help="Job ID for pending-link provenance")
     args = parser.parse_args()
 
     # Load input HTML
@@ -441,7 +443,8 @@ def main():
     if not pool._destinations:
         eprint(f"Anchor pool empty for site {args.site}; no links injected")
         Path(args.html_output).write_text(input_html)
-        Path(args.pending_links_output).write_text("[]")
+        # Still collect pending from topic candidates even with empty pool
+        _write_pending_links(args, input_html, set(), pool.get_internal_keywords_set() if hasattr(pool, 'get_internal_keywords_set') else set())
         sys.exit(0)
 
     # Load site domain for URL normalization
@@ -573,8 +576,64 @@ def main():
     Path(args.html_output).parent.mkdir(parents=True, exist_ok=True)
     Path(args.html_output).write_text(str(soup))
 
+    _write_pending_links(args, str(soup), used_urls_global, internal_keywords)
+
+
+def _write_pending_links(args, html: str, matched_urls: set[str], pool_keywords: set[str]):
+    """Collect and write pending links from unmatched corpus phrases + topic candidates."""
+    from lib.topic_graph import collect_pending_from_corpus, collect_pending_from_candidates
+
+    body_text = re.sub(r"<[^>]+>", " ", html)
+    source_post_id = args.exclude_post_id or 0
+    source_url = args.article_url or ""
+    source_job = getattr(args, "source_job", "") or ""
+
+    # Corpus-derived: extract multi-word phrases from body that don't match pool
+    body_words = body_text.lower().split()
+    article_phrases = []
+    for n in (3, 4, 5):
+        for i in range(len(body_words) - n + 1):
+            phrase = " ".join(body_words[i:i + n])
+            # Basic quality: no punctuation-heavy phrases
+            if re.search(r"[.!?,;:()\"']", phrase):
+                continue
+            article_phrases.append(phrase)
+
+    corpus_pending = collect_pending_from_corpus(
+        body_text, article_phrases, matched_urls, pool_keywords,
+        source_post_id, source_url, source_job,
+    )
+
+    # Topic candidates from external sources (PAA, GSC, ai_mode, etc.)
+    candidate_pending = []
+    tc_path = getattr(args, "topic_candidates", "")
+    if tc_path and Path(tc_path).exists():
+        try:
+            topic_candidates = json.loads(Path(tc_path).read_text())
+            candidate_pending = collect_pending_from_candidates(
+                topic_candidates, matched_urls, pool_keywords,
+                source_post_id, source_url, source_job,
+            )
+        except (json.JSONDecodeError, KeyError) as e:
+            eprint(f"[inject-links] Warning: could not load topic-candidates: {e}")
+
+    all_pending = corpus_pending + candidate_pending
+
+    # Dedupe
+    seen = set()
+    deduped = []
+    for p in all_pending:
+        key = p["topic"].lower().strip()
+        if key not in seen:
+            seen.add(key)
+            deduped.append(p)
+
     Path(args.pending_links_output).parent.mkdir(parents=True, exist_ok=True)
-    Path(args.pending_links_output).write_text("[]")
+    Path(args.pending_links_output).write_text(
+        json.dumps(deduped, indent=2, ensure_ascii=False)
+    )
+    eprint(f"[inject-links] Pending links: {len(deduped)} "
+           f"({len(corpus_pending)} corpus, {len(candidate_pending)} candidates)")
 
 
 if __name__ == "__main__":

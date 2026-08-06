@@ -84,6 +84,55 @@ rss queue park --site tln --id <item_id>   # explicit park
 rss queue retry --site tln --id <item_id>  # reset to pending
 ```
 
+## Topic Graph: Pending Links, Spokes, and Backfill
+
+After each article is generated and linked, the pipeline discovers topics
+that WANTED a link but had no destination. These become pending links.
+
+### View the topic graph
+```bash
+rss topic-graph --site tln
+```
+
+### Resolve pending links
+```bash
+# See what would happen (dry run)
+python3 modules/content-production-v2/tools/resolve-pending-links.py --site tln --all-jobs
+
+# Actually write to pool/queue
+python3 modules/content-production-v2/tools/resolve-pending-links.py --site tln --all-jobs --confirm
+```
+
+Resolution outcomes:
+- **Topic matches existing page** → anchor pool enriched with new keyword variants
+- **No existing page** → queued as new-article spoke with `origin: pending_link` and backlink notes
+
+### View spoke articles (queued from pending links)
+```bash
+rss queue list --site tln --origin pending_link
+```
+
+### Backfill links after a spoke page is published
+```bash
+# Dry run (no --live = won't touch published posts)
+python3 modules/content-production-v2/tools/backfill-links.py --site tln --queue-id <id>
+
+# With --live flag: backfill into published source articles
+python3 modules/content-production-v2/tools/backfill-links.py --site tln --queue-id <id> --live
+```
+
+Safety rules for backfill:
+- Anchor phrase must still exist in the source article (no forced insertion)
+- Per-post link cap respected
+- `--live` required for published posts; drafts patch automatically
+- Gates run on modified HTML before pushing
+
+### Pending link discovery sources
+- `corpus`: multi-word phrases in article body that don't match any pool entry
+- `paa`: People Also Ask questions from SERP research
+- `gsc`: GSC-derived subtopic queries
+- `ai_mode`: (future) AI Mode related questions — TODO: wire when feat/ai-mode lands
+
 ## Safety Rules
 
 - The loop NEVER deploys above `--status draft` unless you explicitly pass `--status publish`

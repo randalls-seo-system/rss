@@ -441,12 +441,19 @@ def cmd_queue(args):
 
     elif args.queue_action == "list":
         items = list_items(args.site, status=getattr(args, "status", None))
+        # Filter by origin if specified
+        origin_filter = getattr(args, "origin", None)
+        if origin_filter:
+            items = [i for i in items if i.get("origin") == origin_filter]
         if not items:
             print("Queue is empty.")
             return
         for it in items:
-            print(f"  [{it['status']:12s}] {it['id'][:12]}  {it['target_keyword'][:60]}"
-                  f"  attempts={it.get('attempts', 0)}")
+            notes_count = len(it.get("backlink_notes", []))
+            notes_str = f"  notes={notes_count}" if notes_count else ""
+            origin_str = f"  origin={it['origin']}" if it.get("origin") else ""
+            print(f"  [{it['status']:12s}] {it['id'][:12]}  {it['target_keyword'][:50]}"
+                  f"  attempts={it.get('attempts', 0)}{origin_str}{notes_str}")
 
     elif args.queue_action == "seed":
         candidates = seed_from_gsc(
@@ -530,6 +537,7 @@ def main():
     ql = qsub.add_parser("list", help="List queue items")
     ql.add_argument("--site", required=True)
     ql.add_argument("--status", default=None)
+    ql.add_argument("--origin", default=None, help="Filter by origin (e.g., pending_link)")
 
     qs = qsub.add_parser("seed", help="Seed queue from GSC queries")
     qs.add_argument("--site", required=True)
@@ -545,11 +553,29 @@ def main():
     qr.add_argument("--site", required=True)
     qr.add_argument("--id", required=True)
 
+    # topic-graph
+    tg = sub.add_parser("topic-graph", help="Show topic graph summary (pending links, spokes, backfills)")
+    tg.add_argument("--site", required=True, help="Site ID")
+
     args = parser.parse_args()
     if args.command == "new-article":
         cmd_new_article(args)
     elif args.command == "doctor":
         cmd_doctor(args)
+    elif args.command == "topic-graph":
+        from lib.topic_graph import build_topic_graph_summary
+        summary = build_topic_graph_summary(args.site)
+        print(f"\n=== Topic Graph: {args.site} ===\n")
+        print(f"  Pending topics discovered:  {summary['pending_topics']}")
+        if summary["pending_by_source"]:
+            for src, count in sorted(summary["pending_by_source"].items(), key=lambda x: -x[1]):
+                print(f"    {src}: {count}")
+        print(f"  Resolved → linked existing: {summary['resolved_linked']}")
+        print(f"  Resolved → no page:         {summary['resolved_no_page']}")
+        print(f"  Queued spoke articles:       {summary['queued_spokes']}")
+        print(f"  Queued backlink notes:        {summary['queued_backlink_notes']}")
+        print(f"  Backfills completed:         {summary['backfills_completed']}")
+        print(f"  Backfills failed:            {summary['backfills_failed']}")
     elif args.command == "queue":
         if not args.queue_action:
             q.print_help()
