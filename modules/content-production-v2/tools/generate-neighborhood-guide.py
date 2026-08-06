@@ -602,7 +602,7 @@ Return ONLY the JSON array. No markdown fences."""
     return lines[:4] if lines else ["Key details for this section are covered above"]
 
 
-def generate_all_prose(client, nb, city, metro, data, brand_voice, serp_context=""):
+def generate_all_prose(client, nb, city, metro, data, brand_voice, serp_context="", vertical_block=""):
     """Generate all LLM prose sections + callout bullets.
 
     Returns dict of section_key -> html for prose,
@@ -1138,7 +1138,7 @@ def main():
         provider = config.get("AI_PROVIDER", "claude_cli")
         model = config.get("AI_MODEL") or None
         client = LLMClient(provider=provider, model=model)
-        prose, callouts = generate_all_prose(client, nb, city, metro, data, brand_voice, serp_context)
+        prose, callouts = generate_all_prose(client, nb, city, metro, data, brand_voice, serp_context, vertical_block)
 
     # Assemble
     eprint("\nAssembling guide HTML...")
