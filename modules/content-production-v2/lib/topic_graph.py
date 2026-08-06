@@ -131,23 +131,66 @@ def collect_pending_from_candidates(
     return pending
 
 
+def check_topic_covered_in_source(topic: str, source_html: str) -> bool:
+    """Check if a topic is substantively covered in source article HTML.
+
+    Uses term presence + substantive threshold: the topic's content words
+    must appear in the source body, and at least 2 terms must appear 2+ times
+    (indicating real coverage, not passing mention).
+    """
+    stopwords = {"the", "a", "an", "in", "of", "to", "and", "for", "how",
+                 "what", "is", "on", "can", "be", "are", "with", "from"}
+    body_text = re.sub(r"<[^>]+>", " ", source_html).lower()
+
+    topic_words = [w for w in topic.lower().split() if w not in stopwords and len(w) > 2]
+    if not topic_words:
+        return False
+
+    found_count = 0
+    substantive_count = 0
+    for word in topic_words:
+        occurrences = len(re.findall(r"\b" + re.escape(word) + r"\b", body_text))
+        if occurrences > 0:
+            found_count += 1
+        if occurrences >= 2:
+            substantive_count += 1
+
+    # Substantive: majority of content words found AND at least 2 appear 2+ times
+    return found_count >= len(topic_words) * 0.6 and substantive_count >= 2
+
+
 def resolve_pending_entries(
     entries: list[dict],
     slug_to_id: dict[str, int],
     gsc_query_pages: dict[str, str],
     site_slug: str,
-) -> tuple[list[dict], list[dict]]:
-    """Resolve pending entries against existing pages.
+    source_htmls: dict[int, str] | None = None,
+) -> tuple[list[dict], list[dict], list[dict]]:
+    """Resolve pending entries against existing pages and source content.
 
-    Returns (linked_existing, no_page) where:
-    - linked_existing: entries whose topic maps to an existing page
-    - no_page: entries with no existing page (spoke candidates)
+    Args:
+        source_htmls: optional mapping of source_post_id → HTML for
+            self-coverage checks. If provided, entries whose topic is
+            substantively covered in their source article resolve as
+            covered_in_source (never become spokes).
+
+    Returns (linked_existing, no_page, covered_in_source).
     """
     linked = []
     no_page = []
+    covered = []
 
     for entry in entries:
         topic = entry["topic"].lower().strip()
+
+        # Check 0: Self-coverage — is this topic already covered in the source article?
+        source_id = entry.get("source_post_id")
+        if source_htmls and source_id and source_id in source_htmls:
+            if check_topic_covered_in_source(topic, source_htmls[source_id]):
+                entry_copy = dict(entry)
+                entry_copy["resolution"] = "covered_in_source"
+                covered.append(entry_copy)
+                continue
 
         # Check 1: GSC query→page mapping
         matched_slug = gsc_query_pages.get(topic)
@@ -183,7 +226,7 @@ def resolve_pending_entries(
             entry_copy["resolution"] = "no_page"
             no_page.append(entry_copy)
 
-    return linked, no_page
+    return linked, no_page, covered
 
 
 def dedupe_spoke_candidates(no_page_entries: list[dict]) -> list[dict]:

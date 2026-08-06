@@ -4,10 +4,17 @@
 Usage:
     resolve-pending-links.py --site tln [--job <id> | --all-jobs] [--confirm]
 
+Prerequisites:
+    - Post inventory must exist at sites/<slug>/post-inventory.json
+      (build via: rss doctor --site <slug>, which caches the inventory)
+    - If inventory is missing or empty, this tool ERRORS and resolves nothing.
+
 For each pending entry:
-  - Page exists → enrich anchor pool + record linked_existing
-  - No page → queue as new-article spoke with backlink notes
-  - Cannibalization guard: topic mapping to existing page = never a new item
+  1. Self-coverage check: is the topic already covered in the source article?
+     If yes → covered_in_source (never becomes a spoke)
+  2. Page exists → enrich anchor pool + record linked_existing
+  3. No page → queue as new-article spoke with backlink notes
+  4. Cannibalization guard: topic mapping to existing page = never a new item
 """
 
 import argparse
@@ -26,8 +33,10 @@ from lib.queue import load_queue, add_item
 
 
 def _load_slug_map(site_slug: str) -> dict[str, int]:
-    """Load slug→ID map from the site's queue or cached inventory."""
-    # Try to load from a cached inventory file
+    """Load slug→ID map from the site's cached post inventory.
+
+    Returns empty dict if not found — caller must check and fail closed.
+    """
     inv_path = REPO_ROOT / "sites" / site_slug / "post-inventory.json"
     if inv_path.exists():
         try:
@@ -52,6 +61,29 @@ def _load_gsc_query_pages(site_slug: str) -> dict[str, str]:
         return mapping
     except (json.JSONDecodeError, KeyError):
         return {}
+
+
+def _load_source_htmls(jobs_dir: Path, pending_entries: list[dict]) -> dict[int, str]:
+    """Load source article HTML for self-coverage checks.
+
+    Looks for article HTML in the job dir referenced by each entry's source_job.
+    """
+    htmls = {}
+    for entry in pending_entries:
+        source_id = entry.get("source_post_id")
+        source_job = entry.get("source_job", "")
+        if not source_id or source_id in htmls:
+            continue
+        if source_job:
+            job_dir = jobs_dir / source_job
+            # Try *-article.html pattern
+            for art_file in job_dir.glob("*-article.html"):
+                try:
+                    htmls[source_id] = art_file.read_text()
+                    break
+                except Exception:
+                    pass
+    return htmls
 
 
 def main():
@@ -92,17 +124,42 @@ def main():
 
     print(f"Found {len(all_pending)} pending entries")
 
-    # Load resolution data
+    # FAIL CLOSED: load inventory and check it's non-empty
     slug_map = _load_slug_map(args.site)
+    if not slug_map:
+        print(
+            f"ERROR: Post inventory empty or missing for site '{args.site}'.\n"
+            f"  Expected: sites/{args.site}/post-inventory.json\n"
+            f"  Build it: rss doctor --site {args.site} (caches inventory)\n"
+            f"  Or manually: ssh to site, run wp post list --format=csv, save as JSON.\n"
+            f"\n"
+            f"Resolving with an empty inventory would misclassify every topic as 'no page'\n"
+            f"and queue spoke articles for topics that already have pages. Aborting.",
+            file=sys.stderr,
+        )
+        sys.exit(1)
+
     gsc_pages = _load_gsc_query_pages(args.site)
     print(f"  Slug map: {len(slug_map)} posts, GSC queries: {len(gsc_pages)} mappings")
 
+    # Load source HTML for self-coverage checks
+    source_htmls = _load_source_htmls(jobs_dir, all_pending)
+    print(f"  Source articles loaded for coverage check: {len(source_htmls)}")
+
     # Resolve
-    linked, no_page = resolve_pending_entries(all_pending, slug_map, gsc_pages, args.site)
+    linked, no_page, covered = resolve_pending_entries(
+        all_pending, slug_map, gsc_pages, args.site, source_htmls=source_htmls,
+    )
 
     print(f"\nResolution:")
-    print(f"  Linked to existing page: {len(linked)}")
-    print(f"  No page (spoke candidates): {len(no_page)}")
+    print(f"  Covered in source article: {len(covered)}")
+    print(f"  Linked to existing page:   {len(linked)}")
+    print(f"  No page (spoke candidates):{len(no_page)}")
+
+    if covered:
+        print(f"\n--- Covered in source ({len(covered)}) ---")
+        for e in covered[:20]:
+            print(f"  {e['topic'][:50]:50s} (source post {e.get('source_post_id')})")
 
     if linked:
         print(f"\n--- Linked existing ({len(linked)}) ---")
@@ -118,8 +175,6 @@ def main():
             sources = ", ".join(s["discovered_from_sources"])
             print(f"  [{s['demand_count']}x] {s['topic'][:50]:50s} ({sources})")
 
-    # Check cannibalization: any spoke topic that maps to an existing page
-    # should NOT become a new item (already caught by resolve, but double-check)
     existing_queue = load_queue(args.site)
     existing_topics = {i["target_keyword"].lower() for i in existing_queue}
 
@@ -139,7 +194,6 @@ def main():
                 args.site, spoke["topic"],
                 keyword=spoke["target_keyword"],
             )
-            # Patch the item with backlink notes and origin
             items = load_queue(args.site)
             for it in items:
                 if it["id"] == item["id"]:
@@ -159,6 +213,7 @@ def main():
             res_path = REPO_ROOT / "docs" / f"{args.site}-resolution-latest.json"
         res_path.parent.mkdir(parents=True, exist_ok=True)
         res_path.write_text(json.dumps({
+            "covered_in_source": covered,
             "linked_existing": linked,
             "no_page": no_page,
             "spokes_queued": queued,
