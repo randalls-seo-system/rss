@@ -171,6 +171,98 @@ def _check_confabulation_risk(html: str, entry: dict) -> list[dict]:
     return flags
 
 
+# ── POST-GEN CAMPUS NAME STRIP ──
+# When feeders are VERIFY_BY_ADDRESS, mechanically replace specific
+# campus names with generic references. Runs BEFORE the null-feeder
+# HARD check so the check verifies the strip worked.
+# Preceding words that are NOT part of a campus name
+_NOT_CAMPUS_NAME = {
+    "nearby", "local", "the", "a", "at", "from", "to", "and", "or",
+    "near", "assigned", "zoned", "attend", "entering", "serving",
+}
+_CAMPUS_STRIP_PATTERNS = {
+    "feeder_elementary": re.compile(
+        r'(?<!["\w/])([A-Z][a-z]+(?:\s+[A-Z][a-z]+){0,2})\s+(Elementary\s+School)',
+    ),
+    "feeder_middle": re.compile(
+        r'(?<!["\w/])([A-Z][a-z]+(?:\s+[A-Z][a-z]+){0,2})\s+(Middle\s+School)',
+    ),
+    "feeder_high": re.compile(
+        r'(?<!["\w/])([A-Z][a-z]+(?:\s+[A-Z][a-z]+){0,2})\s+(High\s+School)',
+    ),
+}
+_CAMPUS_REPLACEMENT = {
+    "feeder_elementary": "the zoned elementary school",
+    "feeder_middle": "the zoned middle school",
+    "feeder_high": "the zoned high school",
+}
+
+
+def _strip_hallucinated_campuses(html: str, entry: dict) -> tuple[str, list[str]]:
+    """Post-gen strip: replace specific campus names with generic references
+    when feeder data is VERIFY_BY_ADDRESS.
+
+    Operates on prose text only — skips HTML tags, attributes, and JSON-LD.
+    Capitalizes replacement at sentence boundaries.
+    """
+    data_json = entry.get("data_json", "")
+    if not data_json or not Path(data_json).exists():
+        return html, []
+    try:
+        data = json.loads(Path(data_json).read_text())
+    except Exception:
+        return html, []
+
+    verified = data.get("verified", {}).get("schools", {})
+
+    levels_to_strip = {}
+    for field in ["feeder_elementary", "feeder_middle", "feeder_high"]:
+        if verified.get(field) == "VERIFY_BY_ADDRESS":
+            levels_to_strip[field] = _CAMPUS_REPLACEMENT[field]
+
+    if not levels_to_strip:
+        return html, []
+
+    _TAG_OR_TEXT = re.compile(r'(<script[^>]*>.*?</script>|<[^>]+>)', re.DOTALL)
+    parts = _TAG_OR_TEXT.split(html)
+    fixes = []
+
+    for i, part in enumerate(parts):
+        if part.startswith('<'):
+            continue
+        for field, replacement in levels_to_strip.items():
+            pattern = _CAMPUS_STRIP_PATTERNS[field]
+
+            def _make_replacer(repl, part_idx, fix_list):
+                def _replacer(m):
+                    name_tokens = m.group(1).split()
+                    while name_tokens and name_tokens[0].lower() in _NOT_CAMPUS_NAME:
+                        name_tokens.pop(0)
+                    if name_tokens:
+                        actual_name = " ".join(name_tokens) + " " + m.group(2)
+                    else:
+                        actual_name = m.group(2)
+                    # Compute position AFTER trimmed tokens for context check
+                    trimmed_offset = m.start() + len(m.group(0)) - len(actual_name)
+                    before = parts[part_idx][:trimmed_offset].rstrip()
+                    # Possessive context: skip, let HARD check flag it
+                    if before.endswith("'s") or before.endswith("\u2019s"):
+                        fix_list.append(f"Skipped '{m.group(0)}': possessive context")
+                        return m.group(0)
+                    at_sentence_start = (not before) or before[-1] in '.!?:'
+                    r = repl[0].upper() + repl[1:] if at_sentence_start else repl
+                    fix_list.append(f"Stripped '{actual_name}' → '{r}'")
+                    return m.group(0).replace(actual_name, r)
+                return _replacer
+
+            parts[i] = pattern.sub(
+                _make_replacer(replacement, i, fixes), parts[i]
+            )
+
+    result = "".join(parts)
+    return result, fixes
+
+
 # ── UNVERIFIED TAX RATE CHECK (HARD FLAG) ──
 # If tax rate is unverified, the generator must NOT state an exact rate.
 # Uses proximity matching: any percentage within 60 chars of "tax".
@@ -494,6 +586,19 @@ def run_one_guide(entry: dict, site: str, output_dir: Path, resume: bool = False
             )
 
             html = article_path.read_text()
+
+            # Campus name strip (BEFORE all checks)
+            html, strip_fixes = _strip_hallucinated_campuses(html, entry)
+            if strip_fixes:
+                status["campus_strips"] = strip_fixes
+                stripped_count = sum(1 for f in strip_fixes if f.startswith("Stripped"))
+                skipped_count = sum(1 for f in strip_fixes if f.startswith("Skipped"))
+                eprint(f"  [STRIP] {stripped_count} campus name(s) stripped, {skipped_count} skipped")
+                for f in strip_fixes:
+                    eprint(f"    {f}")
+                # Write the stripped version back so fact-checker and all
+                # downstream checks operate on the cleaned HTML
+                article_path.write_text(html)
 
             claims = extract_claims(html, nb, city)
             report = run_verification(claims, nb, city, post_id=post_id)
