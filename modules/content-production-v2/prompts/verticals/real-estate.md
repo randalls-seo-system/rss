@@ -28,3 +28,11 @@ Where a price comparison mixes condos/townhomes and single-family homes, add: "E
 
 ### 7. STYLING CONSISTENCY
 Neighborhood guides must emit the same styled components as regular posts. The author-card and sources section are rendered by shared mu-plugins — do not emit alternative markup for these components.
+
+### 8. NO EM DASHES
+Never use em dashes (—) in prose. Use commas, colons, or separate sentences instead.
+- Wrong: "KISD C (74): Campus ratings vary — verify assigned schools."
+- Right: "KISD C (74): Campus ratings vary, so verify assigned schools."
+- Wrong: "The tradeoff — 30 minutes to Fort Hood."
+- Right: "The tradeoff: 30 minutes to Fort Hood."
+En dashes (–) ARE correct in numeric ranges and should be kept: $175K–$600K+, 1990s–2000s, 5–10 min.

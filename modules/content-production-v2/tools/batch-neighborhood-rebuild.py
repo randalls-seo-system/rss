@@ -545,6 +545,31 @@ def run_one_guide(entry: dict, site: str, output_dir: Path, resume: bool = False
                 status["feeder_check"] = "ran, no campus names found"
                 eprint(f"  [FEEDER] Ran clean — no hallucinated campus names")
 
+            # Em-dash scan (advisory — checks whether prompt rule held)
+            _prose_for_emdash = re.sub(r'<style[^>]*>.*?</style>', '', html, flags=re.DOTALL)
+            _prose_for_emdash = re.sub(r'<script[^>]*>.*?</script>', '', _prose_for_emdash, flags=re.DOTALL)
+            _prose_for_emdash = re.sub(r'<[^>]+>', '', _prose_for_emdash)
+            emdash_count = _prose_for_emdash.count('\u2014')
+            status["emdash_count"] = emdash_count
+            emdash_samples = []
+            _em_pos = 0
+            while len(emdash_samples) < 5:
+                idx = _prose_for_emdash.find('\u2014', _em_pos)
+                if idx < 0:
+                    break
+                snip_start = max(0, idx - 30)
+                snip_end = min(len(_prose_for_emdash), idx + 31)
+                emdash_samples.append(_prose_for_emdash[snip_start:snip_end].strip())
+                _em_pos = idx + 1
+            if emdash_samples:
+                status["emdash_samples"] = emdash_samples
+            if emdash_count > 0:
+                eprint(f"  [EMDASH] {emdash_count} em dash(es) in prose — prompt rule did not hold")
+                for s in emdash_samples[:3]:
+                    eprint(f"    \"{s}\"")
+            else:
+                eprint(f"  [EMDASH] 0 em dashes — clean")
+
             # Prompt-only checks label
             status["prompt_only_checks"] = [
                 "school_claim_caution: NOT PROGRAMMATICALLY CHECKED",
@@ -624,6 +649,19 @@ def build_consolidated_queue(all_statuses: list, output_dir: Path) -> dict:
             sf["keyword"] = status["keyword"]
             queue["feeder_soft_flags"].append(sf)
 
+    # Em-dash totals
+    emdash_total = sum(s.get("emdash_count", 0) for s in all_statuses)
+    emdash_guides_with = sum(1 for s in all_statuses if s.get("emdash_count", 0) > 0)
+    emdash_all_samples = []
+    for s in all_statuses:
+        for samp in s.get("emdash_samples", []):
+            emdash_all_samples.append({"post_id": s["post_id"], "snippet": samp})
+    queue["emdash"] = {
+        "total_count": emdash_total,
+        "guides_with_emdashes": emdash_guides_with,
+        "samples": emdash_all_samples[:20],
+    }
+
     queue["summary"] = {
         "corrections_individual_review": len(queue["corrections"]),
         "softenings_batch_approvable": len(queue["softenings"]),
@@ -631,6 +669,8 @@ def build_consolidated_queue(all_statuses: list, output_dir: Path) -> dict:
         "sparse_serp_read_manually": len(queue["sparse_serp"]),
         "feeder_hard_MUST_FIX": len(queue["feeder_hard_flags"]),
         "feeder_soft_review": len(queue["feeder_soft_flags"]),
+        "emdash_total": emdash_total,
+        "emdash_guides_affected": emdash_guides_with,
     }
 
     return queue
