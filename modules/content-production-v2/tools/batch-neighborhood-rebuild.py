@@ -171,6 +171,104 @@ def _check_confabulation_risk(html: str, entry: dict) -> list[dict]:
     return flags
 
 
+# ── NULL-FEEDER CAMPUS HALLUCINATION CHECK (HARD FLAG) ──
+# If verified feeder data is null for a level, the generator must name
+# NO specific campus at that level. A named campus with null feeders
+# means the LLM hallucinated it.
+
+# Full-form patterns: "Reagan High School"
+_SCHOOL_LEVEL_FULL = {
+    "feeder_elementary": re.compile(r'(\S+)\s+Elementary\s+School', re.IGNORECASE),
+    "feeder_middle": re.compile(r'(\S+)\s+Middle\s+School', re.IGNORECASE),
+    "feeder_high": re.compile(r'(\S+)\s+High\s+School', re.IGNORECASE),
+}
+# Truncated patterns: "Reagan High" / "Reagan HS" / "Lopez Middle"
+_SCHOOL_LEVEL_TRUNC = {
+    "feeder_elementary": re.compile(r'(\S+)\s+Elementary\b(?!\s+School)', re.IGNORECASE),
+    "feeder_middle": re.compile(r'(\S+)\s+Middle\b(?!\s+School)', re.IGNORECASE),
+    "feeder_high": re.compile(r'(\S+)\s+(?:High\b(?!\s+School)|HS\b)', re.IGNORECASE),
+}
+# Tokens before "X School" that indicate generic usage, not a named campus
+_GENERIC_PRECEDING = {
+    "the", "a", "an", "any", "each", "every", "local", "nearby",
+    "zoned", "assigned", "your", "their", "one", "no",
+    "verify", "compare", "check", "confirm",
+    "isd", "district", "public", "area",
+}
+
+
+def _check_null_feeder_hallucination(html: str, entry: dict) -> list[dict]:
+    """HARD FLAG: detect specific campus names when feeder data was null.
+
+    Checks each school level independently. A populated feeder_high does
+    NOT suppress checks for elementary or middle.
+    """
+    data_json = entry.get("data_json", "")
+    null_levels = set(_SCHOOL_LEVEL_FULL.keys())  # default: all null
+
+    if data_json and Path(data_json).exists():
+        try:
+            data = json.loads(Path(data_json).read_text())
+            schools = data.get("verified", {}).get("schools", {})
+            for level in list(null_levels):
+                if schools.get(level):
+                    null_levels.discard(level)
+        except Exception:
+            pass
+
+    if not null_levels:
+        return []
+
+    # Strip HTML via regex (hard gate — no optional dependency)
+    text = re.sub(r'<[^>]+>', ' ', html)
+    text = re.sub(r'\s+', ' ', text).strip()
+
+    flags = []
+
+    def _is_sentence_start(pos):
+        """Check if pos is at a sentence/block boundary."""
+        before = text[:pos].rstrip()
+        if not before:
+            return True
+        return before[-1] in '.!?:'
+
+    def _check_match(m, level, base_severity):
+        preceding_word = m.group(1).lower()
+        if preceding_word in _GENERIC_PRECEDING:
+            return
+        if not m.group(1)[0:1].isupper():
+            return
+        # Determine confidence based on position
+        if _is_sentence_start(m.start()):
+            # Capitalization is positional — could be grammar, not a name.
+            # Downgrade to SOFT regardless of base_severity.
+            severity = "SOFT"
+        else:
+            # Mid-sentence capitalized token → high confidence proper noun.
+            severity = base_severity
+        ctx_start = max(0, m.start() - 30)
+        ctx_end = min(len(text), m.end() + 10)
+        flags.append({
+            "type": "null_feeder_hallucination",
+            "level": level,
+            "campus": m.group(0),
+            "detail": f"Named '{m.group(0)}' but {level} data is NULL",
+            "context": text[ctx_start:ctx_end].strip(),
+            "post_id": entry.get("post_id", 0),
+            "severity": severity,
+        })
+
+    for level in null_levels:
+        # Full-form: HARD flag
+        for m in _SCHOOL_LEVEL_FULL[level].finditer(text):
+            _check_match(m, level, "HARD")
+        # Truncated form: SOFT flag
+        for m in _SCHOOL_LEVEL_TRUNC[level].finditer(text):
+            _check_match(m, level, "SOFT")
+
+    return flags
+
+
 # ── FAIR HOUSING SCANNER ──
 # Validated against 30 live July 29-31 guides: 35 hits, 23/30 guides.
 FH_TIER1_PHRASES = [
@@ -431,6 +529,22 @@ def run_one_guide(entry: dict, site: str, output_dir: Path, resume: bool = False
                 for cf in confab_flags:
                     eprint(f"    {cf['detail'][:80]}")
 
+            # Null-feeder hallucination check (HARD flag)
+            feeder_flags = _check_null_feeder_hallucination(html, entry)
+            hard_feeder = [f for f in feeder_flags if f["severity"] == "HARD"]
+            soft_feeder = [f for f in feeder_flags if f["severity"] == "SOFT"]
+            if hard_feeder:
+                status["feeder_hard_flags"] = hard_feeder
+                eprint(f"  [FEEDER-HARD] {len(hard_feeder)} hallucinated campus name(s):")
+                for hf in hard_feeder:
+                    eprint(f"    HARD: {hf['campus']} ({hf['level']})")
+            if soft_feeder:
+                status["feeder_soft_flags"] = soft_feeder
+                eprint(f"  [FEEDER-SOFT] {len(soft_feeder)} truncated campus ref(s)")
+            if not feeder_flags:
+                status["feeder_check"] = "ran, no campus names found"
+                eprint(f"  [FEEDER] Ran clean — no hallucinated campus names")
+
             # Prompt-only checks label
             status["prompt_only_checks"] = [
                 "school_claim_caution: NOT PROGRAMMATICALLY CHECKED",
@@ -462,6 +576,8 @@ def build_consolidated_queue(all_statuses: list, output_dir: Path) -> dict:
         "softenings": [],
         "unverified": [],
         "sparse_serp": [],
+        "feeder_hard_flags": [],
+        "feeder_soft_flags": [],
     }
 
     for status in all_statuses:
@@ -500,11 +616,21 @@ def build_consolidated_queue(all_statuses: list, output_dir: Path) -> dict:
                 "flag": status.get("thin_data_flag", ""),
             })
 
+        # Feeder hallucination flags (HARD and SOFT)
+        for hf in status.get("feeder_hard_flags", []):
+            hf["keyword"] = status["keyword"]
+            queue["feeder_hard_flags"].append(hf)
+        for sf in status.get("feeder_soft_flags", []):
+            sf["keyword"] = status["keyword"]
+            queue["feeder_soft_flags"].append(sf)
+
     queue["summary"] = {
         "corrections_individual_review": len(queue["corrections"]),
         "softenings_batch_approvable": len(queue["softenings"]),
         "unverified_human_check": len(queue["unverified"]),
         "sparse_serp_read_manually": len(queue["sparse_serp"]),
+        "feeder_hard_MUST_FIX": len(queue["feeder_hard_flags"]),
+        "feeder_soft_review": len(queue["feeder_soft_flags"]),
     }
 
     return queue
