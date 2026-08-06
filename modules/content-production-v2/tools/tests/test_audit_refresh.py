@@ -532,5 +532,56 @@ class TestQueueRefreshMode(unittest.TestCase):
             self._restore_queue_path()
 
 
+class TestUpstreamFixes(unittest.TestCase):
+    """Tests for H2 floor, BTF FAQ wrapper, and word count floor."""
+
+    def test_btf_faq_wrapper_present_in_clean_html(self):
+        """BTF FAQs in the clean fixture must be inside .rl-faq wrapper."""
+        from bs4 import BeautifulSoup
+        soup = BeautifulSoup(CLEAN_HTML, "html.parser")
+        rl_faq = soup.find(class_="rl-faq")
+        self.assertIsNotNone(rl_faq, "Clean HTML must have .rl-faq wrapper")
+        btf_details = rl_faq.find_all("details")
+        self.assertGreaterEqual(len(btf_details), 5, "BTF should have 5+ FAQs")
+
+    def test_bare_details_without_wrapper_fails_spec(self):
+        """Bare <details> without .rl-faq wrapper should fail 18.1.17."""
+        from lib.spec_assertions import assert_btf_faq_count_and_no_overlap
+        from bs4 import BeautifulSoup
+        # HTML with 7 bare <details> (no .rl-faq wrapper)
+        bare_faq_html = '<div class="rl-page">' + ''.join(
+            f'<details><summary>Q{i}?</summary><p>Answer {i}.</p></details>'
+            for i in range(7)
+        ) + '</div>'
+        soup = BeautifulSoup(bare_faq_html, "html.parser")
+        result = assert_btf_faq_count_and_no_overlap(soup, {"atf_faqs_text": []})
+        self.assertFalse(result.passed, "Bare details without .rl-faq should fail 18.1.17")
+
+    def test_h2_minimum_is_eight(self):
+        """The H2 floor must be 8, not 6."""
+        from lib.spec_assertions import assert_content_h2_min_eight
+        from bs4 import BeautifulSoup
+        # 7 H2 sections
+        html = '<div class="rl-page">' + ''.join(
+            f'<h2>Section {i}</h2><p>Content paragraph with enough words for the test fixture here.</p><ul><li>Bullet item one two three four five six seven eight nine ten eleven twelve thirteen fourteen fifteen sixteen seventeen eighteen words minimum.</li></ul>'
+            for i in range(7)
+        ) + '</div>'
+        soup = BeautifulSoup(html, "html.parser")
+        result = assert_content_h2_min_eight(soup, {})
+        self.assertFalse(result.passed, "7 H2s should fail the min-8 gate")
+
+    def test_eight_h2s_passes(self):
+        """8 H2 sections should pass."""
+        from lib.spec_assertions import assert_content_h2_min_eight
+        from bs4 import BeautifulSoup
+        html = '<div class="rl-page">' + ''.join(
+            f'<h2>Section {i}</h2><p>Content paragraph.</p><ul><li>Item.</li></ul>'
+            for i in range(8)
+        ) + '</div>'
+        soup = BeautifulSoup(html, "html.parser")
+        result = assert_content_h2_min_eight(soup, {})
+        self.assertTrue(result.passed, "8 H2s should pass")
+
+
 if __name__ == "__main__":
     unittest.main()
