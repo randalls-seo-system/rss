@@ -7,7 +7,7 @@
     "status": "parked",
     "added": "2026-08-06T01:13:10.288870+00:00",
     "attempts": 1,
-    "last_failure": "BLOCKED: 36/40 hard passed. 18.1.11: 2 ATF FAQs (need 3); 18.1.13b: 7 H2s (need 8); 18.2.1: external anchor format",
+    "last_failure": "BLOCKED: 37/40 hard; D2 12u. 18.1.12: BLUF body is 49 words, expected 70-100; BLUF bullet[3] is 5 words, expected 12-2; 18.2.1: External anchors not in source-title format: ['Mortgagecalculator.org - FHA Loan; 18.3.2: Body is 161",
     "job_id": "20260805-201409-d9dd5002",
     "mode": "refresh",
     "post_id": 1501
@@ -20,7 +20,7 @@
     "status": "parked",
     "added": "2026-08-06T01:13:10.289728+00:00",
     "attempts": 1,
-    "last_failure": "BLOCKED: 35/40 hard passed. 18.1.11: 10 ATF FAQs (need 3); 18.1.13b: 6 H2s (need 8); 18.1.17: no BTF FAQ section",
+    "last_failure": "BLOCKED: 38/40 hard; D2 7u. 18.1.11: ATF FAQ[1] answer is 61 words, expected 35-60; ATF FAQ[2] answer is 17 words, ex; 18.4.1: Em dash found in body text: '...It depends on your credit profile. Conventional ; D2: 7 unsourced",
     "job_id": "20260805-201428-3912c3a1",
     "mode": "refresh",
     "post_id": 383
@@ -33,7 +33,7 @@
     "status": "parked",
     "added": "2026-08-06T01:13:10.289933+00:00",
     "attempts": 1,
-    "last_failure": "BLOCKED: 37/40 hard passed. 18.1.13b: 6 H2s (need 8); 18.3.2: body 1510w (need 1800-2400); 18.4.2: banned phrase 'explore'",
+    "last_failure": "BLOCKED: 37/40 hard; D2 4u. 18.1.11: ATF FAQ[2] answer is 23 words, expected 35-60; 18.1.12: BLUF body is 67 words, expected 70-100; BLUF bullet[1] is 0 words, expected 12-2; 18.4.1: Em dash found in body text: '...'Whether mort",
     "job_id": "20260805-201448-27bcd397",
     "mode": "refresh",
     "post_id": 1740
