@@ -216,17 +216,33 @@ def refresh_job_ready_for_approval(job: dict) -> tuple[bool, str]:
     Returns (ready, reason). A job is ready only when:
     - fetch_original stage is done
     - generate stage is done (pipeline ran)
-    - gates stage is done (quality checks passed)
+    - gates stage is done AND validation actually ran and passed
+    - D2 claims check ran
+    - link_pass stage is done
     - create_pending_draft stage is done (draft exists on site)
     - pending_draft_id is set in the job record
     """
     stages = job.get("stages", {})
     refresh = job.get("refresh", {})
 
-    required = ["fetch_original", "generate", "gates", "create_pending_draft"]
+    required = ["fetch_original", "generate", "gates", "link_pass", "create_pending_draft"]
     for stage_name in required:
         if not stages.get(stage_name, {}).get("status") == "done":
             return False, f"Stage '{stage_name}' not completed"
+
+    # Validation must have actually run (not soft-validate skip)
+    gates_data = stages.get("gates", {})
+    validation = gates_data.get("validation", {})
+    if not validation.get("ran"):
+        return False, "Validator did not run (soft-validate or skipped)"
+    if validation.get("hard_passed", 0) < validation.get("hard_total", 1):
+        failed = validation.get("hard_total", 0) - validation.get("hard_passed", 0)
+        return False, f"Validator: {failed} hard assertion(s) failed"
+
+    # D2 claims check must have run
+    d2 = gates_data.get("d2", {})
+    if not d2.get("ran"):
+        return False, "D2 claims check did not run"
 
     if not refresh.get("pending_draft_id"):
         return False, "No pending_draft_id — draft not deployed to site"

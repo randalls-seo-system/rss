@@ -279,7 +279,8 @@ class TestRefreshSafety(unittest.TestCase):
             "stages": {
                 "fetch_original": {"status": "done"},
                 "generate": {"status": "done"},
-                "gates": {"status": "done"},
+                "gates": {"status": "done", "validation": {"ran": True, "hard_passed": 30, "hard_total": 30}, "d2": {"ran": True}},
+                "link_pass": {"status": "done"},
                 "create_pending_draft": {"status": "done"},
             },
             "refresh": {
@@ -290,6 +291,72 @@ class TestRefreshSafety(unittest.TestCase):
         ready, reason = refresh_job_ready_for_approval(job)
         self.assertFalse(ready)
         self.assertIn("pending_draft_id", reason)
+
+    def test_approve_refuses_soft_validate(self):
+        """approve_refresh must refuse when validator didn't run (soft-validate)."""
+        from lib.refresher import refresh_job_ready_for_approval
+
+        job = {
+            "id": "test-job-soft",
+            "stages": {
+                "fetch_original": {"status": "done"},
+                "generate": {"status": "done"},
+                "gates": {"status": "done", "validation": {"ran": False, "hard_passed": 0, "hard_total": 30}},
+                "link_pass": {"status": "done"},
+                "create_pending_draft": {"status": "done"},
+            },
+            "refresh": {
+                "original_post_id": 999,
+                "pending_draft_id": 2531,
+            },
+        }
+        ready, reason = refresh_job_ready_for_approval(job)
+        self.assertFalse(ready)
+        self.assertIn("Validator did not run", reason)
+
+    def test_approve_refuses_d2_not_run(self):
+        """approve_refresh must refuse when D2 claims check didn't run."""
+        from lib.refresher import refresh_job_ready_for_approval
+
+        job = {
+            "id": "test-job-nod2",
+            "stages": {
+                "fetch_original": {"status": "done"},
+                "generate": {"status": "done"},
+                "gates": {"status": "done", "validation": {"ran": True, "hard_passed": 30, "hard_total": 30}, "d2": {"ran": False}},
+                "link_pass": {"status": "done"},
+                "create_pending_draft": {"status": "done"},
+            },
+            "refresh": {
+                "original_post_id": 999,
+                "pending_draft_id": 2531,
+            },
+        }
+        ready, reason = refresh_job_ready_for_approval(job)
+        self.assertFalse(ready)
+        self.assertIn("D2 claims check did not run", reason)
+
+    def test_approve_accepts_fully_gated_job(self):
+        """approve gate passes when all stages done, validator ran+passed, D2 ran."""
+        from lib.refresher import refresh_job_ready_for_approval
+
+        job = {
+            "id": "test-job-good",
+            "stages": {
+                "fetch_original": {"status": "done"},
+                "generate": {"status": "done"},
+                "gates": {"status": "done", "validation": {"ran": True, "hard_passed": 30, "hard_total": 30}, "d2": {"ran": True}},
+                "link_pass": {"status": "done"},
+                "create_pending_draft": {"status": "done"},
+            },
+            "refresh": {
+                "original_post_id": 999,
+                "pending_draft_id": 2531,
+            },
+        }
+        ready, reason = refresh_job_ready_for_approval(job)
+        self.assertTrue(ready)
+        self.assertEqual(reason, "")
 
     @patch("lib.refresher.fetch_post_html")
     def test_refuses_non_published(self, mock_fetch):
