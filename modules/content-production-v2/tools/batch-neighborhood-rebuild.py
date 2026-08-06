@@ -379,6 +379,16 @@ def run_one_guide(entry: dict, site: str, output_dir: Path, resume: bool = False
                 eprint(f"  [THIN-DATA] {risk['flag']}")
             status["elapsed"] = gen_elapsed
 
+            # Content quality gate (advisory — generator already hard-stops,
+            # but batch runner re-checks in case of edge cases)
+            from lib.content_quality_gate import run_content_quality_gate
+            quality_failures = run_content_quality_gate(html, nb, city)
+            if quality_failures:
+                status["quality_gate_flags"] = quality_failures
+                eprint(f"  [QUALITY] {len(quality_failures)} flag(s)")
+            else:
+                eprint(f"  [QUALITY] PASS")
+
             # Fair Housing scan (advisory)
             fh_hits = _scan_fair_housing(html, post_id)
             if fh_hits:
