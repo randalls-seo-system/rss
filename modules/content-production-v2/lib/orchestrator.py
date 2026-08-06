@@ -386,13 +386,20 @@ def generate_from_capture(job: dict, config: dict, capture_path: str) -> Path:
         voice_path = REPO_ROOT / "modules" / "brand-voice" / "archetypes" / f"{archetype}.md"
     voice_text = voice_path.read_text()[:2500] if voice_path.exists() else ""
 
-    # Load claims policy
+    # Load claims policy (resolve relative to REPO_ROOT, not CWD)
     policy_path = config.get("content", {}).get("claims_policy", "")
     policy_text = ""
     if policy_path:
-        expanded = Path(os.path.expanduser(policy_path))
+        expanded = REPO_ROOT / policy_path
+        if not expanded.exists():
+            expanded = Path(os.path.expanduser(policy_path))
         if expanded.exists():
             policy_text = expanded.read_text()[:3000]
+        else:
+            raise FileNotFoundError(
+                f"Claims policy declared but not found: {policy_path} "
+                f"(tried {REPO_ROOT / policy_path} and {os.path.expanduser(policy_path)})"
+            )
 
     css_prefix = (config.get("content", {}).get("css_prefix") or ["ahn"])[0]
     min_words = config.get("content", {}).get("article_min_words", 1800)
@@ -877,12 +884,18 @@ def run_claims_classification(
     if not claims:
         return []
 
-    # Load policy file
+    # Load policy file (resolve relative to REPO_ROOT, not CWD)
     policy_text = ""
     if policy_path:
-        expanded = os.path.expanduser(policy_path)
-        if os.path.exists(expanded):
-            policy_text = Path(expanded).read_text()[:4000]
+        expanded = REPO_ROOT / policy_path
+        if not expanded.exists():
+            expanded = Path(os.path.expanduser(policy_path))
+        if expanded.exists():
+            policy_text = expanded.read_text()[:4000]
+        else:
+            raise FileNotFoundError(
+                f"Claims policy declared but not found: {policy_path}"
+            )
 
     # Load scan excerpts (gap analysis, SERP data, evidence store)
     scan_text = ""
