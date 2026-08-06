@@ -47,20 +47,36 @@ def _load_slug_map(site_slug: str) -> dict[str, int]:
 
 
 def _load_gsc_query_pages(site_slug: str) -> dict[str, str]:
-    """Load query→slug mapping from the latest audit or seed data."""
+    """Load query→slug mapping from cached GSC data or audit results.
+
+    Checks two sources (in priority order):
+    1. sites/<slug>/gsc-query-pages.json — dedicated cache built by doctor/audit
+    2. docs/<slug>-audit-*.json — audit results with top_query per post
+    """
+    # Source 1: dedicated cache
+    cache_path = REPO_ROOT / "sites" / site_slug / "gsc-query-pages.json"
+    if cache_path.exists():
+        try:
+            return json.loads(cache_path.read_text())
+        except json.JSONDecodeError:
+            pass
+
+    # Source 2: audit results
     docs_dir = REPO_ROOT / "docs"
     audit_files = sorted(docs_dir.glob(f"{site_slug}-audit-*.json"), reverse=True)
-    if not audit_files:
-        return {}
-    try:
-        audit = json.loads(audit_files[0].read_text())
-        mapping = {}
-        for r in audit.get("results", []):
-            if r.get("top_query") and r.get("slug"):
-                mapping[r["top_query"].lower()] = r["slug"]
-        return mapping
-    except (json.JSONDecodeError, KeyError):
-        return {}
+    if audit_files:
+        try:
+            audit = json.loads(audit_files[0].read_text())
+            mapping = {}
+            for r in audit.get("results", []):
+                if r.get("top_query") and r.get("slug"):
+                    mapping[r["top_query"].lower()] = r["slug"]
+            if mapping:
+                return mapping
+        except (json.JSONDecodeError, KeyError):
+            pass
+
+    return {}
 
 
 def _load_source_htmls(jobs_dir: Path, pending_entries: list[dict]) -> dict[int, str]:

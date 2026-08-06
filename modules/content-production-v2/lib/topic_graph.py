@@ -137,6 +137,15 @@ def check_topic_covered_in_source(topic: str, source_html: str) -> bool:
     Uses term presence + substantive threshold: the topic's content words
     must appear in the source body, and at least 2 terms must appear 2+ times
     (indicating real coverage, not passing mention).
+
+    Known limitation: this is term-frequency based and can false-positive on
+    topics that share vocabulary with the source but address a different angle.
+    Example: "fha closing costs for investment properties" would match a general
+    closing-costs page because "closing" and "costs" appear frequently, even
+    though the investment-property angle is not covered. If false-positive
+    covered_in_source calls appear in practice, sharpen with proximity scoring:
+    require the topic's content words to co-occur within one paragraph or
+    section, not just anywhere in the document.
     """
     stopwords = {"the", "a", "an", "in", "of", "to", "and", "for", "how",
                  "what", "is", "on", "can", "be", "are", "with", "from"}

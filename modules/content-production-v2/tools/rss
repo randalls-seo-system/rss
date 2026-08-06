@@ -407,6 +407,37 @@ def cmd_doctor(args):
     else:
         checks["deploy_ssh"] = "FAIL: ssh_host or ssh_user not configured"
 
+    # 10. Topic graph prerequisites — post inventory + GSC query cache
+    inv_path = REPO_ROOT / "sites" / args.site / "post-inventory.json"
+    if inv_path.exists():
+        try:
+            inv_data = json.loads(inv_path.read_text())
+            checks["post_inventory"] = f"pass ({len(inv_data)} posts)"
+        except json.JSONDecodeError:
+            checks["post_inventory"] = "FAIL: post-inventory.json is invalid JSON"
+    else:
+        checks["post_inventory"] = "WARN: no post-inventory.json (resolve-pending-links will fail closed)"
+
+    gsc_prop = config.get("integrations", {}).get("gsc_property", "")
+    gsc_cache = REPO_ROOT / "sites" / args.site / "gsc-query-pages.json"
+    if gsc_prop and not gsc_cache.exists():
+        # Check if audit data has mappings
+        docs_dir = REPO_ROOT / "docs"
+        audit_files = sorted(docs_dir.glob(f"{args.site}-audit-*.json"), reverse=True)
+        has_audit_queries = False
+        if audit_files:
+            try:
+                aud = json.loads(audit_files[0].read_text())
+                has_audit_queries = any(r.get("top_query") for r in aud.get("results", []))
+            except Exception:
+                pass
+        if has_audit_queries:
+            checks["gsc_query_cache"] = "pass (from audit)"
+        else:
+            checks["gsc_query_cache"] = "WARN: GSC configured but no query→page cache (resolver linked_existing will miss GSC signal)"
+    elif gsc_prop:
+        checks["gsc_query_cache"] = "pass"
+
     _doctor_report(checks, args.json)
     has_fail = any(v.startswith("FAIL") for v in checks.values())
     sys.exit(1 if has_fail else 0)
