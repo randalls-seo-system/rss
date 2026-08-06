@@ -347,34 +347,73 @@ class TestQueueRefreshMode(unittest.TestCase):
         """seed_from_audit must exclude PASS verdicts."""
         self._patch_queue_path()
         try:
-            # Write a fake audit JSON
             docs_dir = Path(self.tmpdir) / "docs"
             docs_dir.mkdir(parents=True, exist_ok=True)
             audit_data = {
                 "site": "test",
                 "date": "2026-08-05",
                 "results": [
-                    {"post_id": 1, "slug": "pass-post", "title": "Pass",
+                    {"post_id": 1, "slug": "pass-post", "title": "Pass Post Guide",
                      "verdict": "PASS", "position": 15, "impressions": 100,
                      "hard_failures": [], "quality_gate_failures": [],
                      "artifact_hits": [], "unsourced_claims": 0, "volatile_claims": 0,
                      "soft_total_count": 10, "soft_pass_count": 10,
                      "verdict_reasons": [], "top_query": "test", "tier2_ran": False},
-                    {"post_id": 2, "slug": "refresh-post", "title": "Refresh",
+                    {"post_id": 2, "slug": "refresh-post", "title": "Refresh Post Guide",
                      "verdict": "REFRESH", "position": 20, "impressions": 80,
                      "hard_failures": ["18.1.1: H1 missing"], "quality_gate_failures": [],
-                     "artifact_hits": [], "unsourced_claims": 0, "volatile_claims": 0,
+                     "artifact_hits": [], "unsourced_claims": 5, "volatile_claims": 0,
                      "soft_total_count": 10, "soft_pass_count": 8,
                      "verdict_reasons": ["1 hard assertion failure(s)"],
-                     "top_query": "test query", "tier2_ran": False},
+                     "top_query": "test query", "tier2_ran": True},
                 ],
             }
             (docs_dir / "test-audit-20260805.json").write_text(json.dumps(audit_data))
 
-            candidates = seed_from_audit("test")
+            candidates, excluded = seed_from_audit("test")
             self.assertEqual(len(candidates), 1)
             self.assertEqual(candidates[0]["post_id"], 2)
             self.assertEqual(candidates[0]["verdict"], "REFRESH")
+            # PASS post should be in excluded
+            self.assertTrue(any(e["post_id"] == 1 for e in excluded))
+        finally:
+            self._restore_queue_path()
+
+    def test_seed_excludes_non_articles_and_frozen(self):
+        """seed_from_audit must exclude non-article pages and frozen pos 1-10."""
+        self._patch_queue_path()
+        try:
+            docs_dir = Path(self.tmpdir) / "docs"
+            docs_dir.mkdir(parents=True, exist_ok=True)
+            audit_data = {
+                "site": "test",
+                "date": "2026-08-05",
+                "results": [
+                    {"post_id": 10, "slug": "contact-us", "title": "Contact Us",
+                     "verdict": "REFRESH", "position": 40, "impressions": 500,
+                     "hard_failures": ["x"], "unsourced_claims": 0,
+                     "verdict_reasons": ["test"]},
+                    {"post_id": 20, "slug": "fha-loan-guide", "title": "FHA Loan Guide",
+                     "verdict": "REFRESH", "position": 5, "impressions": 10000,
+                     "hard_failures": ["x"], "unsourced_claims": 10,
+                     "verdict_reasons": ["test"]},
+                    {"post_id": 30, "slug": "mortgage-rates-explained",
+                     "title": "Mortgage Rates Explained",
+                     "verdict": "REFRESH", "position": 20, "impressions": 2000,
+                     "hard_failures": ["x"], "unsourced_claims": 8,
+                     "verdict_reasons": ["test"]},
+                ],
+            }
+            (docs_dir / "test-audit-20260805.json").write_text(json.dumps(audit_data))
+
+            candidates, excluded = seed_from_audit("test")
+            # Only post 30 (article, pos 20) should be eligible
+            self.assertEqual(len(candidates), 1)
+            self.assertEqual(candidates[0]["post_id"], 30)
+            # contact-us (service_page) and fha-loan-guide (frozen) excluded
+            excl_ids = {e["post_id"] for e in excluded}
+            self.assertIn(10, excl_ids)  # service_page
+            self.assertIn(20, excl_ids)  # frozen
         finally:
             self._restore_queue_path()
 

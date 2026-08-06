@@ -59,9 +59,60 @@ class AuditResult:
     flagged_claims: int = 0
     volatile_claims: int = 0
 
+    # Classification
+    page_type: str = ""  # article, service_page, about, other
+    frozen: bool = False  # True = ineligible for refresh (pos 1-10 freeze)
+
     # Verdict
     verdict: str = ""  # PASS, REFRESH, REVIEW
     verdict_reasons: list[str] = field(default_factory=list)
+
+
+def classify_page_type(slug: str, title: str) -> str:
+    """Classify a page as article | service_page | about | other.
+
+    Uses title + slug heuristics. Conservative: only classifies clear
+    non-articles; anything ambiguous defaults to 'article'.
+    """
+    s = slug.lower()
+    t = title.lower()
+
+    # Service pages — CTAs, lead gen, applications
+    service_signals = [
+        "apply-now", "compare-loan-offers", "contact-us",
+        "high-quality-mortgage-leads", "mortgage-leads",
+        "realtor-referral-program", "referral-program",
+        "service-disclaimer", "advertising-disclosures",
+        "privacy-policy", "terms-of-use",
+    ]
+    if any(sig in s for sig in service_signals):
+        return "service_page"
+    if any(phrase in t for phrase in [
+        "join our", "get high-quality", "apply now", "contact us",
+        "referral program", "mortgage leads",
+    ]):
+        return "service_page"
+
+    # About pages
+    about_signals = [
+        "about-us", "about-the-", "contributor", "editorial-team",
+        "our-team", "meet-the-team",
+    ]
+    if any(sig in s for sig in about_signals):
+        return "about"
+    if any(phrase in t for phrase in [
+        "about us", "become a contributor", "editorial team",
+    ]):
+        return "about"
+
+    # Hub/index pages
+    hub_signals = ["blog", "mortgage-guides", "loan-guides", "resources"]
+    if s in hub_signals or (s in ("blog",) and len(t.split()) <= 3):
+        return "other"
+    if t.lower().strip() in ("blog", "mortgage guides"):
+        return "other"
+
+    return "article"
 
 
 def _word_count(html: str) -> int:

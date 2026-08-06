@@ -679,15 +679,37 @@ def cmd_queue(args):
             print(f"\nAdded {added} items to queue (refresh candidates excluded).")
 
     elif args.queue_action == "seed-refresh":
-        candidates = seed_from_audit(args.site, limit=getattr(args, "limit", 20))
+        candidates, excluded = seed_from_audit(args.site, limit=getattr(args, "limit", 20))
+
+        if excluded:
+            # Group excluded by reason type
+            non_articles = [e for e in excluded if "page_type" in e.get("reason", "")]
+            frozen = [e for e in excluded if "frozen" in e.get("reason", "")]
+            other_excl = [e for e in excluded if e not in non_articles and e not in frozen]
+
+            if non_articles:
+                print(f"\n--- Non-article pages needing attention ({len(non_articles)}) ---")
+                for e in non_articles:
+                    print(f"  {e['post_id']:>5}  {e['slug'][:40]:40}  {e['reason']}")
+
+            if frozen:
+                print(f"\n--- Frozen (pos 1-10, ineligible until manually lifted) ({len(frozen)}) ---")
+                for e in frozen:
+                    print(f"  {e['post_id']:>5}  {e['slug'][:40]:40}  pos={e['position']:.0f}  imp={e['impressions']}")
+
+            if other_excl:
+                print(f"\n--- Other excluded ({len(other_excl)}) ---")
+                for e in other_excl:
+                    print(f"  {e['post_id']:>5}  {e['slug'][:40]:40}  {e['reason']}")
+
         if not candidates:
-            print("No refresh candidates (audit data missing or all PASS).")
+            print("\nNo eligible refresh candidates.")
             return
-        print(f"\n{len(candidates)} refresh candidates from audit (ranked by severity × opportunity):\n")
-        print(f"  {'#':>3}  {'Score':>5}  {'Verdict':8}  {'Post ID':>7}  {'Slug':35}  {'Pos':>5}  {'Imp':>5}  Reasons")
+
+        print(f"\n--- {len(candidates)} eligible article refresh candidates (risk-first ranking) ---\n")
+        print(f"  {'#':>3}  {'Score':>6}  {'Post ID':>7}  {'Slug':35}  {'Pos':>5}  {'Imp':>6}  {'Unsrc':>5}  {'Hard':>4}")
         for i, c in enumerate(candidates, 1):
-            reasons_short = "; ".join(c.get("reasons", [])[:2])[:50]
-            print(f"  {i:3d}  {c['score']:5.0f}  {c['verdict']:8}  {c['post_id']:>7}  {c['slug'][:35]:35}  {c['position']:5.0f}  {c['impressions']:>5}  {reasons_short}")
+            print(f"  {i:3d}  {c['score']:6.0f}  {c['post_id']:>7}  {c['slug'][:35]:35}  {c['position']:5.0f}  {c['impressions']:>6}  {c['unsourced_claims']:>5}  {c['hard_failures']:>4}")
 
         print(f"\nTo write to queue, re-run with --confirm")
         if getattr(args, "confirm", False):

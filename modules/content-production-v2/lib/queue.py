@@ -151,20 +151,22 @@ def mark_awaiting_approval(site_slug: str, item_id: str, job_id: str = "") -> No
     save_queue(site_slug, items)
 
 
-def seed_from_audit(site_slug: str, limit: int = 20) -> list[dict]:
+def seed_from_audit(site_slug: str, limit: int = 20) -> tuple[list[dict], list[dict]]:
     """Seed refresh candidates from the latest audit JSON.
 
-    Ranking: defect severity (gate failures > low validator > unsourced claims)
-             × opportunity (pos 11-30 highest, 31-50 next, 51+ lowest).
-    Posts with verdict PASS are excluded.
+    Ranking: D2 unsourced-claim count dominates; structural failures are
+    a constant tiebreaker; opportunity (pos 11-30) is the multiplier.
+    Excluded: verdict PASS, page_type != article, frozen (pos 1-10).
 
-    Returns candidates for human review (not written to queue).
+    Returns (candidates, excluded) — both for display, only candidates
+    eligible for seeding.
     """
+    from .auditor import classify_page_type
+
     docs_dir = REPO_ROOT / "docs"
-    # Find the latest audit JSON for this site
     audit_files = sorted(docs_dir.glob(f"{site_slug}-audit-*.json"), reverse=True)
     if not audit_files:
-        return []
+        return [], []
 
     audit_data = json.loads(audit_files[0].read_text())
     results = audit_data.get("results", [])
@@ -176,56 +178,71 @@ def seed_from_audit(site_slug: str, limit: int = 20) -> list[dict]:
     }
 
     candidates = []
+    excluded = []
     for r in results:
-        if r.get("verdict") == "PASS":
-            continue
         pid = r.get("post_id")
-        if pid in queued_post_ids:
+        slug = r.get("slug", "")
+        title = r.get("title", "")
+        pos = r.get("position", 0)
+
+        # Classify page type
+        page_type = r.get("page_type") or classify_page_type(slug, title)
+
+        # Determine exclusion reason
+        exclusion = ""
+        if r.get("verdict") == "PASS":
+            exclusion = "PASS verdict"
+        elif page_type != "article":
+            exclusion = f"page_type={page_type}"
+        elif r.get("frozen") or (1 <= pos <= 10):
+            exclusion = f"frozen (pos {pos:.0f})"
+        elif pid in queued_post_ids:
+            exclusion = "already queued"
+
+        if exclusion:
+            excluded.append({
+                "post_id": pid, "slug": slug, "title": title,
+                "page_type": page_type, "position": pos,
+                "impressions": r.get("impressions", 0),
+                "reason": exclusion,
+            })
             continue
 
-        # Compute severity score
-        severity = 0
-        severity += len(r.get("hard_failures", [])) * 10
-        severity += len(r.get("quality_gate_failures", [])) * 8
-        severity += len(r.get("artifact_hits", [])) * 5
-        severity += r.get("unsourced_claims", 0) * 2
-        severity += r.get("volatile_claims", 0) * 1
+        # Risk-first scoring: unsourced claims dominate,
+        # structural failures are tiebreaker (constant across posts)
+        unsourced = r.get("unsourced_claims", 0)
+        hard_fail = len(r.get("hard_failures", []))
+        risk_base = unsourced * 10 + hard_fail  # hard_fail is tiebreaker
 
-        # Soft assertion failures as minor signal
-        soft_total = r.get("soft_total_count", 0)
-        soft_pass = r.get("soft_pass_count", 0)
-        if soft_total > 0:
-            severity += (soft_total - soft_pass) * 1
-
-        # Opportunity weight by position
-        pos = r.get("position", 100)
+        # Opportunity multiplier by position
         if 11 <= pos <= 30:
-            opportunity = 3.0  # striking distance — highest priority
-        elif 1 <= pos <= 10:
-            opportunity = 1.5  # already ranking, refresh still valuable
+            opportunity = 3.0
         elif 31 <= pos <= 50:
             opportunity = 2.0
         else:
             opportunity = 1.0
 
-        score = severity * opportunity
+        score = risk_base * opportunity
 
         candidates.append({
             "post_id": pid,
-            "slug": r.get("slug", ""),
-            "title": r.get("title", ""),
+            "slug": slug,
+            "title": title,
             "top_query": r.get("top_query", ""),
             "position": pos,
             "impressions": r.get("impressions", 0),
             "verdict": r.get("verdict", ""),
-            "severity": severity,
+            "page_type": page_type,
+            "unsourced_claims": unsourced,
+            "hard_failures": hard_fail,
+            "risk_base": risk_base,
             "opportunity": opportunity,
             "score": score,
             "reasons": r.get("verdict_reasons", []),
         })
 
     candidates.sort(key=lambda x: x["score"], reverse=True)
-    return candidates[:limit]
+    return candidates[:limit], excluded
 
 
 def seed_from_gsc(site_slug: str, min_impressions: int = 50,

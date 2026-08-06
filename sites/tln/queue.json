@@ -1,0 +1,41 @@
+[
+  {
+    "id": "f232115f97cd",
+    "topic": "fha seller concessions",
+    "target_keyword": "fha seller concessions",
+    "intent_hint": "",
+    "status": "pending",
+    "added": "2026-08-06T01:13:10.288870+00:00",
+    "attempts": 0,
+    "last_failure": "",
+    "job_id": "",
+    "mode": "refresh",
+    "post_id": 1501
+  },
+  {
+    "id": "021aaec4192c",
+    "topic": "conventional 97 loan",
+    "target_keyword": "conventional 97 loan",
+    "intent_hint": "",
+    "status": "pending",
+    "added": "2026-08-06T01:13:10.289728+00:00",
+    "attempts": 0,
+    "last_failure": "",
+    "job_id": "",
+    "mode": "refresh",
+    "post_id": 383
+  },
+  {
+    "id": "806183b5d709",
+    "topic": "fannie mae child support income",
+    "target_keyword": "fannie mae child support income",
+    "intent_hint": "",
+    "status": "pending",
+    "added": "2026-08-06T01:13:10.289933+00:00",
+    "attempts": 0,
+    "last_failure": "",
+    "job_id": "",
+    "mode": "refresh",
+    "post_id": 1740
+  }
+]
