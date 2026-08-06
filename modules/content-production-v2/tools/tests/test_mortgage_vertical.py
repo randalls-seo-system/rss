@@ -222,55 +222,61 @@ class TestClaimsPolicyWiring(unittest.TestCase):
         self.assertIn("may", policy.lower())  # compliance hedging mentioned
 
     def test_d2_classification_receives_policy_text(self):
-        """D2 classification prompt must contain TLN claims policy content."""
+        """D2 classification prompt must contain TLN claims policy content.
+
+        The prompt is written to a temp file and piped to claude -p.
+        We intercept subprocess.run, read the temp file, and verify
+        the policy text is in the classification prompt.
+        """
         from unittest.mock import patch, MagicMock
         import json
 
-        # Load TLN config
         config_path = MODULE_DIR.parent.parent / "sites" / "tln" / "config.json"
         config = json.loads(config_path.read_text())
-
-        # Create a fake claim
         claims = [{"claim": "FHA requires 3.5% down", "section": "test"}]
 
-        # Mock subprocess.run to capture the prompt
-        captured_prompts = []
+        captured_prompt_text = []
+
         def mock_subprocess_run(cmd, **kwargs):
-            # Capture the prompt from stdin or args
-            if isinstance(cmd, list) and "claude" in str(cmd):
-                # The prompt is the last positional arg
-                for arg in cmd:
-                    if "CLAIMS POLICY" in str(arg):
-                        captured_prompts.append(str(arg))
+            # Orchestrator writes prompt to temp file, runs:
+            #   cat "<tmpfile>" | claude -p - --output-format json
+            if isinstance(cmd, str) and "claude" in cmd:
+                import re as _re
+                m = _re.search(r'cat "([^"]+)"', cmd)
+                if m:
+                    try:
+                        captured_prompt_text.append(open(m.group(1)).read())
+                    except Exception:
+                        pass
             result = MagicMock()
             result.returncode = 0
-            result.stdout = json.dumps([
-                {"claim": "FHA requires 3.5% down", "section": "test",
-                 "classification": "POLICY"}
-            ])
+            result.stdout = json.dumps({
+                "result": [
+                    {"claim": "FHA requires 3.5% down", "section": "test",
+                     "classification": "POLICY"}
+                ]
+            })
             return result
 
         import tempfile
         with tempfile.TemporaryDirectory() as tmpdir:
-            from lib.orchestrator import run_claims_classification, REPO_ROOT
+            from lib.orchestrator import run_claims_classification
             policy_path = config.get("content", {}).get("claims_policy", "")
 
-            with patch("subprocess.run", side_effect=mock_subprocess_run):
-                try:
-                    run_claims_classification(
-                        claims, policy_path, Path(tmpdir), Path(tmpdir),
-                    )
-                except Exception:
-                    pass  # May fail on mock, but we captured the prompt
+            with patch("lib.orchestrator.subprocess.run", side_effect=mock_subprocess_run):
+                run_claims_classification(
+                    claims, policy_path, Path(tmpdir), Path(tmpdir),
+                )
 
-            # Even if the mock doesn't capture via subprocess, verify the policy
-            # would be loaded by checking the resolution path directly
-            full_path = REPO_ROOT / policy_path
-            self.assertTrue(full_path.exists(),
-                f"Policy file must resolve via REPO_ROOT: {full_path}")
-            policy_text = full_path.read_text()
-            self.assertIn("Never invent", policy_text)
-            self.assertIn("Never promise", policy_text)
+            self.assertTrue(captured_prompt_text,
+                "Mock must intercept the classification call and capture prompt text")
+            prompt = captured_prompt_text[0]
+            self.assertIn("Never invent", prompt,
+                "TLN 'Never invent' section must be in the D2 classification prompt")
+            self.assertIn("Never promise", prompt,
+                "TLN 'Never promise' section must be in the D2 classification prompt")
+            self.assertIn("CLAIMS POLICY", prompt,
+                "Prompt must contain the CLAIMS POLICY header")
 
     def test_declared_but_missing_policy_errors_loudly(self):
         """A declared but unloadable claims policy must raise FileNotFoundError."""
