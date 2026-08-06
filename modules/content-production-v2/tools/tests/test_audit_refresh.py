@@ -244,6 +244,53 @@ class TestRefreshSafety(unittest.TestCase):
         self.assertIsNone(result)
         mock_fetch.assert_not_called()
 
+    def test_approve_refuses_stage_a_only_job(self):
+        """approve_refresh must refuse a job that only completed Stage A' (no draft)."""
+        from lib.refresher import approve_refresh, refresh_job_ready_for_approval
+
+        # Job with only fetch_original done — no generation, no gates, no draft
+        job = {
+            "id": "test-job-123",
+            "site": "tln",
+            "stages": {
+                "fetch_original": {"status": "done"},
+                # generate, gates, create_pending_draft are MISSING
+            },
+            "refresh": {
+                "original_post_id": 999,
+                # pending_draft_id is MISSING
+            },
+        }
+
+        ready, reason = refresh_job_ready_for_approval(job)
+        self.assertFalse(ready)
+        self.assertIn("generate", reason)
+
+        # approve_refresh should also refuse
+        result = approve_refresh(SITE_CONFIG, job)
+        self.assertFalse(result)
+
+    def test_approve_refuses_no_pending_draft_id(self):
+        """approve_refresh must refuse even with all stages done but no draft_id."""
+        from lib.refresher import refresh_job_ready_for_approval
+
+        job = {
+            "id": "test-job-456",
+            "stages": {
+                "fetch_original": {"status": "done"},
+                "generate": {"status": "done"},
+                "gates": {"status": "done"},
+                "create_pending_draft": {"status": "done"},
+            },
+            "refresh": {
+                "original_post_id": 999,
+                # pending_draft_id MISSING
+            },
+        }
+        ready, reason = refresh_job_ready_for_approval(job)
+        self.assertFalse(ready)
+        self.assertIn("pending_draft_id", reason)
+
     @patch("lib.refresher.fetch_post_html")
     def test_refuses_non_published(self, mock_fetch):
         """Refresh must refuse non-published posts."""

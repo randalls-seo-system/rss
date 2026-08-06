@@ -210,20 +210,52 @@ else {{ echo json_encode(['ok'=>true,'id'=>$r,'len'=>strlen($c)]); }}
     return draft_id
 
 
+def refresh_job_ready_for_approval(job: dict) -> tuple[bool, str]:
+    """Check if a refresh job has all required stages for approval.
+
+    Returns (ready, reason). A job is ready only when:
+    - fetch_original stage is done
+    - generate stage is done (pipeline ran)
+    - gates stage is done (quality checks passed)
+    - create_pending_draft stage is done (draft exists on site)
+    - pending_draft_id is set in the job record
+    """
+    stages = job.get("stages", {})
+    refresh = job.get("refresh", {})
+
+    required = ["fetch_original", "generate", "gates", "create_pending_draft"]
+    for stage_name in required:
+        if not stages.get(stage_name, {}).get("status") == "done":
+            return False, f"Stage '{stage_name}' not completed"
+
+    if not refresh.get("pending_draft_id"):
+        return False, "No pending_draft_id — draft not deployed to site"
+
+    return True, ""
+
+
 def approve_refresh(config: dict, job: dict) -> bool:
     """Swap pending draft content onto the original post.
 
-    1. Re-runs gates against draft content (defense against post-gen edits)
-    2. Creates WP revision of original as backup
-    3. Copies draft content/title/meta onto original post_id
-    4. Preserves original publish date
-    5. Deletes the pending draft
-    6. Purges cache
+    1. Hard-refuses if job is missing required stages or pending draft
+    2. Re-runs gates against draft content (defense against post-gen edits)
+    3. Creates WP revision of original as backup
+    4. Copies draft content/title/meta onto original post_id
+    5. Preserves original publish date
+    6. Deletes the pending draft
+    7. Purges cache
 
     Returns True on success.
     """
     from .spec_assertions import ALL_HARD_ASSERTIONS
     from bs4 import BeautifulSoup
+
+    # Hard gate: refuse if job isn't fully ready
+    ready, reason = refresh_job_ready_for_approval(job)
+    if not ready:
+        eprint(f"[refresh-approve] REFUSED: {reason}")
+        eprint("[refresh-approve] A job must have: fetch_original + generate + gates + create_pending_draft all done.")
+        return False
 
     refresh = job.get("refresh", {})
     original_id = refresh.get("original_post_id")

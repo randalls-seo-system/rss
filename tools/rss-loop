@@ -225,10 +225,22 @@ def main():
 
         if success:
             if mode == "refresh":
-                # Refresh items stop at awaiting_approval — human runs refresh-approve
-                mark_awaiting_approval(args.site, item_id, job_id=job_id)
-                log_line(args.site, item_id, "awaiting", duration)
-                eprint(f"[loop] AWAITING APPROVAL: {keyword} (job {job_id}, {duration:.0f}s)")
+                # Refresh Stage A' complete (fetch + evidence). The loop does NOT
+                # mark awaiting_approval here — that requires a deployed pending
+                # draft with gates passed. The full pipeline must run next, and
+                # only the pipeline completion step sets awaiting_approval.
+                # For now, the item stays in_progress with the job_id recorded.
+                # The loop reports it and moves on; the pipeline run is a
+                # separate step (rss refresh --resume or manual pipeline run).
+                from lib.queue import load_queue, save_queue
+                items = load_queue(args.site)
+                for it in items:
+                    if it["id"] == item_id:
+                        it["job_id"] = job_id
+                        break
+                save_queue(args.site, items)
+                log_line(args.site, item_id, "stage-a-done", duration)
+                eprint(f"[loop] STAGE A' DONE: {keyword} (job {job_id}, {duration:.0f}s) — pipeline generation next")
             else:
                 mark_done(args.site, item_id, job_id=job_id)
                 log_line(args.site, item_id, "done", duration)
