@@ -588,16 +588,32 @@ def _write_pending_links(args, html: str, matched_urls: set[str], pool_keywords:
     source_url = args.article_url or ""
     source_job = getattr(args, "source_job", "") or ""
 
-    # Corpus-derived: extract multi-word phrases from body that don't match pool
-    body_words = body_text.lower().split()
+    # Corpus-derived: extract linkworthy multi-word phrases from H2 titles,
+    # bold text, and table headers — NOT raw body n-grams (too noisy).
+    from bs4 import BeautifulSoup as BS4
+    soup_for_phrases = BS4(html, "html.parser")
     article_phrases = []
-    for n in (3, 4, 5):
-        for i in range(len(body_words) - n + 1):
-            phrase = " ".join(body_words[i:i + n])
-            # Basic quality: no punctuation-heavy phrases
-            if re.search(r"[.!?,;:()\"']", phrase):
+    seen_phrases = set()
+
+    # Skip: H2 titles are the article's own sections, not external link targets.
+    # Also skip structural labels.
+    structural_labels = {
+        "the bottom line up front", "the bottom line", "resources used",
+        "frequently asked questions", "deal math", "file guidance",
+        "approval watchpoint", "deal saver",
+    }
+
+    # Bold/strong phrases (authors emphasize key concepts)
+    for strong in soup_for_phrases.find_all(["strong", "b"]):
+        text = strong.get_text(strip=True)
+        words = text.split()
+        if 2 <= len(words) <= 6 and text.lower() not in seen_phrases:
+            if text.lower() in structural_labels:
                 continue
-            article_phrases.append(phrase)
+            if re.search(r"[.!?,;:()\"'$%]", text):
+                continue
+            article_phrases.append(text)
+            seen_phrases.add(text.lower())
 
     corpus_pending = collect_pending_from_corpus(
         body_text, article_phrases, matched_urls, pool_keywords,
@@ -609,7 +625,14 @@ def _write_pending_links(args, html: str, matched_urls: set[str], pool_keywords:
     tc_path = getattr(args, "topic_candidates", "")
     if tc_path and Path(tc_path).exists():
         try:
-            topic_candidates = json.loads(Path(tc_path).read_text())
+            raw = json.loads(Path(tc_path).read_text())
+            # Normalize: accept both [{topic, discovered_from}] dicts and plain strings
+            topic_candidates = []
+            for item in raw:
+                if isinstance(item, str):
+                    topic_candidates.append({"topic": item, "discovered_from": "gsc"})
+                elif isinstance(item, dict):
+                    topic_candidates.append(item)
             candidate_pending = collect_pending_from_candidates(
                 topic_candidates, matched_urls, pool_keywords,
                 source_post_id, source_url, source_job,
