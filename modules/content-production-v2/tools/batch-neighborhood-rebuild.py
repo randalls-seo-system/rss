@@ -77,7 +77,8 @@ def run_one_guide(entry: dict, site: str, output_dir: Path, resume: bool = False
     guide_dir = output_dir / str(post_id)
     guide_dir.mkdir(parents=True, exist_ok=True)
 
-    article_path = guide_dir / f"{post_id}-article.html"
+    # Neighborhood generator writes {post_id}-nh-guide.html
+    article_path = guide_dir / f"{post_id}-nh-guide.html"
     status = {"post_id": post_id, "keyword": keyword, "status": "pending"}
 
     # Resume check
@@ -86,23 +87,36 @@ def run_one_guide(entry: dict, site: str, output_dir: Path, resume: bool = False
         status["status"] = "skipped_existing"
         return status
 
-    # Step 1: Generate via assemble-article.py
-    eprint(f"  [GEN] {keyword} (post {post_id})")
+    # Step 1: Generate via generate-neighborhood-guide.py (nh-* format)
+    nb = entry.get("neighborhood", keyword)
+    city = entry.get("city", "San Antonio")
+    metro = entry.get("metro", city)
+    eprint(f"  [GEN] {nb} in {city} (post {post_id})")
     gen_start = time.time()
+
+    gen_args = [
+        sys.executable, str(TOOLS_DIR / "generate-neighborhood-guide.py"),
+        "--site", site,
+        "--neighborhood", nb,
+        "--city", city,
+        "--metro", metro,
+        "--post-id", str(post_id),
+        "--output-dir", str(guide_dir),
+        "--skip-deploy",
+    ]
+    # Pass verified data JSON if available in the queue entry
+    data_json = entry.get("data_json", "")
+    if data_json and Path(data_json).exists():
+        gen_args += ["--data-json", data_json]
+    # Force-new for placeholder IDs (net-new guides)
+    if post_id == 0:
+        gen_args.append("--force-new")
+
+    _assert_no_wp_writes(gen_args)
 
     try:
         result = subprocess.run(
-            [sys.executable, str(TOOLS_DIR / "assemble-article.py"),
-             "--site", site,
-             "--post-id", str(post_id),
-             "--target-keyword", keyword,
-             "--intent", "definition",
-             "--skip-deploy",
-             "--force",
-             "--skip-polish",
-             "--skip-featured-image",
-             "--output-dir", str(guide_dir),
-             ],
+            gen_args,
             capture_output=True, text=True, timeout=1800,  # 30 min max
         )
         gen_elapsed = time.time() - gen_start
@@ -132,8 +146,6 @@ def run_one_guide(entry: dict, site: str, output_dir: Path, resume: bool = False
             )
 
             html = article_path.read_text()
-            nb = entry.get("neighborhood", keyword)
-            city = entry.get("city", "San Antonio")
 
             claims = extract_claims(html, nb, city)
             report = run_verification(claims, nb, city, post_id=post_id)
