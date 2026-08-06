@@ -60,6 +60,65 @@ def _assert_no_wp_writes(cmd_args: list[str]) -> None:
         sys.exit(1)
 
 
+def _filter_serp_for_relevance(entry: dict) -> int:
+    """Pre-generation SERP cleanup: reject off-topic results.
+
+    Ported from assemble-article.py:798-843. Rewrites the SERP JSON
+    in-place so the generator only sees on-target results.
+    Returns the number of rejected results.
+    """
+    nb = entry.get("neighborhood", "").lower()
+    city = entry.get("city", "").lower()
+    # Build location tokens (4+ chars, skip stop words)
+    raw = re.sub(r'[^a-z0-9\s]', '', f"{nb} {city}").split()
+    stop = {'neighborhood', 'neighborhoods', 'best', 'guide', 'texas',
+            'live', 'living', 'homebuyers', 'near', 'the'}
+    tokens = {t for t in raw if len(t) >= 4 and t not in stop}
+    if not tokens:
+        return 0
+
+    # Find the SERP file
+    nb_slug = re.sub(r'[^a-z0-9]+', '-', nb).strip('-')
+    serp_dir = Path.home() / "lrg-rewrite" / "serp"
+    candidates = list(serp_dir.glob(f"*{nb_slug}*-neighborhood-serp.json"))
+    if not candidates:
+        return 0
+
+    serp_path = candidates[0]
+    try:
+        raw_data = json.loads(serp_path.read_text())
+    except (json.JSONDecodeError, OSError):
+        return 0
+
+    top = raw_data.get("top_results", [])
+    if not top:
+        return 0
+
+    filtered, rejected_titles = [], []
+    for r in top:
+        r_text = (r.get("title", "") + " " + r.get("snippet", "")).lower()
+        if any(t in r_text for t in tokens):
+            filtered.append(r)
+        else:
+            rejected_titles.append(r.get("title", "")[:60])
+
+    if rejected_titles:
+        raw_data["top_results"] = filtered
+        raw_data["_source_filter"] = {
+            "original_count": len(top),
+            "filtered_count": len(filtered),
+            "rejected": rejected_titles,
+        }
+        serp_path.write_text(json.dumps(raw_data, indent=2))
+        eprint(f"  [SERP-FILTER] {len(rejected_titles)} off-topic result(s) rejected:")
+        for t in rejected_titles:
+            eprint(f"    REJECTED: {t}")
+    else:
+        eprint(f"  [SERP-FILTER] All {len(top)} results on-target")
+
+    return len(rejected_titles)
+
+
 def load_queue(queue_path: str) -> list[dict]:
     """Load the rebuild queue JSON.
 
@@ -86,6 +145,9 @@ def run_one_guide(entry: dict, site: str, output_dir: Path, resume: bool = False
         eprint(f"  [SKIP] {keyword} — already generated")
         status["status"] = "skipped_existing"
         return status
+
+    # Step 0: Source-relevance filter — clean SERP before generation
+    _filter_serp_for_relevance(entry)
 
     # Step 1: Generate via generate-neighborhood-guide.py (nh-* format)
     nb = entry.get("neighborhood", keyword)
