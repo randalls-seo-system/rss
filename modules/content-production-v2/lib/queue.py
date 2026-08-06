@@ -17,7 +17,7 @@ import uuid
 from datetime import datetime, timezone
 from pathlib import Path
 
-REPO_ROOT = Path(__file__).resolve().parent.parent.parent.parent
+REPO_ROOT = Path(os.environ.get("RSS_REPO_ROOT", Path(__file__).resolve().parent.parent.parent.parent))
 
 
 def _queue_path(site_slug: str) -> Path:
