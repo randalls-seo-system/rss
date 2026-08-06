@@ -429,7 +429,7 @@ def _doctor_report(checks: dict, as_json: bool):
 def cmd_audit(args):
     """Audit a single post or batch of posts against the quality stack."""
     from lib.auditor import (
-        audit_post, fetch_gsc_top_pages, resolve_post_id_for_slug,
+        audit_post, fetch_gsc_top_pages, fetch_slug_to_id_map,
         write_audit_report, fetch_post_html,
     )
     import time
@@ -469,12 +469,14 @@ def cmd_audit(args):
 
         print(f"Got {len(gsc_pages)} pages. Resolving post IDs...", file=sys.stderr)
 
-        # Resolve slugs to post_ids
+        # Batch resolve: one SSH call for full slug→ID map
+        slug_map = fetch_slug_to_id_map(config)
+        print(f"  Slug map: {len(slug_map)} posts", file=sys.stderr)
+
         audit_targets = []
         for gp in gsc_pages:
             slug = gp["slug"]
-            # Try to look up post_id
-            pid = resolve_post_id_for_slug(config, slug)
+            pid = slug_map.get(slug)
             if pid is None:
                 print(f"  SKIP: {slug} (no post_id found)", file=sys.stderr)
                 continue
@@ -483,7 +485,6 @@ def cmd_audit(args):
                 continue
             gp["post_id"] = pid
             audit_targets.append(gp)
-            time.sleep(0.5)  # gentle SSH pacing
 
         print(f"\n{len(audit_targets)} posts to audit.\n", file=sys.stderr)
 

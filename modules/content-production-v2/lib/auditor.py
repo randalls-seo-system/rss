@@ -227,24 +227,7 @@ def fetch_post_html(config: dict, post_id: int) -> dict | None:
     Returns dict with keys: post_id, slug, title, html, status, post_date.
     Returns None on failure.
     """
-    import subprocess
-    import os
-
-    ssh_host = config.get("access", {}).get("ssh_host", "")
-    ssh_user = config.get("access", {}).get("ssh_user", "")
-    ssh_key = config.get("access", {}).get("ssh_key_path", "")
-    wp_path = config.get("access", {}).get("wp_path", "")
-
-    if not ssh_host or not ssh_user:
-        eprint("[audit] No SSH config")
-        return None
-
-    key_path = os.path.expanduser(ssh_key) if ssh_key else None
-    ssh_cmd = ["ssh", "-o", "ConnectTimeout=10", "-o", "BatchMode=yes",
-               "-o", "StrictHostKeyChecking=accept-new"]
-    if key_path:
-        ssh_cmd += ["-i", key_path, "-o", "IdentitiesOnly=yes"]
-    ssh_cmd.append(f"{ssh_user}@{ssh_host}")
+    from .orchestrator import ssh_pipe_php
 
     php = f"""<?php
 $p = get_post({post_id});
@@ -260,15 +243,12 @@ echo json_encode([
 """
 
     try:
-        cmd = ssh_cmd + [
-            f"cd {wp_path} && echo '{_escape_php_for_shell(php)}' > /tmp/_rss_audit.php && wp eval-file /tmp/_rss_audit.php && rm -f /tmp/_rss_audit.php"
-        ]
-        r = subprocess.run(cmd, capture_output=True, text=True, timeout=30)
-        if r.returncode != 0:
-            eprint(f"[audit] SSH failed for post {post_id}: {r.stderr[:200]}")
+        stdout, rc = ssh_pipe_php(config, php, timeout=30)
+        if rc != 0:
+            eprint(f"[audit] SSH failed for post {post_id}: rc={rc}")
             return None
         # wp eval-file prepends a "0" — strip it
-        stdout = r.stdout.strip()
+        stdout = stdout.strip()
         if stdout.startswith("0"):
             stdout = stdout[1:]
         data = json.loads(stdout)
@@ -276,14 +256,12 @@ echo json_encode([
             eprint(f"[audit] Post {post_id}: {data['error']}")
             return None
         return data
-    except (subprocess.TimeoutExpired, json.JSONDecodeError) as e:
+    except json.JSONDecodeError as e:
+        eprint(f"[audit] JSON parse error for post {post_id}: {e}")
+        return None
+    except Exception as e:
         eprint(f"[audit] Error fetching post {post_id}: {e}")
         return None
-
-
-def _escape_php_for_shell(php: str) -> str:
-    """Escape PHP for single-quoted shell string."""
-    return php.replace("'", "'\"'\"'")
 
 
 def fetch_gsc_top_pages(config: dict, limit: int = 50) -> list[dict]:
@@ -377,8 +355,11 @@ def fetch_gsc_top_pages(config: dict, limit: int = 50) -> list[dict]:
         return []
 
 
-def resolve_post_id_for_slug(config: dict, slug: str) -> int | None:
-    """Look up post_id for a slug via SSH."""
+def fetch_slug_to_id_map(config: dict) -> dict[str, int]:
+    """Fetch full slug→post_id map from the live site in one SSH call.
+
+    Returns dict mapping slug to post_id.
+    """
     import subprocess
     import os
 
@@ -388,25 +369,38 @@ def resolve_post_id_for_slug(config: dict, slug: str) -> int | None:
     wp_path = config.get("access", {}).get("wp_path", "")
 
     if not ssh_host or not ssh_user:
-        return None
+        return {}
 
     key_path = os.path.expanduser(ssh_key) if ssh_key else None
-    ssh_cmd = ["ssh", "-o", "ConnectTimeout=10", "-o", "BatchMode=yes",
-               "-o", "StrictHostKeyChecking=accept-new"]
+    ssh_cmd_list = ["ssh", "-o", "ConnectTimeout=10", "-o", "BatchMode=yes",
+                    "-o", "StrictHostKeyChecking=accept-new"]
     if key_path:
-        ssh_cmd += ["-i", key_path, "-o", "IdentitiesOnly=yes"]
-    ssh_cmd.append(f"{ssh_user}@{ssh_host}")
+        ssh_cmd_list += ["-i", key_path, "-o", "IdentitiesOnly=yes"]
+    ssh_cmd_list.append(f"{ssh_user}@{ssh_host}")
 
     try:
-        cmd = ssh_cmd + [
-            f"cd {wp_path} && wp post list --post_type=post,page --post_name={slug} --post_status=publish --field=ID 2>/dev/null"
+        cmd = ssh_cmd_list + [
+            f"cd {wp_path} && wp post list --post_type=post,page --post_status=publish --fields=ID,post_name --format=csv 2>/dev/null"
         ]
-        r = subprocess.run(cmd, capture_output=True, text=True, timeout=15)
-        if r.returncode == 0 and r.stdout.strip().isdigit():
-            return int(r.stdout.strip())
-    except Exception:
-        pass
-    return None
+        r = subprocess.run(cmd, capture_output=True, text=True, timeout=30)
+        if r.returncode != 0:
+            return {}
+
+        slug_map = {}
+        for line in r.stdout.strip().split("\n")[1:]:  # skip CSV header
+            parts = line.strip().split(",", 1)
+            if len(parts) == 2 and parts[0].isdigit():
+                slug_map[parts[1].strip('"')] = int(parts[0])
+        return slug_map
+    except Exception as e:
+        eprint(f"[audit] Error fetching slug map: {e}")
+        return {}
+
+
+def resolve_post_id_for_slug(config: dict, slug: str) -> int | None:
+    """Look up post_id for a slug. Deprecated — use fetch_slug_to_id_map for batches."""
+    slug_map = fetch_slug_to_id_map(config)
+    return slug_map.get(slug)
 
 
 def audit_post(

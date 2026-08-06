@@ -1,0 +1,2264 @@
+{
+  "site": "tln",
+  "date": "2026-08-06T00:46:23.449947+00:00",
+  "summary": {
+    "total": 46,
+    "refresh": 46,
+    "review": 0,
+    "pass": 0
+  },
+  "results": [
+    {
+      "post_id": 352,
+      "slug": "fha-down-payment",
+      "title": "FHA Down Payment Requirements 2026: 3.5% Minimum, Gift Funds, and DPA Compatibility",
+      "top_query": "fha loan requirements",
+      "position": 3,
+      "impressions": 46379,
+      "word_count": 2127,
+      "target_word_count": 0,
+      "hard_failures": [
+        "18.1.2: Eyebrow element not found",
+        "18.1.9: No CTA element found",
+        "18.1.10: Expected 4 ATF cards, found 0",
+        "18.1.11: Expected 3 ATF FAQs, found 8",
+        "18.1.14: 'Top questions before you dig in' missing intro paragraph; 'Top questions before you dig in' missing structural element (table/ul/callout); 'The Bottom Line Up Front' missing structural element (table/ul/callout); 'Does HUD Require Exactly 3.5% Down for F' missing structural element (table/ul/callout); 'FHA Seller Concession Rules' missing structural element (table/ul/callout)",
+        "18.1.15: Found 0 CTA elements, need >=2 (header + mid-article)",
+        "18.1.16: Closing 'The Bottom Line' H2 not found",
+        "18.1.17: BTF FAQ section (.rl-faq) not found",
+        "18.1.18: Resources Used section not found",
+        "18.3.2: Body is 998 words, fallback range is 1800-2400",
+        "18.4.1: Em dash found in body text: '...FHA's 3.5% down payment is the entry point \u2014 but the real po...'",
+        "18.4.6: Two consecutive H2 sections without structural elements"
+      ],
+      "soft_warnings": [
+        "18.5.6: 2 bullet(s) under 18 words:\n[Gift Fund Rules and Documentation] 17w: \"Gift letter: Donor's name, relationship, dollar amount, property address, statem\"\n[Gift Fund Rules and Documentation] 15w: \"Paper trail: Donor bank statement showing withdrawal and borrower statement show\"",
+        "18.5.9: 5 repetition/join flag(s):\n  - Phrase \"fha down payment requirements\" repeated 4x\n  - Phrase \"down payment assistance\" repeated 4x\n  - Phrase \"the purchase price\" repeated 4x\n  - Phrase \"3 5 down payment\" repeated 4x\n  - Phrase \"the down payment\" repeated 6x"
+      ],
+      "quality_gate_failures": [
+        "SUBJECT UNDERCOUNT: 'fha loan requirements' appears 0 time(s) in body (minimum 5). Real guides mention their subject frequently. This suggests template content not customized for the neighborhood."
+      ],
+      "artifact_hits": [
+        "[h1-in-body] Matched: '<h1>' | Context: ...ayment Requirements 2026</strong></div> <h1>FHA Down Payment Requirements 2026: 3.5%..."
+      ],
+      "hard_pass_count": 28,
+      "hard_total_count": 40,
+      "soft_pass_count": 9,
+      "soft_total_count": 11,
+      "tier2_ran": true,
+      "claim_count": 10,
+      "unsourced_claims": 9,
+      "flagged_claims": 1,
+      "volatile_claims": 0,
+      "verdict": "REFRESH",
+      "verdict_reasons": [
+        "12 hard assertion failure(s)",
+        "1 quality gate failure(s)",
+        "1 leaked artifact(s)",
+        "9 unsourced high-stakes claims"
+      ]
+    },
+    {
+      "post_id": 849,
+      "slug": "fha-debt-to-income-ratio",
+      "title": "FHA Debt-to-Income Ratio 2026: 43% Standard, 56.99% with AUS Compensating Factors",
+      "top_query": "debt to income ratio fha",
+      "position": 54.2,
+      "impressions": 27861,
+      "word_count": 2859,
+      "target_word_count": 0,
+      "hard_failures": [
+        "18.1.2: Eyebrow element not found",
+        "18.1.9: No CTA element found",
+        "18.1.10: Expected 4 ATF cards, found 0",
+        "18.1.11: Expected 3 ATF FAQs, found 9",
+        "18.1.14: 'Top questions before you dig in' missing intro paragraph; 'Top questions before you dig in' missing structural element (table/ul/callout); 'The Bottom Line Up Front' missing structural element (table/ul/callout); 'What Are the Manual Underwriting DTI Lim' missing structural element (table/ul/callout); 'How Do Compensating Factors Affect Your ' missing structural element (table/ul/callout)",
+        "18.1.15: Found 0 CTA elements, need >=2 (header + mid-article)",
+        "18.1.17: BTF FAQ section (.rl-faq) not found",
+        "18.1.18: Resources Used section not found",
+        "18.2.3: Internal anchors outside 1-5 word range: [\"'Find a Lender That Fits Your File' (7w)\", \"'Find a Lender That Fits Your File' (7w)\", \"'Find a Lender That Fits Your File' (7w)\"]",
+        "18.3.2: Body is 1659 words, fallback range is 1800-2400",
+        "18.4.1: Em dash found in body text: '...FHA's standard DTI guideline is 31% front-end (housing) and ...'",
+        "18.4.6: Two consecutive H2 sections without structural elements"
+      ],
+      "soft_warnings": [
+        "18.5.9: 5 repetition/join flag(s):\n  - Phrase \"when compensating factors\" repeated 5x\n  - Phrase \"with compensating factors\" repeated 5x\n  - Phrase \"compensating factors are\" repeated 4x\n  - Phrase \"total scorecard declines\" repeated 4x\n  - Phrase \"minimal payment shock\" repeated 9x"
+      ],
+      "quality_gate_failures": [
+        "SUBJECT UNDERCOUNT: 'debt to income ratio fha' appears 0 time(s) in body (minimum 5). Real guides mention their subject frequently. This suggests template content not customized for the neighborhood."
+      ],
+      "artifact_hits": [
+        "[h1-in-body] Matched: '<h1 id=\"fha-debt-to-income-ratio-title\">' | Context: ...ting Factors, Manual UW</strong> </div> <h1 id=\"fha-debt-to-income-ratio-title\">FHA Debt-to-Income Ratio 2026: 43% Stand..."
+      ],
+      "hard_pass_count": 28,
+      "hard_total_count": 40,
+      "soft_pass_count": 10,
+      "soft_total_count": 11,
+      "tier2_ran": true,
+      "claim_count": 9,
+      "unsourced_claims": 8,
+      "flagged_claims": 1,
+      "volatile_claims": 0,
+      "verdict": "REFRESH",
+      "verdict_reasons": [
+        "12 hard assertion failure(s)",
+        "1 quality gate failure(s)",
+        "1 leaked artifact(s)",
+        "8 unsourced high-stakes claims"
+      ]
+    },
+    {
+      "post_id": 169,
+      "slug": "what-is-conventional-loan",
+      "title": "Conventional Loan Requirements 2026: Credit Score, Down Payment, and Limits",
+      "top_query": "",
+      "position": 0,
+      "impressions": 27111,
+      "word_count": 3653,
+      "target_word_count": 0,
+      "hard_failures": [
+        "18.1.2: Eyebrow element not found",
+        "18.1.9: No CTA element found",
+        "18.1.10: Expected 4 ATF cards, found 0",
+        "18.1.11: Expected 3 ATF FAQs, found 9",
+        "18.1.14: 'Top questions before you dig in' missing intro paragraph; 'Top questions before you dig in' missing structural element (table/ul/callout); 'The Bottom Line Up Front' missing structural element (table/ul/callout); 'Down Payment Options: 3% to 20% and Beyo' missing structural element (table/ul/callout); 'Debt-to-Income Ratio Requirements' missing structural element (table/ul/callout)",
+        "18.1.15: Found 0 CTA elements, need >=2 (header + mid-article)",
+        "18.1.16: Closing is 70 words, expected 100-150",
+        "18.1.17: BTF FAQ section (.rl-faq) not found",
+        "18.1.18: Resources Used section not found",
+        "18.2.3: Internal anchors outside 1-5 word range: [\"'Fannie Mae and Freddie Mac's' (6w)\"]",
+        "18.4.1: Em dash found in body text: '...Conventional loans are the default mortgage for borrowers wi...'",
+        "18.4.6: Two consecutive H2 sections without structural elements"
+      ],
+      "soft_warnings": [
+        "18.5.6: 3 bullet(s) under 18 words:\n[Minimum Credit Score and How It Aff] 16w: \"740+: Best pricing tier \u2014 minimal LLPAs, lowest PMI rates, and most competitive \"\n[Minimum Credit Score and How It Aff] 16w: \"700\u2013739: Slight LLPA hit but still strong conventional pricing; PMI remains reas\"\n[Minimum Credit Score and How It Aff] 15w: \"620\u2013679: Maximum LLPA territory \u2014 conventional works but FHA often produces a lo\"",
+        "18.5.9: 7 repetition/join flag(s):\n  - Phrase \"conventional loan requirements\" repeated 4x\n  - Phrase \"homeready and home possible\" repeated 5x\n  - Phrase \"fannie mae and freddie\" repeated 4x\n  - Phrase \"loan requirements 2026\" repeated 4x\n  - Phrase \"the conforming limit\" repeated 4x\n  - Paragraph-join: \"...perty in most U.S. counties. High-c...\"\n  - Paragraph-join: \"...perty in most U.S. counties. High-c...\""
+      ],
+      "quality_gate_failures": [],
+      "artifact_hits": [
+        "[h1-in-body] Matched: '<h1>' | Context: ...l Loan Requirements 2026</strong></div> <h1>Conventional Loan Requirements 2026: Cre..."
+      ],
+      "hard_pass_count": 28,
+      "hard_total_count": 40,
+      "soft_pass_count": 9,
+      "soft_total_count": 11,
+      "tier2_ran": true,
+      "claim_count": 34,
+      "unsourced_claims": 30,
+      "flagged_claims": 4,
+      "volatile_claims": 0,
+      "verdict": "REFRESH",
+      "verdict_reasons": [
+        "12 hard assertion failure(s)",
+        "1 leaked artifact(s)",
+        "30 unsourced high-stakes claims"
+      ]
+    },
+    {
+      "post_id": 43,
+      "slug": "fha-loan",
+      "title": "FHA Loan Requirements 2026: Credit Score, Down Payment, MIP, and Limits",
+      "top_query": "fha credit score requirements 2026",
+      "position": 5.6,
+      "impressions": 18957,
+      "word_count": 3609,
+      "target_word_count": 0,
+      "hard_failures": [
+        "18.1.2: Eyebrow element not found",
+        "18.1.9: No CTA element found",
+        "18.1.10: Expected 4 ATF cards, found 0",
+        "18.1.11: Expected 3 ATF FAQs, found 12",
+        "18.1.14: 'Top questions before you dig in' missing intro paragraph; 'Top questions before you dig in' missing structural element (table/ul/callout)",
+        "18.1.15: Found 0 CTA elements, need >=2 (header + mid-article)",
+        "18.1.17: BTF FAQ section (.rl-faq) not found",
+        "18.1.18: Resources Used section not found"
+      ],
+      "soft_warnings": [
+        "18.5.9: 5 repetition/join flag(s):\n  - Phrase \"hud minimum property requirements\" repeated 4x\n  - Phrase \"of the outstanding balance\" repeated 4x\n  - Phrase \"down payment assistance\" repeated 4x\n  - Phrase \"financed into the loan\" repeated 4x\n  - Phrase \"_builder_version 4 16\" repeated 4x"
+      ],
+      "quality_gate_failures": [
+        "SUBJECT UNDERCOUNT: 'fha credit score requirements 2026' appears 0 time(s) in body (minimum 5). Real guides mention their subject frequently. This suggests template content not customized for the neighborhood."
+      ],
+      "artifact_hits": [
+        "[h1-in-body] Matched: '<h1 id=\"fha-loan-title\">' | Context: ...s, and Approval Process</strong> </div> <h1 id=\"fha-loan-title\">FHA Loans: The Complete Guide to FHA Mor..."
+      ],
+      "hard_pass_count": 32,
+      "hard_total_count": 40,
+      "soft_pass_count": 10,
+      "soft_total_count": 11,
+      "tier2_ran": true,
+      "claim_count": 20,
+      "unsourced_claims": 19,
+      "flagged_claims": 1,
+      "volatile_claims": 0,
+      "verdict": "REFRESH",
+      "verdict_reasons": [
+        "8 hard assertion failure(s)",
+        "1 quality gate failure(s)",
+        "1 leaked artifact(s)",
+        "19 unsourced high-stakes claims"
+      ]
+    },
+    {
+      "post_id": 893,
+      "slug": "renting-50-percent-more-affordable-than-buying",
+      "title": "Renting Now 50% More Affordable Than Buying",
+      "top_query": "",
+      "position": 0,
+      "impressions": 11803,
+      "word_count": 2997,
+      "target_word_count": 0,
+      "hard_failures": [
+        "18.1.2: Eyebrow element not found",
+        "18.1.9: No CTA element found",
+        "18.1.10: Expected 4 ATF cards, found 0",
+        "18.1.11: Expected 3 ATF FAQs, found 9",
+        "18.1.14: 'Top questions before you dig in' missing intro paragraph; 'Top questions before you dig in' missing structural element (table/ul/callout); 'The Bottom Line Up Front' missing structural element (table/ul/callout); 'Why Are Young Adults Choosing to Rent in' missing structural element (table/ul/callout); 'How Does the Rent-vs-Buy Calculation Cha' missing structural element (table/ul/callout)",
+        "18.1.15: Found 0 CTA elements, need >=2 (header + mid-article)",
+        "18.1.16: Closing is 158 words, expected 100-150",
+        "18.1.17: BTF FAQ section (.rl-faq) not found",
+        "18.1.18: Resources Used section not found",
+        "18.3.2: Body is 1746 words, fallback range is 1800-2400",
+        "18.4.1: Em dash found in body text: '...Run the numbers for your specific market \u2014 national averages...'",
+        "18.4.6: Two consecutive H2 sections without structural elements"
+      ],
+      "soft_warnings": [
+        "18.5.9: 10 repetition/join flag(s):\n  - Phrase \"the monthly cost of buying\" repeated 4x\n  - Phrase \"cheaper in approximately\" repeated 4x\n  - Phrase \"annual rent increases\" repeated 4x\n  - Phrase \"buying is cheaper in\" repeated 5x\n  - Phrase \"cheaper than renting\" repeated 5x\n  - Paragraph-join: \"...nearly 58% of U.S. counties, driven...\"\n  - Paragraph-join: \"...nearly 58% of U.S. counties, driven...\"\n  - Paragraph-join: \"...nearly 58% of U.S. counties, driven...\"\n  - Paragraph-join: \"...nearly 58% of U.S. counties, driven...\"\n  - Paragraph-join: \"...nearly 58% of U.S. counties, driven...\""
+      ],
+      "quality_gate_failures": [],
+      "artifact_hits": [
+        "[h1-in-body] Matched: '<h1 id=\"renting-50-percent-more-affordable-than-buying-title\">' | Context: ...ps, Break-Even Timeline</strong> </div> <h1 id=\"renting-50-percent-more-affordable-than-buying-title\">Renting vs Buying in 2026: Where the Aff..."
+      ],
+      "hard_pass_count": 28,
+      "hard_total_count": 40,
+      "soft_pass_count": 10,
+      "soft_total_count": 11,
+      "tier2_ran": true,
+      "claim_count": 30,
+      "unsourced_claims": 28,
+      "flagged_claims": 2,
+      "volatile_claims": 1,
+      "verdict": "REFRESH",
+      "verdict_reasons": [
+        "12 hard assertion failure(s)",
+        "1 leaked artifact(s)",
+        "28 unsourced high-stakes claims"
+      ]
+    },
+    {
+      "post_id": 424,
+      "slug": "conventional-loan-requirements",
+      "title": "Conventional Loan Down Payment Requirements: 3%, 5%, and 20% Compared",
+      "top_query": "conventional loan requirements",
+      "position": 51.7,
+      "impressions": 10893,
+      "word_count": 2377,
+      "target_word_count": 0,
+      "hard_failures": [
+        "18.1.2: Eyebrow element not found",
+        "18.1.9: No CTA element found",
+        "18.1.10: Expected 4 ATF cards, found 0",
+        "18.1.11: Expected 3 ATF FAQs, found 8",
+        "18.1.14: 'Top questions before you dig in' missing intro paragraph; 'Top questions before you dig in' missing structural element (table/ul/callout); 'The Bottom Line Up Front' missing structural element (table/ul/callout); '3% Down: Who Qualifies and What It Costs' missing structural element (table/ul/callout); '20% Down: When It Makes Sense' missing structural element (table/ul/callout)",
+        "18.1.15: Found 0 CTA elements, need >=2 (header + mid-article)",
+        "18.1.16: Closing is 78 words, expected 100-150",
+        "18.1.17: BTF FAQ section (.rl-faq) not found",
+        "18.1.18: Resources Used section not found",
+        "18.3.2: Body is 1057 words, fallback range is 1800-2400",
+        "18.4.1: Em dash found in body text: '...The optimal conventional down payment for most buyers is not...'",
+        "18.4.2: Banned phrases found: ['explore']",
+        "18.4.6: Two consecutive H2 sections without structural elements"
+      ],
+      "soft_warnings": [
+        "18.5.9: 5 repetition/join flag(s):\n  - Phrase \"a conventional loan\" repeated 8x\n  - Phrase \"loan down payment\" repeated 4x\n  - Phrase \"your credit score\" repeated 4x\n  - Phrase \"down payment for\" repeated 4x\n  - Phrase \"0 40 0\" repeated 4x"
+      ],
+      "quality_gate_failures": [
+        "SUBJECT UNDERCOUNT: 'conventional loan requirements' appears 0 time(s) in body (minimum 5). Real guides mention their subject frequently. This suggests template content not customized for the neighborhood."
+      ],
+      "artifact_hits": [
+        "[h1-in-body] Matched: '<h1>' | Context: ...own Payment Requirements</strong></div> <h1>Conventional Loan Down Payment Requireme..."
+      ],
+      "hard_pass_count": 27,
+      "hard_total_count": 40,
+      "soft_pass_count": 10,
+      "soft_total_count": 11,
+      "tier2_ran": true,
+      "claim_count": 21,
+      "unsourced_claims": 17,
+      "flagged_claims": 4,
+      "volatile_claims": 0,
+      "verdict": "REFRESH",
+      "verdict_reasons": [
+        "13 hard assertion failure(s)",
+        "1 quality gate failure(s)",
+        "1 leaked artifact(s)",
+        "17 unsourced high-stakes claims"
+      ]
+    },
+    {
+      "post_id": 122,
+      "slug": "bad-credit-home-loans",
+      "title": "Bad Credit Home Loans: How to Buy a House with a Low Credit Score",
+      "top_query": "home loans for bad credit",
+      "position": 50.3,
+      "impressions": 10538,
+      "word_count": 2144,
+      "target_word_count": 0,
+      "hard_failures": [
+        "18.1.2: Eyebrow element not found",
+        "18.1.9: No CTA element found",
+        "18.1.10: Expected 4 ATF cards, found 0",
+        "18.1.11: Expected 3 ATF FAQs, found 8",
+        "18.1.13b: Only 6 content H2s, minimum is 8",
+        "18.1.14: 'The Bottom Line Up Front' missing structural element (table/ul/callout); 'FHA Loans for Bad Credit Borrowers' missing structural element (table/ul/callout); 'VA Loans for Veterans with Bad Credit' missing structural element (table/ul/callout); 'Improving Your Credit Score Before Apply' missing structural element (table/ul/callout); 'Waiting Periods After Major Credit Event' missing structural element (table/ul/callout)",
+        "18.1.15: Found 0 CTA elements, need >=2 (header + mid-article)",
+        "18.1.16: Closing is 71 words, expected 100-150",
+        "18.1.17: BTF FAQ section (.rl-faq) not found",
+        "18.1.18: Resources Used section not found",
+        "18.3.2: Body is 812 words, fallback range is 1800-2400",
+        "18.4.1: Em dash found in body text: '...You can buy a house with bad credit. FHA works down to 500, ...'",
+        "18.4.6: Two consecutive H2 sections without structural elements",
+        "18.4.8: Semicolon density 7 in 1754 words (max 5). First: '...580 gets 3.5% down; 500-579 needs 10%, with UFMIP 1.75% and annual MIP 0.55%....'"
+      ],
+      "soft_warnings": [
+        "18.5.9: 4 repetition/join flag(s):\n  - Phrase \"bad credit home loans\" repeated 4x\n  - Phrase \"with bad credit\" repeated 5x\n  - Phrase \"va has no\" repeated 4x\n  - Phrase \"3 5 down\" repeated 5x"
+      ],
+      "quality_gate_failures": [
+        "SUBJECT UNDERCOUNT: 'home loans for bad credit' appears 0 time(s) in body (minimum 5). Real guides mention their subject frequently. This suggests template content not customized for the neighborhood."
+      ],
+      "artifact_hits": [
+        "[h1-in-body] Matched: '<h1>' | Context: ...ng>Bad Credit Home Loans</strong></div> <h1>Bad Credit Home Loans: How to Buy a Hous..."
+      ],
+      "hard_pass_count": 26,
+      "hard_total_count": 40,
+      "soft_pass_count": 10,
+      "soft_total_count": 11,
+      "tier2_ran": true,
+      "claim_count": 15,
+      "unsourced_claims": 11,
+      "flagged_claims": 4,
+      "volatile_claims": 0,
+      "verdict": "REFRESH",
+      "verdict_reasons": [
+        "14 hard assertion failure(s)",
+        "1 quality gate failure(s)",
+        "1 leaked artifact(s)",
+        "11 unsourced high-stakes claims"
+      ]
+    },
+    {
+      "post_id": 414,
+      "slug": "va-loan-credit-score-requirements",
+      "title": "VA Loan Credit Score Requirements 2026: Why Lender Overlays Matter More Than VA Rules",
+      "top_query": "",
+      "position": 0,
+      "impressions": 8324,
+      "word_count": 2418,
+      "target_word_count": 0,
+      "hard_failures": [
+        "18.1.2: Eyebrow element not found",
+        "18.1.9: No CTA element found",
+        "18.1.10: Expected 4 ATF cards, found 0",
+        "18.1.11: Expected 3 ATF FAQs, found 8",
+        "18.1.14: 'Top questions before you dig in' missing intro paragraph; 'Top questions before you dig in' missing structural element (table/ul/callout); 'The Bottom Line Up Front' missing structural element (table/ul/callout); 'How VA Automated Underwriting Works' missing structural element (table/ul/callout); 'How Credit Score Affects VA Loan Pricing' missing structural element (table/ul/callout)",
+        "18.1.15: Found 0 CTA elements, need >=2 (header + mid-article)",
+        "18.1.16: Closing 'The Bottom Line' H2 not found",
+        "18.1.17: BTF FAQ section (.rl-faq) not found",
+        "18.1.18: Resources Used section not found",
+        "18.3.2: Body is 1026 words, fallback range is 1800-2400",
+        "18.4.1: Em dash found in body text: '...The VA sets no minimum credit score \u2014 zero. Every credit sco...'",
+        "18.4.6: Two consecutive H2 sections without structural elements",
+        "18.4.8: Semicolon density 7 in 1994 words (max 6). First: '...The VA sets no minimum score; lenders decide whether your file meets their overl...'"
+      ],
+      "soft_warnings": [
+        "18.5.9: 2 repetition/join flag(s):\n  - Phrase \"va loan credit score\" repeated 4x\n  - Phrase \"va does not\" repeated 4x"
+      ],
+      "quality_gate_failures": [],
+      "artifact_hits": [
+        "[h1-in-body] Matched: '<h1>' | Context: ... Score Requirements 2026</strong></div> <h1>VA Loan Credit Score Requirements 2026: ..."
+      ],
+      "hard_pass_count": 27,
+      "hard_total_count": 40,
+      "soft_pass_count": 10,
+      "soft_total_count": 11,
+      "tier2_ran": true,
+      "claim_count": 16,
+      "unsourced_claims": 15,
+      "flagged_claims": 1,
+      "volatile_claims": 0,
+      "verdict": "REFRESH",
+      "verdict_reasons": [
+        "13 hard assertion failure(s)",
+        "1 leaked artifact(s)",
+        "15 unsourced high-stakes claims"
+      ]
+    },
+    {
+      "post_id": 383,
+      "slug": "conventional-97-ltv-program",
+      "title": "Conventional 97 Loan Program Requirements",
+      "top_query": "conventional 97 loan",
+      "position": 28.7,
+      "impressions": 8056,
+      "word_count": 3220,
+      "target_word_count": 0,
+      "hard_failures": [
+        "18.1.2: Eyebrow element not found",
+        "18.1.9: No CTA element found",
+        "18.1.10: Expected 4 ATF cards, found 0",
+        "18.1.11: Expected 3 ATF FAQs, found 16",
+        "18.1.14: 'Top questions before you dig in' missing intro paragraph; 'Top questions before you dig in' missing structural element (table/ul/callout); 'The Bottom Line Up Front' missing structural element (table/ul/callout)",
+        "18.1.15: Found 0 CTA elements, need >=2 (header + mid-article)",
+        "18.1.16: Closing is 83 words, expected 100-150",
+        "18.1.17: BTF FAQ section (.rl-faq) not found",
+        "18.1.18: Resources Used section not found",
+        "18.3.2: Body is 1787 words, fallback range is 1800-2400",
+        "18.4.1: Em dash found in body text: '...The Conventional 97 loan allows first-time homebuyers to pur...'",
+        "18.4.6: Two consecutive H2 sections without structural elements"
+      ],
+      "soft_warnings": [
+        "18.5.6: 2 bullet(s) under 18 words:\n[What Is a Conventional 97 Loan?] 17w: \"Rate type: Fixed-rate only. Adjustable-rate mortgage s are not eligible for 97% \"\n[What Is a Conventional 97 Loan?] 13w: \"Occupancy: Primary residence only. Second homes and investment properties requir\"",
+        "18.5.8: 4 near-duplicate section pair(s):\n  - \"What Is a Conventional 97 Loan?\" vs \"How Does a Conventional 97 Compare to FHA?\" (2/3 overlap)\n  - \"What Is a Conventional 97 Loan?\" vs \"How Much Does PMI Cost on a Conventional 97?\" (2/3 overlap)\n  - \"What Is a Conventional 97 Loan?\" vs \"When Is a Conventional 97 the Right Choice?\" (2/3 overlap)\n  - \"What Is a Conventional 97 Loan?\" vs \"How Do You Apply for a Conventional 97 Loan?\" (3/3 overlap)",
+        "18.5.9: 5 repetition/join flag(s):\n  - Phrase \"upfront mortgage insurance premium\" repeated 4x\n  - Phrase \"no first-time buyer requirement\" repeated 4x\n  - Phrase \"97 ltv conventional financing\" repeated 4x\n  - Phrase \"conventional 97 loan program\" repeated 5x\n  - Phrase \"fannie mae or freddie mac\" repeated 5x"
+      ],
+      "quality_gate_failures": [],
+      "artifact_hits": [
+        "[h1-in-body] Matched: '<h1>' | Context: ...oan Program Requirements</strong></div> <h1>Conventional 97 Loan Program Requirement..."
+      ],
+      "hard_pass_count": 28,
+      "hard_total_count": 40,
+      "soft_pass_count": 8,
+      "soft_total_count": 11,
+      "tier2_ran": true,
+      "claim_count": 35,
+      "unsourced_claims": 32,
+      "flagged_claims": 3,
+      "volatile_claims": 0,
+      "verdict": "REFRESH",
+      "verdict_reasons": [
+        "12 hard assertion failure(s)",
+        "1 leaked artifact(s)",
+        "32 unsourced high-stakes claims"
+      ]
+    },
+    {
+      "post_id": 133,
+      "slug": "home-equity-loan-bad-credit",
+      "title": "How to Get a Home Equity Loan with Bad Credit in 2026",
+      "top_query": "poor credit",
+      "position": 8,
+      "impressions": 7944,
+      "word_count": 2080,
+      "target_word_count": 0,
+      "hard_failures": [
+        "18.1.2: Eyebrow element not found",
+        "18.1.9: No CTA element found",
+        "18.1.10: Expected 4 ATF cards, found 0",
+        "18.1.11: Expected 3 ATF FAQs, found 8",
+        "18.1.13b: Only 7 content H2s, minimum is 8",
+        "18.1.14: 'Top questions before you dig in' missing intro paragraph; 'Top questions before you dig in' missing structural element (table/ul/callout); 'The Bottom Line Up Front' missing structural element (table/ul/callout); 'Credit Score Requirements by Lender Type' missing structural element (table/ul/callout); 'How Much Equity You Need' missing structural element (table/ul/callout)",
+        "18.1.15: Found 0 CTA elements, need >=2 (header + mid-article)",
+        "18.1.16: Closing is 83 words, expected 100-150",
+        "18.1.17: BTF FAQ section (.rl-faq) not found",
+        "18.1.18: Resources Used section not found",
+        "18.3.2: Body is 771 words, fallback range is 1800-2400",
+        "18.4.1: Em dash found in body text: '...Getting a home equity loan with bad credit is possible but r...'",
+        "18.4.2: Banned phrases found: ['discover']",
+        "18.4.6: Two consecutive H2 sections without structural elements",
+        "18.4.9: AI-lexicon words found: ['leverage']"
+      ],
+      "soft_warnings": [
+        "18.5.2: Internal link density is 0.4/section (recommended 0.5-2.0)",
+        "18.5.9: 5 repetition/join flag(s):\n  - Phrase \"credit unions and portfolio lenders\" repeated 4x\n  - Phrase \"equity loan with bad credit\" repeated 8x\n  - Phrase \"home equity loan with bad\" repeated 8x\n  - Phrase \"a home equity loan with\" repeated 8x\n  - Phrase \"get a home equity loan\" repeated 7x"
+      ],
+      "quality_gate_failures": [
+        "SUBJECT UNDERCOUNT: 'poor credit' appears 0 time(s) in body (minimum 5). Real guides mention their subject frequently. This suggests template content not customized for the neighborhood."
+      ],
+      "artifact_hits": [
+        "[h1-in-body] Matched: '<h1>' | Context: ... with Bad Credit in 2026</strong></div> <h1>How to Get a Home Equity Loan with Bad C..."
+      ],
+      "hard_pass_count": 25,
+      "hard_total_count": 40,
+      "soft_pass_count": 9,
+      "soft_total_count": 11,
+      "tier2_ran": true,
+      "claim_count": 13,
+      "unsourced_claims": 9,
+      "flagged_claims": 4,
+      "volatile_claims": 0,
+      "verdict": "REFRESH",
+      "verdict_reasons": [
+        "15 hard assertion failure(s)",
+        "1 quality gate failure(s)",
+        "1 leaked artifact(s)",
+        "9 unsourced high-stakes claims"
+      ]
+    },
+    {
+      "post_id": 1471,
+      "slug": "fha-203k-loan-requirements",
+      "title": "FHA 203(k) Loan Requirements: Renovation Financing Explained",
+      "top_query": "203k loans requirements",
+      "position": 49.7,
+      "impressions": 7713,
+      "word_count": 2156,
+      "target_word_count": 0,
+      "hard_failures": [
+        "18.1.2: Eyebrow element not found",
+        "18.1.9: No CTA element found",
+        "18.1.10: Expected 4 ATF cards, found 0",
+        "18.1.11: Expected 3 ATF FAQs, found 9",
+        "18.1.14: 'Top questions before you dig in' missing intro paragraph; 'Top questions before you dig in' missing structural element (table/ul/callout); 'The Bottom Line Up Front' missing structural element (table/ul/callout); 'Limited vs Standard 203(k): Which Do You' missing structural element (table/ul/callout); 'What Are the Contractor and Bid Requirem' missing structural element (table/ul/callout)",
+        "18.1.15: Found 0 CTA elements, need >=2 (header + mid-article)",
+        "18.1.17: BTF FAQ section (.rl-faq) not found",
+        "18.1.18: Resources Used section not found",
+        "18.2.3: Internal anchors outside 1-5 word range: [\"'Find a Lender That Fits Your File' (7w)\", \"'Find a Lender That Fits Your File' (7w)\", \"'Find a Lender That Fits Your File' (7w)\"]",
+        "18.3.2: Body is 1161 words, fallback range is 1800-2400",
+        "18.4.1: Em dash found in body text: '...$35,000 \u2014 covers cosmetic updates, kitchen/bath remodel, roo...'",
+        "18.4.6: Two consecutive H2 sections without structural elements"
+      ],
+      "soft_warnings": [
+        "18.5.5: 2 enumeration-as-prose flag(s):\n[The Bottom Line Up Front] Grade/tier enum (4 items): standard\n[Limited vs Standard 203(k): Which D] Grade/tier enum (4 items): standard, budget",
+        "18.5.8: 2 near-duplicate section pair(s):\n  - \"Limited vs Standard 203(k): Which Do You Need?\" vs \"What Is the 203(k) Timeline?\" (2/3 overlap)\n  - \"What Are the 203(k) Qualification Requirements?\" vs \"What Is the 203(k) Timeline?\" (2/3 overlap)",
+        "18.5.9: 5 repetition/join flag(s):\n  - Phrase \"total acquisition cost\" repeated 4x\n  - Phrase \"a hud consultant\" repeated 5x\n  - Phrase \"not eligible for\" repeated 4x\n  - Phrase \"standard 203 k\" repeated 10x\n  - Phrase \"limited 203 k\" repeated 8x"
+      ],
+      "quality_gate_failures": [
+        "SUBJECT UNDERCOUNT: '203k loans requirements' appears 0 time(s) in body (minimum 5). Real guides mention their subject frequently. This suggests template content not customized for the neighborhood."
+      ],
+      "artifact_hits": [
+        "[h1-in-body] Matched: '<h1 id=\"fha-203k-loan-requirements-title\">' | Context: ...Process, HUD Consultant</strong> </div> <h1 id=\"fha-203k-loan-requirements-title\">FHA 203(k) Loan Requirements: Renovation..."
+      ],
+      "hard_pass_count": 28,
+      "hard_total_count": 40,
+      "soft_pass_count": 8,
+      "soft_total_count": 11,
+      "tier2_ran": true,
+      "claim_count": 20,
+      "unsourced_claims": 20,
+      "flagged_claims": 0,
+      "volatile_claims": 0,
+      "verdict": "REFRESH",
+      "verdict_reasons": [
+        "12 hard assertion failure(s)",
+        "1 quality gate failure(s)",
+        "1 leaked artifact(s)",
+        "20 unsourced high-stakes claims"
+      ]
+    },
+    {
+      "post_id": 616,
+      "slug": "realtor-referral-program",
+      "title": "Join Our Real Estate Agent Referral Program",
+      "top_query": "real estate referral program",
+      "position": 18.3,
+      "impressions": 6997,
+      "word_count": 471,
+      "target_word_count": 0,
+      "hard_failures": [
+        "18.1.2: Eyebrow element not found",
+        "18.1.8: ATF lede is 29 words, expected 40-110",
+        "18.1.9: No CTA element found",
+        "18.1.10: Expected 4 ATF cards, found 0",
+        "18.1.11: Expected 3 ATF FAQs, found 0",
+        "18.1.13: Body has 1 H2 sections, expected 6-15",
+        "18.1.13b: Only 1 content H2s, minimum is 8",
+        "18.1.14: 'Why Join Our Realtor Referral Program?' missing intro paragraph",
+        "18.1.15: Found 0 CTA elements, need >=2 (header + mid-article)",
+        "18.1.16: Closing 'The Bottom Line' H2 not found",
+        "18.1.17: BTF FAQ section (.rl-faq) not found",
+        "18.1.18: Resources Used section not found",
+        "18.3.2: Body is 129 words, fallback range is 1800-2400",
+        "18.4.1: Em dash found in body text: '...At The Lenders Network, we\u2019re committed to supporting both h...'",
+        "18.4.9: AI-lexicon words found: ['navigate']"
+      ],
+      "soft_warnings": [
+        "18.5.2: Internal link density is 0.0/section (recommended 0.5-2.0)",
+        "18.5.6: 4 bullet(s) under 18 words:\n[Why Join Our Realtor Referral Progr] 14w: \"No Upfront Fees: We don\u2019t charge per lead or require a monthly subscription.\"\n[Why Join Our Realtor Referral Progr] 15w: \"Exclusive Referrals: We work with motivated homebuyers who are eager to find the\"\n[Why Join Our Realtor Referral Progr] 6w: \"Email us at hi@thelendersnetwork.com\"\n[Why Join Our Realtor Referral Progr] 13w: \"Upon approval, you\u2019ll receive our client referral agreement to finalize your par\"",
+        "18.5.9: 3 repetition/join flag(s):\n  - Phrase \"27 0 _module_preset default global_colors_info\" repeated 6x\n  - Phrase \"_builder_version 4 27 0 _module_preset\" repeated 13x\n  - Phrase \"4 27 0 _module_preset default\" repeated 12x"
+      ],
+      "quality_gate_failures": [
+        "SUBJECT UNDERCOUNT: 'real estate referral program' appears 0 time(s) in body (minimum 5). Real guides mention their subject frequently. This suggests template content not customized for the neighborhood.",
+        "WORD COUNT BELOW FLOOR: 471 words (minimum 1200). Content is too thin to publish.",
+        "PROSE PARAGRAPHS BELOW FLOOR: 2 substantial paragraphs (minimum 6). Real guides have multiple detailed sections."
+      ],
+      "artifact_hits": [
+        "[h1-in-body] Matched: '<h1>' | Context: ...ted=\"on|tablet\" global_colors_info=\"{}\"]<h1><strong>Realtor Referral Program: Partne..."
+      ],
+      "hard_pass_count": 25,
+      "hard_total_count": 40,
+      "soft_pass_count": 8,
+      "soft_total_count": 11,
+      "tier2_ran": true,
+      "claim_count": 7,
+      "unsourced_claims": 7,
+      "flagged_claims": 0,
+      "volatile_claims": 0,
+      "verdict": "REFRESH",
+      "verdict_reasons": [
+        "15 hard assertion failure(s)",
+        "3 quality gate failure(s)",
+        "1 leaked artifact(s)",
+        "7 unsourced high-stakes claims"
+      ]
+    },
+    {
+      "post_id": 191,
+      "slug": "usda-home-loans",
+      "title": "USDA Home Loans 2026: Eligibility, Requirements, and Income Limits",
+      "top_query": "usda loan",
+      "position": 4.2,
+      "impressions": 5232,
+      "word_count": 3432,
+      "target_word_count": 0,
+      "hard_failures": [
+        "18.1.2: Eyebrow element not found",
+        "18.1.9: No CTA element found",
+        "18.1.10: Expected 4 ATF cards, found 0",
+        "18.1.11: Expected 3 ATF FAQs, found 8",
+        "18.1.14: 'Top questions before you dig in' missing intro paragraph; 'Top questions before you dig in' missing structural element (table/ul/callout); 'The Bottom Line Up Front' missing structural element (table/ul/callout); 'USDA Property Eligibility: Where Can You' missing structural element (table/ul/callout); 'Income Limits and Household Calculation' missing structural element (table/ul/callout)",
+        "18.1.15: Found 0 CTA elements, need >=2 (header + mid-article)",
+        "18.1.16: Closing is 69 words, expected 100-150",
+        "18.1.17: BTF FAQ section (.rl-faq) not found",
+        "18.1.18: Resources Used section not found",
+        "18.4.1: Em dash found in body text: '...USDA is the cheapest mortgage program available to non-veter...'",
+        "18.4.6: Two consecutive H2 sections without structural elements"
+      ],
+      "soft_warnings": [
+        "18.5.2: Internal link density is 0.5/section (recommended 0.5-2.0)",
+        "18.5.8: 1 near-duplicate section pair(s):\n  - \"The USDA Loan Process\" vs \"Common USDA Loan Surprises and How to Avoid Them\" (2/3 overlap)",
+        "18.5.9: 7 repetition/join flag(s):\n  - Phrase \"area median income\" repeated 4x\n  - Phrase \"the purchase price\" repeated 4x\n  - Phrase \"zero down payment\" repeated 4x\n  - Phrase \"qualify for usda\" repeated 4x\n  - Phrase \"a usda loan\" repeated 4x\n  - Paragraph-join: \"...oughly 97% of U.S. land area is eli...\"\n  - Paragraph-join: \"...oughly 97% of U.S. land area is eli...\""
+      ],
+      "quality_gate_failures": [],
+      "artifact_hits": [],
+      "hard_pass_count": 29,
+      "hard_total_count": 40,
+      "soft_pass_count": 8,
+      "soft_total_count": 11,
+      "tier2_ran": true,
+      "claim_count": 37,
+      "unsourced_claims": 36,
+      "flagged_claims": 1,
+      "volatile_claims": 0,
+      "verdict": "REFRESH",
+      "verdict_reasons": [
+        "11 hard assertion failure(s)",
+        "36 unsourced high-stakes claims"
+      ]
+    },
+    {
+      "post_id": 642,
+      "slug": "mortgage-guides",
+      "title": "Mortgage Guides (FHA, VA, USDA, Conventional Loans)",
+      "top_query": "",
+      "position": 0,
+      "impressions": 4456,
+      "word_count": 3480,
+      "target_word_count": 0,
+      "hard_failures": [
+        "18.1.1: Expected 0-1 H1, found 3",
+        "18.1.2: Eyebrow element not found",
+        "18.1.9: No CTA element found",
+        "18.1.10: Expected 4 ATF cards, found 0",
+        "18.1.11: Expected 3 ATF FAQs, found 13",
+        "18.1.14: 'Top questions before you dig in' missing intro paragraph; 'Top questions before you dig in' missing structural element (table/ul/callout); 'Key Takeaways' missing intro paragraph; 'Why Your Mortgage Choice Could Save (or ' missing structural element (table/ul/callout); 'Types of Mortgage Loans in 2026' missing structural element (table/ul/callout)",
+        "18.1.15: Found 0 CTA elements, need >=2 (header + mid-article)",
+        "18.1.16: Closing 'The Bottom Line' H2 not found",
+        "18.1.17: BTF FAQ section (.rl-faq) not found",
+        "18.1.18: Resources Used section not found",
+        "18.4.1: Em dash found in body text: '...Qualifying for a mortgage in 2026 offers more flexibility th...'",
+        "18.4.2: Banned phrases found: ['explore']",
+        "18.4.6: Two consecutive H2 sections without structural elements",
+        "18.4.8: Semicolon density 29 in 2494 words (max 8). First: '...FHA, VA, and USDA are for owner-occupied primary homes; conventional can finance...'"
+      ],
+      "soft_warnings": [
+        "18.5.2: Internal link density is 0.3/section (recommended 0.5-2.0)",
+        "18.5.6: 44 bullet(s) under 18 words:\n[Key Takeaways] 12w: \"Mortgage types vary significantly in credit score, down payment, and DTI require\"\n[Key Takeaways] 16w: \"Government loans like FHA, VA, and USDA ease barriers for low-credit and low-inc\"\n[Key Takeaways] 12w: \"Conventional and jumbo loans offer flexibility for stronger-credit, higher\u2011incom\"\n[Key Takeaways] 16w: \"Non\u2011QM loans serve with flexible underwriting at the cost of higher rates and do\"\n[Key Takeaways] 11w: \"Choose based on credit, savings, primary vs investment purchase, and location.\"\n[Types of Mortgage Loans in 2026] 17w: \"\u2714\ufe0f Requirements: 580+ credit for 3.5% down; 500\u2013579 requires 10% down; 43\u201350% DT\"\n[Types of Mortgage Loans in 2026] 14w: \"\u2714\ufe0f Benefits: Low credit threshold, gift funds allowed, great for first-time or u\"\n[Types of Mortgage Loans in 2026] 15w: \"\u2714\ufe0f Downsides: Upfront MIP (1.75%) and annual MIP (0.55\u20130.85%); primary residence\"\n[Types of Mortgage Loans in 2026] 12w: \"\u2714\ufe0f Best For: Renters or first-time buyers with fair-to-poor credit.\"\n[Types of Mortgage Loans in 2026] 13w: \"\u2714\ufe0f Requirements: 580+ credit; 41\u201350% DTI; Certificate of Eligibility (COE); prim\"\n[Types of Mortgage Loans in 2026] 13w: \"\u2714\ufe0f Benefits: 0% down, no PMI, low interest rates (0.5\u20131% below market).\"\n[Types of Mortgage Loans in 2026] 17w: \"\u2714\ufe0f Downsides: Funding fee of 1\u20133.3% unless exempt (e.g., $1,800\u2013$5,940 on $180K)\"\n[Types of Mortgage Loans in 2026] 10w: \"\u2714\ufe0f Best For: Military families with limited savings or prior service.\"\n[Types of Mortgage Loans in 2026] 13w: \"\u2714\ufe0f Requirements: 580+ credit (640+ preferred); income under 115% AMI; 41% DTI; r\"\n[Types of Mortgage Loans in 2026] 10w: \"\u2714\ufe0f Benefits: 0% down, low fees (1% upfront + 0.35% annual).\"\n[Types of Mortgage Loans in 2026] 10w: \"\u2714\ufe0f Downsides: Must be in USDA-eligible area; primary residence only.\"\n[Types of Mortgage Loans in 2026] 9w: \"\u2714\ufe0f Best For: Buyers in small towns or rural counties.\"\n[Types of Mortgage Loans in 2026] 13w: \"\u2714\ufe0f Requirements: 620+ credit (680+ for best terms); 3\u201320% down; DTI 36\u201345%.\"\n[Types of Mortgage Loans in 2026] 10w: \"\u2714\ufe0f Benefits: Broad eligibility, flexible use, PMI drops at 20% equity.\"\n[Types of Mortgage Loans in 2026] 13w: \"\u2714\ufe0f Downsides: Higher credit needed; PMI (0.5\u20131.5%) if under 20% down.\"\n[Types of Mortgage Loans in 2026] 9w: \"\u2714\ufe0f Best For: Buyers with decent credit or investment goals.\"\n[Types of Mortgage Loans in 2026] 10w: \"\u2714\ufe0f Requirements: 680\u2013700+ credit; 10\u201320% down; 36\u201343% DTI.\"\n[Types of Mortgage Loans in 2026] 8w: \"\u2714\ufe0f Benefits: Funds large home purchases; wide property flexibility.\"\n[Types of Mortgage Loans in 2026] 8w: \"\u2714\ufe0f Downsides: Stricter underwriting, higher rates, larger reserves needed.\"\n[Types of Mortgage Loans in 2026] 11w: \"\u2714\ufe0f Best For: High-income earners or buyers in expensive zip codes.\"\n[Types of Mortgage Loans in 2026] 17w: \"\u2714\ufe0f Requirements: 600+ credit; 5\u201320% down; DTI up to 50%; income proof via bank s\"\n[Types of Mortgage Loans in 2026] 8w: \"\u2714\ufe0f Benefits: Accepts non-traditional income; flexible underwriting standards.\"\n[Types of Mortgage Loans in 2026] 10w: \"\u2714\ufe0f Downsides: Higher rates (1\u20132% above conventional), larger down payments.\"\n[Types of Mortgage Loans in 2026] 10w: \"\u2714\ufe0f Best For: Freelancers, gig workers, or recently self-employed buyers.\"\n[Costs of Mortgage Loans] 14w: \"Down Payment: 0% (VA/USDA), 3\u201310% (FHA/Conventional), 5\u201320% (jumbo/non-QM).\"\n[Costs of Mortgage Loans] 13w: \"Closing Costs: 2\u20136% ($4,000\u2013$12,000 on $200,000), per CFPB .\"\n[Costs of Mortgage Loans] 7w: \"Prepaid Costs: Taxes, insurance ($500\u2013$1,500).\"\n[How to Choose the Right Mortgage Lo] 11w: \"Evaluate Savings: Budget 0\u201320% down and 2\u20136% closing costs.\"\n[How to Choose the Right Mortgage Lo] 11w: \"Check Income: Verify stability; ensure USDA/Conventional 97 meet AMI limits.\"\n[How to Choose the Right Mortgage Lo] 12w: \"Determine Property Type: Primary (FHA/VA/USDA), secondary, or investment (conven\"\n[How to Choose the Right Mortgage Lo] 9w: \"Confirm Location: Use USDA\u2019s map for rural eligibility.\"\n[How to Choose the Right Mortgage Lo] 9w: \"Compare Lenders : Shop for rates, fees across approved lenders.\"\n[How to Choose the Right Mortgage Lo] 10w: \"Get Pre-Approved: Set your budget (e.g., $250,000).\"\n[How to Choose the Right Mortgage Lo] 7w: \"Close the Loan: Pay costs, sign documents.\"\n[Common Pitfalls to Avoid] 13w: \"Choosing the Wrong Loan: Match your credit, income, and location to the program.\"\n[Common Pitfalls to Avoid] 9w: \"Ignoring Fees: Budget for MIP, PMI, or funding fees.\"\n[Common Pitfalls to Avoid] 9w: \"High DTI: Keep debt below 41\u201350% of income.\"\n[Common Pitfalls to Avoid] 10w: \"Skipping Pre-Approval: It sets your budget and strengthens offers.\"\n[Common Pitfalls to Avoid] 9w: \"New Debt: Avoid loans or credit cards before closing.\"",
+        "18.5.8: 3 near-duplicate section pair(s):\n  - \"Types of Mortgage Loans in 2026\" vs \"Costs of Mortgage Loans\" (2/3 overlap)\n  - \"Types of Mortgage Loans in 2026\" vs \"Frequently Asked Questions About Types of Mortgage\" (3/4 overlap)\n  - \"Costs of Mortgage Loans\" vs \"Frequently Asked Questions About Types of Mortgage\" (2/3 overlap)",
+        "18.5.9: 7 repetition/join flag(s):\n  - Phrase \"fha va usda conventional jumbo\" repeated 4x\n  - Phrase \"of mortgage loans\" repeated 4x\n  - Phrase \"580 credit and\" repeated 4x\n  - Phrase \"va and usda\" repeated 7x\n  - Phrase \"0 35 annual\" repeated 4x\n  - Paragraph-join: \"...issued by the U.S. Department of Ag...\"\n  - Paragraph-join: \"...issued by the U.S. Department of Ag...\""
+      ],
+      "quality_gate_failures": [],
+      "artifact_hits": [
+        "[h1-in-body] Matched: '<h1>' | Context: ...ers and Get Pre-Approved in Minutes!</p><h1>Mortgage Guides: Explore Your Loan Optio...",
+        "[h1-in-body] Matched: '<h1>' | Context: ...ght.</div> </details> </div> </section> <h1>Get Pre-Approved Today!</h1><p>Check Rat...",
+        "[h1-in-body] Matched: '<h1>' | Context: ...SDA, Conventional Loans)</strong></div> <h1>Mortgage Guides (FHA, VA, USDA, Conventi..."
+      ],
+      "hard_pass_count": 26,
+      "hard_total_count": 40,
+      "soft_pass_count": 7,
+      "soft_total_count": 11,
+      "tier2_ran": true,
+      "claim_count": 54,
+      "unsourced_claims": 34,
+      "flagged_claims": 20,
+      "volatile_claims": 0,
+      "verdict": "REFRESH",
+      "verdict_reasons": [
+        "14 hard assertion failure(s)",
+        "3 leaked artifact(s)",
+        "34 unsourced high-stakes claims"
+      ]
+    },
+    {
+      "post_id": 441,
+      "slug": "cash-out-refinance-loans",
+      "title": "Cash-Out Refinance Requirements 2026: LTV Limits, Credit, and When It Makes Sense",
+      "top_query": "cash out refinance requirements",
+      "position": 70.9,
+      "impressions": 4026,
+      "word_count": 2495,
+      "target_word_count": 0,
+      "hard_failures": [
+        "18.1.2: Eyebrow element not found",
+        "18.1.9: No CTA element found",
+        "18.1.10: Expected 4 ATF cards, found 0",
+        "18.1.11: Expected 3 ATF FAQs, found 8",
+        "18.1.14: 'Top questions before you dig in' missing intro paragraph; 'Top questions before you dig in' missing structural element (table/ul/callout); 'The Bottom Line Up Front' missing structural element (table/ul/callout); 'How Cash-Out Refinancing Works' missing structural element (table/ul/callout); 'How Much Does a Cash-Out Refinance Cost?' missing structural element (table/ul/callout)",
+        "18.1.15: Found 0 CTA elements, need >=2 (header + mid-article)",
+        "18.1.16: Closing is 86 words, expected 100-150",
+        "18.1.17: BTF FAQ section (.rl-faq) not found",
+        "18.1.18: Resources Used section not found",
+        "18.3.2: Body is 1239 words, fallback range is 1800-2400",
+        "18.4.6: Two consecutive H2 sections without structural elements",
+        "18.4.9: AI-lexicon words found: ['leverage', 'essential']"
+      ],
+      "soft_warnings": [
+        "18.5.8: 3 near-duplicate section pair(s):\n  - \"What Does the Cash-Out Refinance Process Look Like\" vs \"How Much Does a Cash-Out Refinance Cost?\" (3/4 overlap)\n  - \"How Much Does a Cash-Out Refinance Cost?\" vs \"How Does Cash-Out Compare to a Rate-and-Term Refin\" (3/4 overlap)\n  - \"How Much Does a Cash-Out Refinance Cost?\" vs \"VA Cash-Out Refinance: The Most Generous Option\" (3/4 overlap)",
+        "18.5.9: 5 repetition/join flag(s):\n  - Phrase \"cash-out refinance requirements\" repeated 4x\n  - Phrase \"a rate-and-term refinance\" repeated 4x\n  - Phrase \"a cash-out refinance\" repeated 7x\n  - Phrase \"the new loan\" repeated 4x\n  - Phrase \"90 ltv with\" repeated 4x"
+      ],
+      "quality_gate_failures": [
+        "SUBJECT UNDERCOUNT: 'cash out refinance requirements' appears 2 time(s) in body (minimum 5). Real guides mention their subject frequently. This suggests template content not customized for the neighborhood."
+      ],
+      "artifact_hits": [
+        "[h1-in-body] Matched: '<h1>' | Context: ...inance Requirements 2026</strong></div> <h1>Cash-Out Refinance Requirements 2026: LT..."
+      ],
+      "hard_pass_count": 28,
+      "hard_total_count": 40,
+      "soft_pass_count": 9,
+      "soft_total_count": 11,
+      "tier2_ran": true,
+      "claim_count": 18,
+      "unsourced_claims": 12,
+      "flagged_claims": 6,
+      "volatile_claims": 0,
+      "verdict": "REFRESH",
+      "verdict_reasons": [
+        "12 hard assertion failure(s)",
+        "1 quality gate failure(s)",
+        "1 leaked artifact(s)",
+        "12 unsourced high-stakes claims"
+      ]
+    },
+    {
+      "post_id": 1453,
+      "slug": "what-is-jumbo-loan-who-qualifies",
+      "title": "Jumbo Loan Requirements 2026: Credit, Down Payment, and Limits",
+      "top_query": "",
+      "position": 0,
+      "impressions": 3879,
+      "word_count": 1903,
+      "target_word_count": 0,
+      "hard_failures": [
+        "18.1.2: Eyebrow element not found",
+        "18.1.9: No CTA element found",
+        "18.1.10: Expected 4 ATF cards, found 0",
+        "18.1.11: Expected 3 ATF FAQs, found 8",
+        "18.1.13b: Only 7 content H2s, minimum is 8",
+        "18.1.14: 'The Bottom Line Up Front' missing structural element (table/ul/callout); 'Credit Score Requirements' missing structural element (table/ul/callout); 'Down Payment Requirements' missing structural element (table/ul/callout); 'Reserve Requirements' missing structural element (table/ul/callout); 'DTI and Income Requirements' missing structural element (table/ul/callout)",
+        "18.1.15: Found 0 CTA elements, need >=2 (header + mid-article)",
+        "18.1.16: Closing is 72 words, expected 100-150",
+        "18.1.17: BTF FAQ section (.rl-faq) not found",
+        "18.1.18: Resources Used section not found",
+        "18.3.2: Body is 850 words, fallback range is 1800-2400",
+        "18.4.1: Em dash found in body text: '...Qualifying for a jumbo is harder than conforming \u2014 higher cr...'",
+        "18.4.6: Two consecutive H2 sections without structural elements"
+      ],
+      "soft_warnings": [
+        "18.5.9: 5 repetition/join flag(s):\n  - Phrase \"within 0 25 of conforming\" repeated 5x\n  - Phrase \"are often within 0 25\" repeated 4x\n  - Phrase \"often within 0 25 of\" repeated 4x\n  - Phrase \"12 months reserves\" repeated 4x\n  - Phrase \"jumbo rates are\" repeated 4x"
+      ],
+      "quality_gate_failures": [],
+      "artifact_hits": [],
+      "hard_pass_count": 27,
+      "hard_total_count": 40,
+      "soft_pass_count": 10,
+      "soft_total_count": 11,
+      "tier2_ran": true,
+      "claim_count": 18,
+      "unsourced_claims": 15,
+      "flagged_claims": 3,
+      "volatile_claims": 1,
+      "verdict": "REFRESH",
+      "verdict_reasons": [
+        "13 hard assertion failure(s)",
+        "15 unsourced high-stakes claims"
+      ]
+    },
+    {
+      "post_id": 886,
+      "slug": "average-down-payment-on-a-house",
+      "title": "Average Down Payment On A House: What To Expect",
+      "top_query": "average down payment on a house",
+      "position": 58.6,
+      "impressions": 3826,
+      "word_count": 2325,
+      "target_word_count": 0,
+      "hard_failures": [
+        "18.1.2: Eyebrow element not found",
+        "18.1.9: No CTA element found",
+        "18.1.10: Expected 4 ATF cards, found 0",
+        "18.1.11: Expected 3 ATF FAQs, found 8",
+        "18.1.13b: Only 7 content H2s, minimum is 8",
+        "18.1.14: 'Top questions before you dig in' missing intro paragraph; 'Top questions before you dig in' missing structural element (table/ul/callout); 'The Bottom Line Up Front' missing structural element (table/ul/callout); 'What Is the Average Down Payment in 2026' missing structural element (table/ul/callout); 'Does a Larger Down Payment Get You a Bet' missing structural element (table/ul/callout)",
+        "18.1.15: Found 0 CTA elements, need >=2 (header + mid-article)",
+        "18.1.17: BTF FAQ section (.rl-faq) not found",
+        "18.1.18: Resources Used section not found",
+        "18.3.2: Body is 1251 words, fallback range is 1800-2400",
+        "18.4.1: Em dash found in body text: '...\u2014 not 20%. Most buyers never put 20% down. VA and USDA requi...'",
+        "18.4.6: Two consecutive H2 sections without structural elements",
+        "18.4.8: Semicolon density 9 in 2425 words (max 8). First: '...Buyers aged 25-33 put down a median of 10%; buyers aged 69-77 put down a median ...'"
+      ],
+      "soft_warnings": [
+        "18.5.9: 5 repetition/join flag(s):\n  - Phrase \"approximately 9 of the purchase\" repeated 4x\n  - Phrase \"pmi on conventional loans\" repeated 4x\n  - Phrase \"9 of the purchase price\" repeated 4x\n  - Phrase \"down payment assistance\" repeated 6x\n  - Phrase \"for first-time buyers\" repeated 5x"
+      ],
+      "quality_gate_failures": [
+        "SUBJECT UNDERCOUNT: 'average down payment on a house' appears 1 time(s) in body (minimum 5). Real guides mention their subject frequently. This suggests template content not customized for the neighborhood."
+      ],
+      "artifact_hits": [
+        "[h1-in-body] Matched: '<h1 id=\"average-down-payment-on-a-house-title\">' | Context: ...ram, Assistance Options</strong> </div> <h1 id=\"average-down-payment-on-a-house-title\">Average Down Payment on a House: What Bu..."
+      ],
+      "hard_pass_count": 27,
+      "hard_total_count": 40,
+      "soft_pass_count": 10,
+      "soft_total_count": 11,
+      "tier2_ran": true,
+      "claim_count": 10,
+      "unsourced_claims": 10,
+      "flagged_claims": 0,
+      "volatile_claims": 0,
+      "verdict": "REFRESH",
+      "verdict_reasons": [
+        "13 hard assertion failure(s)",
+        "1 quality gate failure(s)",
+        "1 leaked artifact(s)",
+        "10 unsourced high-stakes claims"
+      ]
+    },
+    {
+      "post_id": 459,
+      "slug": "qualify-first-time-home-buyer",
+      "title": "How to Qualify as a First-Time Home Buyer in 2026",
+      "top_query": "",
+      "position": 0,
+      "impressions": 3622,
+      "word_count": 3347,
+      "target_word_count": 0,
+      "hard_failures": [
+        "18.1.2: Eyebrow element not found",
+        "18.1.9: No CTA element found",
+        "18.1.10: Expected 4 ATF cards, found 0",
+        "18.1.11: Expected 3 ATF FAQs, found 9",
+        "18.1.13b: Only 7 content H2s, minimum is 8",
+        "18.1.14: 'Do First-Time Buyer Programs Have Income' missing structural element (table/ul/callout); 'How Long Does the First-Time Buyer Proce' missing structural element (table/ul/callout)",
+        "18.1.15: Found 0 CTA elements, need >=2 (header + mid-article)",
+        "18.1.17: BTF FAQ section (.rl-faq) not found",
+        "18.1.18: Resources Used section not found",
+        "18.2.3: Internal anchors outside 1-5 word range: [\"'Do First-Time Buyer Programs Have Income' (8w)\", \"'How Do You Get Preapproved for Your Firs' (9w)\", \"'Down Payment Options for First-Time Buye' (7w)\"]",
+        "18.3.2: Body is 1680 words, fallback range is 1800-2400"
+      ],
+      "soft_warnings": [
+        "18.5.2: Internal link density is 0.0/section (recommended 0.5-2.0)",
+        "18.5.6: 5 bullet(s) under 18 words:\n[The Bottom Line Up Front] 15w: \"FHA requires a 580 credit score for 3.5% down, or 500 with 10% down.\"\n[The Bottom Line Up Front] 15w: \"Conventional loans set the floor at 620, and most state programs require 640 or \"\n[The Bottom Line Up Front] 16w: \"DTI benchmarks run 43% to 45%, but automated approvals can clear higher ratios w\"\n[The Bottom Line Up Front] 14w: \"First-time buyer status resets after three years of not owning a primary residen\"\n[The Bottom Line Up Front] 15w: \"Down payment assistance covers part or all of your upfront cost, but income caps\"",
+        "18.5.9: 6 repetition/join flag(s):\n  - Phrase \"27 6 _module_preset default global_colors_info\" repeated 4x\n  - Phrase \"_builder_version 4 27 6 _module_preset\" repeated 4x\n  - Phrase \"state down payment assistance programs\" repeated 4x\n  - Phrase \"4 27 6 _module_preset default\" repeated 4x\n  - Phrase \"a first-time home buyer loan\" repeated 6x\n  - Paragraph-join: \"...e | HUD.gov / U.S. Department of Ho...\""
+      ],
+      "quality_gate_failures": [],
+      "artifact_hits": [
+        "[h1-in-body] Matched: '<h1 id=\"qualify-first-time-home-buyer-title\">' | Context: ...> \u00b7 </span><strong>Guide</strong></div> <h1 id=\"qualify-first-time-home-buyer-title\">How To Qualify For First Time Home Buyer..."
+      ],
+      "hard_pass_count": 29,
+      "hard_total_count": 40,
+      "soft_pass_count": 8,
+      "soft_total_count": 11,
+      "tier2_ran": true,
+      "claim_count": 21,
+      "unsourced_claims": 20,
+      "flagged_claims": 1,
+      "volatile_claims": 0,
+      "verdict": "REFRESH",
+      "verdict_reasons": [
+        "11 hard assertion failure(s)",
+        "1 leaked artifact(s)",
+        "20 unsourced high-stakes claims"
+      ]
+    },
+    {
+      "post_id": 804,
+      "slug": "100-financing-home-loans",
+      "title": "6 Types of 100% Financing Home Loans",
+      "top_query": "100 mortgage financing",
+      "position": 34.1,
+      "impressions": 3447,
+      "word_count": 2300,
+      "target_word_count": 0,
+      "hard_failures": [
+        "18.1.2: Eyebrow element not found",
+        "18.1.9: No CTA element found",
+        "18.1.10: Expected 4 ATF cards, found 0",
+        "18.1.11: Expected 3 ATF FAQs, found 8",
+        "18.1.13b: Only 6 content H2s, minimum is 8",
+        "18.1.14: 'Top questions before you dig in' missing intro paragraph; 'Top questions before you dig in' missing structural element (table/ul/callout); 'The Bottom Line Up Front' missing structural element (table/ul/callout); 'How Does FHA Combined with Down Payment ' missing structural element (table/ul/callout)",
+        "18.1.15: Found 0 CTA elements, need >=2 (header + mid-article)",
+        "18.1.17: BTF FAQ section (.rl-faq) not found",
+        "18.1.18: Resources Used section not found",
+        "18.3.2: Body is 1170 words, fallback range is 1800-2400",
+        "18.4.1: Em dash found in body text: '...: VA loans for eligible veterans and USDA loans for rural an...'",
+        "18.4.6: Two consecutive H2 sections without structural elements",
+        "18.4.8: Semicolon density 17 in 2372 words (max 7). First: '...No VA-set minimum; lender overlays typically 580-640; no monthly mortgage insura...'"
+      ],
+      "soft_warnings": [
+        "18.5.9: 4 repetition/join flag(s):\n  - Phrase \"combined with down payment assistance\" repeated 4x\n  - Phrase \"0 35 annual guarantee fee\" repeated 4x\n  - Phrase \"the down payment\" repeated 5x\n  - Phrase \"the funding fee\" repeated 4x"
+      ],
+      "quality_gate_failures": [
+        "SUBJECT UNDERCOUNT: '100 mortgage financing' appears 0 time(s) in body (minimum 5). Real guides mention their subject frequently. This suggests template content not customized for the neighborhood."
+      ],
+      "artifact_hits": [
+        "[h1-in-body] Matched: '<h1 id=\"100-financing-home-loans-title\">' | Context: ..., Credit Union Programs</strong> </div> <h1 id=\"100-financing-home-loans-title\">100% Financing Home Loans: Every Zero-Do..."
+      ],
+      "hard_pass_count": 27,
+      "hard_total_count": 40,
+      "soft_pass_count": 10,
+      "soft_total_count": 11,
+      "tier2_ran": true,
+      "claim_count": 22,
+      "unsourced_claims": 19,
+      "flagged_claims": 3,
+      "volatile_claims": 0,
+      "verdict": "REFRESH",
+      "verdict_reasons": [
+        "13 hard assertion failure(s)",
+        "1 quality gate failure(s)",
+        "1 leaked artifact(s)",
+        "19 unsourced high-stakes claims"
+      ]
+    },
+    {
+      "post_id": 1501,
+      "slug": "fha-closing-costs",
+      "title": "FHA Closing Costs: What Buyers Pay, Seller Concessions, and the 6% Rule",
+      "top_query": "fha seller concessions",
+      "position": 19.3,
+      "impressions": 2200,
+      "word_count": 2400,
+      "target_word_count": 0,
+      "hard_failures": [
+        "18.1.2: Eyebrow element not found",
+        "18.1.9: No CTA element found",
+        "18.1.10: Expected 4 ATF cards, found 0",
+        "18.1.11: Expected 3 ATF FAQs, found 9",
+        "18.1.13b: Only 7 content H2s, minimum is 8",
+        "18.1.14: 'Top questions before you dig in' missing intro paragraph; 'Top questions before you dig in' missing structural element (table/ul/callout); 'The Bottom Line Up Front' missing structural element (table/ul/callout); 'How Do FHA Seller Concessions Work?' missing structural element (table/ul/callout); 'How Do FHA Closing Costs Compare to Conv' missing structural element (table/ul/callout)",
+        "18.1.15: Found 0 CTA elements, need >=2 (header + mid-article)",
+        "18.1.17: BTF FAQ section (.rl-faq) not found",
+        "18.1.18: Resources Used section not found",
+        "18.3.2: Body is 1380 words, fallback range is 1800-2400",
+        "18.4.1: Em dash found in body text: '...total 2\u20135% of the loan amount plus the 1.75% upfront MIP. On...'",
+        "18.4.6: Two consecutive H2 sections without structural elements"
+      ],
+      "soft_warnings": [
+        "18.5.8: 1 near-duplicate section pair(s):\n  - \"What Are the Standard FHA Closing Costs?\" vs \"What Are FHA Prepaid Costs and How Do They Differ \" (4/5 overlap)",
+        "18.5.9: 5 repetition/join flag(s):\n  - Phrase \"closing costs and prepaids\" repeated 6x\n  - Phrase \"6 of the purchase price\" repeated 5x\n  - Phrase \"on a 300 000 purchase\" repeated 5x\n  - Phrase \"5 of the loan amount\" repeated 4x\n  - Phrase \"the 1 75 upfront mip\" repeated 4x"
+      ],
+      "quality_gate_failures": [
+        "SUBJECT UNDERCOUNT: 'fha seller concessions' appears 1 time(s) in body (minimum 5). Real guides mention their subject frequently. This suggests template content not customized for the neighborhood."
+      ],
+      "artifact_hits": [
+        "[h1-in-body] Matched: '<h1 id=\"fha-closing-costs-title\">' | Context: ...Cash-to-Close Reduction</strong> </div> <h1 id=\"fha-closing-costs-title\">FHA Closing Costs: What Buyers Pay, Sell..."
+      ],
+      "hard_pass_count": 28,
+      "hard_total_count": 40,
+      "soft_pass_count": 9,
+      "soft_total_count": 11,
+      "tier2_ran": true,
+      "claim_count": 25,
+      "unsourced_claims": 25,
+      "flagged_claims": 0,
+      "volatile_claims": 0,
+      "verdict": "REFRESH",
+      "verdict_reasons": [
+        "12 hard assertion failure(s)",
+        "1 quality gate failure(s)",
+        "1 leaked artifact(s)",
+        "25 unsourced high-stakes claims"
+      ]
+    },
+    {
+      "post_id": 537,
+      "slug": "contact-us",
+      "title": "Contact Us",
+      "top_query": "lending network",
+      "position": 39.6,
+      "impressions": 1648,
+      "word_count": 1,
+      "target_word_count": 0,
+      "hard_failures": [
+        "18.1.2: Eyebrow element not found",
+        "18.1.8: ATF lede paragraph not found",
+        "18.1.9: No CTA element found",
+        "18.1.10: Expected 4 ATF cards, found 0",
+        "18.1.11: Expected 3 ATF FAQs, found 0",
+        "18.1.13: Body has 0 H2 sections, expected 6-15",
+        "18.1.13b: Only 0 content H2s, minimum is 8",
+        "18.1.15: Found 0 CTA elements, need >=2 (header + mid-article)",
+        "18.1.16: Closing 'The Bottom Line' H2 not found",
+        "18.1.17: BTF FAQ section (.rl-faq) not found",
+        "18.1.18: Resources Used section not found",
+        "18.3.2: Body is 0 words, fallback range is 1800-2400"
+      ],
+      "soft_warnings": [],
+      "quality_gate_failures": [
+        "SUBJECT UNDERCOUNT: 'lending network' appears 0 time(s) in body (minimum 5). Real guides mention their subject frequently. This suggests template content not customized for the neighborhood.",
+        "WORD COUNT BELOW FLOOR: 1 words (minimum 1200). Content is too thin to publish.",
+        "PROSE PARAGRAPHS BELOW FLOOR: 0 substantial paragraphs (minimum 6). Real guides have multiple detailed sections."
+      ],
+      "artifact_hits": [],
+      "hard_pass_count": 28,
+      "hard_total_count": 40,
+      "soft_pass_count": 11,
+      "soft_total_count": 11,
+      "tier2_ran": true,
+      "claim_count": 0,
+      "unsourced_claims": 0,
+      "flagged_claims": 0,
+      "volatile_claims": 0,
+      "verdict": "REFRESH",
+      "verdict_reasons": [
+        "12 hard assertion failure(s)",
+        "3 quality gate failure(s)"
+      ]
+    },
+    {
+      "post_id": 1354,
+      "slug": "cost-of-selling-a-house",
+      "title": "Cost to Sell a House in 2026, Fees, Net Proceeds",
+      "top_query": "costs of selling a home",
+      "position": 79.8,
+      "impressions": 1084,
+      "word_count": 4120,
+      "target_word_count": 0,
+      "hard_failures": [
+        "18.1.2: Eyebrow element not found",
+        "18.1.9: No CTA element found",
+        "18.1.10: Expected 4 ATF cards, found 0",
+        "18.1.11: Expected 3 ATF FAQs, found 10",
+        "18.1.13b: Only 6 content H2s, minimum is 8",
+        "18.1.14: 'Estimate Your Baseline Cost Range' missing structural element (table/ul/callout); 'Model Commissions And Negotiate The Stru' missing structural element (table/ul/callout); 'Calculate Seller Closing Costs And Net P' missing structural element (table/ul/callout); 'Plan Repairs, Staging, And Moving' missing structural element (table/ul/callout); 'Avoid Deal Killers And Finalize Your Net' missing structural element (table/ul/callout)",
+        "18.1.15: Found 0 CTA elements, need >=2 (header + mid-article)",
+        "18.1.16: Closing 'The Bottom Line' H2 not found",
+        "18.1.17: BTF FAQ section (.rl-faq) not found",
+        "18.1.18: Resources Used section not found",
+        "18.3.2: Body is 297 words, fallback range is 1800-2400",
+        "18.4.1: Em dash found in body text: '...\u2014 What You\u2019ll Pay And How To Save...'",
+        "18.4.2: Banned phrases found: ['explore']",
+        "18.4.6: Two consecutive H2 sections without structural elements",
+        "18.4.8: Semicolon density 16 in 4168 words (max 13). First: '...Your market\u2019s customs matter. Some states charge no transfer tax; others assess ...'",
+        "18.4.9: AI-lexicon words found: ['leverage']"
+      ],
+      "soft_warnings": [
+        "18.5.2: Internal link density is 0.0/section (recommended 0.5-2.0)",
+        "18.5.9: 6 repetition/join flag(s):\n  - Phrase \"https www tln example cost-of-selling-a-house\" repeated 8x\n  - Phrase \"itemlistelement type howtodirection text\" repeated 5x\n  - Phrase \"acceptedanswer type answer text\" repeated 14x\n  - Phrase \"seller closing costs calculator\" repeated 4x\n  - Phrase \"seller commission calculator\" repeated 4x\n  - Paragraph-join: \"...using Markets U.S. Census: Moving A...\""
+      ],
+      "quality_gate_failures": [
+        "SUBJECT UNDERCOUNT: 'costs of selling a home' appears 0 time(s) in body (minimum 5). Real guides mention their subject frequently. This suggests template content not customized for the neighborhood."
+      ],
+      "artifact_hits": [
+        "[h1-in-body] Matched: '<h1 id=\"tlnTitle\">' | Context: ...ou\u2019ll Pay And How To Save</div>         <h1 id=\"tlnTitle\">The Cost Of Selling A House</h1>        ..."
+      ],
+      "hard_pass_count": 24,
+      "hard_total_count": 40,
+      "soft_pass_count": 9,
+      "soft_total_count": 11,
+      "tier2_ran": true,
+      "claim_count": 61,
+      "unsourced_claims": 61,
+      "flagged_claims": 0,
+      "volatile_claims": 0,
+      "verdict": "REFRESH",
+      "verdict_reasons": [
+        "16 hard assertion failure(s)",
+        "1 quality gate failure(s)",
+        "1 leaked artifact(s)",
+        "61 unsourced high-stakes claims"
+      ]
+    },
+    {
+      "post_id": 605,
+      "slug": "contributor",
+      "title": "Become a Contributor",
+      "top_query": "\"contributor guidelines\" home improvement",
+      "position": 2.1,
+      "impressions": 1069,
+      "word_count": 510,
+      "target_word_count": 0,
+      "hard_failures": [
+        "18.1.2: Eyebrow element not found",
+        "18.1.8: ATF lede is 13 words, expected 40-110",
+        "18.1.9: No CTA element found",
+        "18.1.10: Expected 4 ATF cards, found 0",
+        "18.1.11: Expected 3 ATF FAQs, found 0",
+        "18.1.13: Body has 4 H2 sections, expected 6-15",
+        "18.1.13b: Only 4 content H2s, minimum is 8",
+        "18.1.14: 'Why Contribute?' missing intro paragraph; 'Contributor Guidelines' missing intro paragraph",
+        "18.1.15: Found 0 CTA elements, need >=2 (header + mid-article)",
+        "18.1.16: Closing 'The Bottom Line' H2 not found",
+        "18.1.17: BTF FAQ section (.rl-faq) not found",
+        "18.1.18: Resources Used section not found",
+        "18.3.2: Body is 326 words, fallback range is 1800-2400",
+        "18.4.4: ATF lede contains a question mark (must be declarative)",
+        "18.4.9: AI-lexicon words found: ['navigate']"
+      ],
+      "soft_warnings": [
+        "18.5.2: Internal link density is 0.0/section (recommended 0.5-2.0)",
+        "18.5.6: 17 bullet(s) under 18 words:\n[Why Contribute?] 16w: \"Establish Your Expertise: Build credibility as an expert in the mortgage, real e\"\n[Why Contribute?] 15w: \"Support Homebuyers: Help readers navigate the complexities of mortgages and home\"\n[What We\u2019re Looking For] 4w: \"Mortgage tips and trends\"\n[What We\u2019re Looking For] 2w: \"Homebuying guides\"\n[What We\u2019re Looking For] 3w: \"Real estate strategies\"\n[What We\u2019re Looking For] 3w: \"Credit improvement tips\"\n[What We\u2019re Looking For] 5w: \"Market insights and data analysis\"\n[Contributor Guidelines] 12w: \"Original Content: All submissions must be 100% original and not published elsewh\"\n[Contributor Guidelines] 15w: \"Word Count: Articles should be between 800 and 2,000 words, depending on the top\"\n[Contributor Guidelines] 12w: \"Formatting: Use clear headings, bullet points, and concise paragraphs to enhance\"\n[Contributor Guidelines] 11w: \"Tone: Maintain a professional but approachable tone, avoiding overly technical j\"\n[Contributor Guidelines] 15w: \"Citations: Back up claims with credible sources (e.g., .gov, .edu, or respected \"\n[Contributor Guidelines] 16w: \"No Self-Promotion: Minimal self-promotion is allowed, but articles must primaril\"\n[How to Submit Your Article] 15w: \"Email your article as a Word document or Google Doc link to hi@thelendersnetwork\"\n[How to Submit Your Article] 8w: \"Add \"Guest Post Submission\" in the subject line.\"\n[How to Submit Your Article] 15w: \"Our editorial team will review your submission for quality, relevance, and adher\"\n[How to Submit Your Article] 17w: \"If approved, we\u2019ll notify you within 7-10 business days and schedule your articl\"",
+        "18.5.9: 3 repetition/join flag(s):\n  - Phrase \"27 0 _module_preset default global_colors_info\" repeated 6x\n  - Phrase \"_builder_version 4 27 0 _module_preset\" repeated 13x\n  - Phrase \"4 27 0 _module_preset default\" repeated 12x"
+      ],
+      "quality_gate_failures": [
+        "SUBJECT UNDERCOUNT: '\"contributor guidelines\" home improvement' appears 0 time(s) in body (minimum 5). Real guides mention their subject frequently. This suggests template content not customized for the neighborhood.",
+        "WORD COUNT BELOW FLOOR: 510 words (minimum 1200). Content is too thin to publish.",
+        "PROSE PARAGRAPHS BELOW FLOOR: 4 substantial paragraphs (minimum 6). Real guides have multiple detailed sections."
+      ],
+      "artifact_hits": [
+        "[h1-in-body] Matched: '<h1>' | Context: ...ted=\"on|tablet\" global_colors_info=\"{}\"]<h1>Become a Contributor to The Lenders Netw..."
+      ],
+      "hard_pass_count": 25,
+      "hard_total_count": 40,
+      "soft_pass_count": 8,
+      "soft_total_count": 11,
+      "tier2_ran": true,
+      "claim_count": 9,
+      "unsourced_claims": 9,
+      "flagged_claims": 0,
+      "volatile_claims": 0,
+      "verdict": "REFRESH",
+      "verdict_reasons": [
+        "15 hard assertion failure(s)",
+        "3 quality gate failure(s)",
+        "1 leaked artifact(s)",
+        "9 unsourced high-stakes claims"
+      ]
+    },
+    {
+      "post_id": 66,
+      "slug": "about-us",
+      "title": "About Us",
+      "top_query": "mortgage lenders network",
+      "position": 7.6,
+      "impressions": 1004,
+      "word_count": 1,
+      "target_word_count": 0,
+      "hard_failures": [
+        "18.1.2: Eyebrow element not found",
+        "18.1.8: ATF lede paragraph not found",
+        "18.1.9: No CTA element found",
+        "18.1.10: Expected 4 ATF cards, found 0",
+        "18.1.11: Expected 3 ATF FAQs, found 0",
+        "18.1.13: Body has 0 H2 sections, expected 6-15",
+        "18.1.13b: Only 0 content H2s, minimum is 8",
+        "18.1.15: Found 0 CTA elements, need >=2 (header + mid-article)",
+        "18.1.16: Closing 'The Bottom Line' H2 not found",
+        "18.1.17: BTF FAQ section (.rl-faq) not found",
+        "18.1.18: Resources Used section not found",
+        "18.3.2: Body is 0 words, fallback range is 1800-2400"
+      ],
+      "soft_warnings": [],
+      "quality_gate_failures": [
+        "SUBJECT UNDERCOUNT: 'mortgage lenders network' appears 0 time(s) in body (minimum 5). Real guides mention their subject frequently. This suggests template content not customized for the neighborhood.",
+        "WORD COUNT BELOW FLOOR: 1 words (minimum 1200). Content is too thin to publish.",
+        "PROSE PARAGRAPHS BELOW FLOOR: 0 substantial paragraphs (minimum 6). Real guides have multiple detailed sections."
+      ],
+      "artifact_hits": [],
+      "hard_pass_count": 28,
+      "hard_total_count": 40,
+      "soft_pass_count": 11,
+      "soft_total_count": 11,
+      "tier2_ran": true,
+      "claim_count": 0,
+      "unsourced_claims": 0,
+      "flagged_claims": 0,
+      "volatile_claims": 0,
+      "verdict": "REFRESH",
+      "verdict_reasons": [
+        "12 hard assertion failure(s)",
+        "3 quality gate failure(s)"
+      ]
+    },
+    {
+      "post_id": 594,
+      "slug": "high-quality-mortgage-leads",
+      "title": "Get High-Quality Mortgage Leads",
+      "top_query": "bad credit mortgage leads",
+      "position": 18,
+      "impressions": 938,
+      "word_count": 708,
+      "target_word_count": 0,
+      "hard_failures": [
+        "18.1.2: Eyebrow element not found",
+        "18.1.8: ATF lede is 31 words, expected 40-110",
+        "18.1.9: No CTA element found",
+        "18.1.10: Expected 4 ATF cards, found 0",
+        "18.1.11: Expected 3 ATF FAQs, found 0",
+        "18.1.13: Body has 1 H2 sections, expected 6-15",
+        "18.1.13b: Only 1 content H2s, minimum is 8",
+        "18.1.15: Found 0 CTA elements, need >=2 (header + mid-article)",
+        "18.1.16: Closing 'The Bottom Line' H2 not found",
+        "18.1.17: BTF FAQ section (.rl-faq) not found",
+        "18.1.18: Resources Used section not found",
+        "18.3.2: Body is 567 words, fallback range is 1800-2400",
+        "18.4.1: Em dash found in body text: '...: All leads are generated through organic search traffic fro...'"
+      ],
+      "soft_warnings": [
+        "18.5.2: Internal link density is 0.0/section (recommended 0.5-2.0)",
+        "18.5.6: 11 bullet(s) under 18 words:\n[Why Our Leads Are Different] 13w: \"Exclusive Mortgage Leads : Delivered instantly, ensuring you have the first oppo\"\n[Why Our Leads Are Different] 17w: \"Shared Leads : Sold to no more than three lenders, giving you an edge over high-\"\n[Why Our Leads Are Different] 15w: \"Live Transfers : Speak directly to prospects who are ready to act, ensuring high\"\n[Why Our Leads Are Different] 16w: \"Family-Owned and Operated : Our personal approach focuses on building lasting re\"\n[Why Our Leads Are Different] 15w: \"High Contact Rates : Fresh leads and exclusive delivery ensure you reach prospec\"\n[Why Our Leads Are Different] 16w: \"Transparent Practices : All leads are generated directly from our website, givin\"\n[Why Our Leads Are Different] 6w: \"FHA and VA new purchase leads\"\n[Why Our Leads Are Different] 5w: \"Refinance and streamline refinance leads\"\n[Why Our Leads Are Different] 3w: \"Reverse mortgage leads\"\n[Why Our Leads Are Different] 8w: \"Home equity loans and cash-out refinance leads\"\n[Why Our Leads Are Different] 7w: \"Subprime credit leads (580\u2013640 credit scores)\"",
+        "18.5.9: 5 repetition/join flag(s):\n  - Phrase \"27 0 _module_preset default global_colors_info\" repeated 6x\n  - Phrase \"_builder_version 4 27 0 _module_preset\" repeated 13x\n  - Phrase \"4 27 0 _module_preset default\" repeated 12x\n  - Phrase \"the lenders network\" repeated 8x\n  - Paragraph-join: \"...bsites in the U.S., offering high-q...\""
+      ],
+      "quality_gate_failures": [
+        "SUBJECT UNDERCOUNT: 'bad credit mortgage leads' appears 0 time(s) in body (minimum 5). Real guides mention their subject frequently. This suggests template content not customized for the neighborhood.",
+        "WORD COUNT BELOW FLOOR: 708 words (minimum 1200). Content is too thin to publish."
+      ],
+      "artifact_hits": [],
+      "hard_pass_count": 27,
+      "hard_total_count": 40,
+      "soft_pass_count": 8,
+      "soft_total_count": 11,
+      "tier2_ran": true,
+      "claim_count": 12,
+      "unsourced_claims": 11,
+      "flagged_claims": 1,
+      "volatile_claims": 0,
+      "verdict": "REFRESH",
+      "verdict_reasons": [
+        "13 hard assertion failure(s)",
+        "2 quality gate failure(s)",
+        "11 unsourced high-stakes claims"
+      ]
+    },
+    {
+      "post_id": 1734,
+      "slug": "mortgage-social-security-income",
+      "title": "Mortgage on Social Security Income: How Retirees Qualify Without Employment",
+      "top_query": "",
+      "position": 0,
+      "impressions": 937,
+      "word_count": 2638,
+      "target_word_count": 0,
+      "hard_failures": [
+        "18.1.2: Eyebrow element not found",
+        "18.1.8: ATF lede is 38 words, expected 40-110",
+        "18.1.9: No CTA element found",
+        "18.1.10: Expected 4 ATF cards, found 0",
+        "18.1.11: Expected 3 ATF FAQs, found 10",
+        "18.1.14: 'Top questions before you dig in' missing intro paragraph; 'Top questions before you dig in' missing structural element (table/ul/callout)",
+        "18.1.15: Found 0 CTA elements, need >=2 (header + mid-article)",
+        "18.1.17: BTF FAQ section (.rl-faq) not found",
+        "18.1.18: Resources Used section not found",
+        "18.3.2: Body is 1418 words, fallback range is 1800-2400",
+        "18.4.1: Em dash found in body text: '...$2,500 monthly SS benefit grossed up at 25% = $3,125 qualify...'"
+      ],
+      "soft_warnings": [
+        "18.5.9: 5 repetition/join flag(s):\n  - Phrase \"mortgage on social security\" repeated 4x\n  - Phrase \"benefit verification letter\" repeated 6x\n  - Phrase \"social security income is\" repeated 4x\n  - Phrase \"social security benefits\" repeated 4x\n  - Phrase \"your qualifying income\" repeated 4x"
+      ],
+      "quality_gate_failures": [],
+      "artifact_hits": [
+        "[h1-in-body] Matched: '<h1 id=\"mortgage-social-security-income-title\">' | Context: ...nt Income Qualification</strong> </div> <h1 id=\"mortgage-social-security-income-title\">Mortgage on Social Security Income: How ..."
+      ],
+      "hard_pass_count": 29,
+      "hard_total_count": 40,
+      "soft_pass_count": 10,
+      "soft_total_count": 11,
+      "tier2_ran": true,
+      "claim_count": 31,
+      "unsourced_claims": 28,
+      "flagged_claims": 3,
+      "volatile_claims": 0,
+      "verdict": "REFRESH",
+      "verdict_reasons": [
+        "11 hard assertion failure(s)",
+        "1 leaked artifact(s)",
+        "28 unsourced high-stakes claims"
+      ]
+    },
+    {
+      "post_id": 1429,
+      "slug": "contingent-vs-pending-real-estate",
+      "title": "Contingent vs Pending: What Each Status Means in Real Estate",
+      "top_query": "contingent vs pending",
+      "position": 58.9,
+      "impressions": 830,
+      "word_count": 2337,
+      "target_word_count": 0,
+      "hard_failures": [
+        "18.1.2: Eyebrow element not found",
+        "18.1.8: ATF lede is 20 words, expected 40-110",
+        "18.1.9: No CTA element found",
+        "18.1.10: Expected 4 ATF cards, found 0",
+        "18.1.11: Expected 3 ATF FAQs, found 9",
+        "18.1.14: 'Top questions before you dig in' missing intro paragraph; 'Top questions before you dig in' missing structural element (table/ul/callout); 'The Bottom Line Up Front' missing structural element (table/ul/callout); 'What Does Contingent Mean in Real Estate' missing structural element (table/ul/callout); 'What Does Pending Mean?' missing structural element (table/ul/callout)",
+        "18.1.15: Found 0 CTA elements, need >=2 (header + mid-article)",
+        "18.1.16: Closing is 71 words, expected 100-150",
+        "18.1.17: BTF FAQ section (.rl-faq) not found",
+        "18.1.18: Resources Used section not found",
+        "18.3.2: Body is 1259 words, fallback range is 1800-2400",
+        "18.4.1: Em dash found in body text: '...Contingent means the seller accepted an offer but conditions...'",
+        "18.4.2: Banned phrases found: ['discover']",
+        "18.4.6: Two consecutive H2 sections without structural elements"
+      ],
+      "soft_warnings": [
+        "18.5.9: 5 repetition/join flag(s):\n  - Phrase \"in competitive markets\" repeated 4x\n  - Phrase \"24 to 72 hours to\" repeated 4x\n  - Phrase \"a kick-out clause\" repeated 6x\n  - Phrase \"the earnest money\" repeated 4x\n  - Phrase \"the buyer can\" repeated 4x"
+      ],
+      "quality_gate_failures": [
+        "SUBJECT UNDERCOUNT: 'contingent vs pending' appears 2 time(s) in body (minimum 5). Real guides mention their subject frequently. This suggests template content not customized for the neighborhood."
+      ],
+      "artifact_hits": [
+        "[h1-in-body] Matched: '<h1 id=\"contingent-vs-pending-real-estate-title\">' | Context: ...ies &amp; Backup Offers</strong> </div> <h1 id=\"contingent-vs-pending-real-estate-title\">Contingent vs Pending: What Each Status ..."
+      ],
+      "hard_pass_count": 26,
+      "hard_total_count": 40,
+      "soft_pass_count": 10,
+      "soft_total_count": 11,
+      "tier2_ran": true,
+      "claim_count": 7,
+      "unsourced_claims": 7,
+      "flagged_claims": 0,
+      "volatile_claims": 0,
+      "verdict": "REFRESH",
+      "verdict_reasons": [
+        "14 hard assertion failure(s)",
+        "1 quality gate failure(s)",
+        "1 leaked artifact(s)",
+        "7 unsourced high-stakes claims"
+      ]
+    },
+    {
+      "post_id": 1731,
+      "slug": "manual-underwriting-explained",
+      "title": "Manual Underwriting: When AUS Says No and What Happens Next",
+      "top_query": "",
+      "position": 0,
+      "impressions": 597,
+      "word_count": 3202,
+      "target_word_count": 0,
+      "hard_failures": [
+        "18.1.2: Eyebrow element not found",
+        "18.1.9: No CTA element found",
+        "18.1.10: Expected 4 ATF cards, found 0",
+        "18.1.11: Expected 3 ATF FAQs, found 10",
+        "18.1.14: 'Top questions before you dig in' missing intro paragraph; 'Top questions before you dig in' missing structural element (table/ul/callout); 'Manual Underwriting DTI Limits by Progra' missing intro paragraph",
+        "18.1.15: Found 0 CTA elements, need >=2 (header + mid-article)",
+        "18.1.17: BTF FAQ section (.rl-faq) not found",
+        "18.1.18: Resources Used section not found",
+        "18.4.1: Em dash found in body text: '...puts a human reviewer on the file who can approve loans that...'"
+      ],
+      "soft_warnings": [
+        "18.5.2: Internal link density is 0.4/section (recommended 0.5-2.0)",
+        "18.5.8: 4 near-duplicate section pair(s):\n  - \"What Is Manual Underwriting?\" vs \"FHA Manual Underwriting: DTI Caps and Compensating\" (2/2 overlap)\n  - \"What Is Manual Underwriting?\" vs \"VA Manual Underwriting: Residual Income and the Hu\" (2/2 overlap)\n  - \"What Is Manual Underwriting?\" vs \"Manual Underwriting DTI Limits by Program\" (2/2 overlap)\n  - \"What Is Manual Underwriting?\" vs \"Finding a Lender That Does Manual Underwriting\" (2/2 overlap)",
+        "18.5.9: 5 repetition/join flag(s):\n  - Phrase \"compensating factors that\" repeated 4x\n  - Phrase \"does manual underwriting\" repeated 4x\n  - Phrase \"fha manual underwriting\" repeated 6x\n  - Phrase \"for manual underwriting\" repeated 6x\n  - Phrase \"manual underwriting is\" repeated 8x"
+      ],
+      "quality_gate_failures": [],
+      "artifact_hits": [
+        "[h1-in-body] Matched: '<h1 id=\"manual-underwriting-explained-title\">' | Context: ...overy and Manual Review</strong> </div> <h1 id=\"manual-underwriting-explained-title\">Manual Underwriting: When AUS Says No an..."
+      ],
+      "hard_pass_count": 31,
+      "hard_total_count": 40,
+      "soft_pass_count": 8,
+      "soft_total_count": 11,
+      "tier2_ran": true,
+      "claim_count": 17,
+      "unsourced_claims": 16,
+      "flagged_claims": 1,
+      "volatile_claims": 0,
+      "verdict": "REFRESH",
+      "verdict_reasons": [
+        "9 hard assertion failure(s)",
+        "1 leaked artifact(s)",
+        "16 unsourced high-stakes claims"
+      ]
+    },
+    {
+      "post_id": 1415,
+      "slug": "fha-vs-conventional",
+      "title": "FHA Loan vs Conventional Loan: Full Comparison",
+      "top_query": "",
+      "position": 0,
+      "impressions": 515,
+      "word_count": 2317,
+      "target_word_count": 0,
+      "hard_failures": [
+        "18.1.2: Eyebrow element not found",
+        "18.1.9: No CTA element found",
+        "18.1.10: Expected 4 ATF cards, found 0",
+        "18.1.11: Expected 3 ATF FAQs, found 8",
+        "18.1.13b: Only 6 content H2s, minimum is 8",
+        "18.1.14: 'Top questions before you dig in' missing intro paragraph; 'Top questions before you dig in' missing structural element (table/ul/callout); 'The Bottom Line Up Front' missing structural element (table/ul/callout); 'What About Loan Limits?' missing structural element (table/ul/callout); 'Which Program Should You Choose?' missing structural element (table/ul/callout)",
+        "18.1.15: Found 0 CTA elements, need >=2 (header + mid-article)",
+        "18.1.17: BTF FAQ section (.rl-faq) not found",
+        "18.1.18: Resources Used section not found",
+        "18.3.2: Body is 1222 words, fallback range is 1800-2400",
+        "18.4.1: Em dash found in body text: '...FHA wins below 680 credit because conventional loan-level pr...'",
+        "18.4.6: Two consecutive H2 sections without structural elements",
+        "18.4.8: Semicolon density 12 in 2424 words (max 8). First: '...580 with 3.5% down (500 with 10% down); conventional requires 620 minimum...'",
+        "18.4.9: AI-lexicon words found: ['navigate']"
+      ],
+      "soft_warnings": [
+        "18.5.9: 5 repetition/join flag(s):\n  - Phrase \"5-year and 10-year total cost\" repeated 4x\n  - Phrase \"not just the monthly payment\" repeated 4x\n  - Phrase \"loan-level price adjustments\" repeated 4x\n  - Phrase \"cost not just the monthly\" repeated 4x\n  - Phrase \"fha mip is permanent\" repeated 4x"
+      ],
+      "quality_gate_failures": [],
+      "artifact_hits": [
+        "[h1-in-body] Matched: '<h1 id=\"fha-loan-vs-conventional-title\">' | Context: ...wn Payment, Loan Limits</strong> </div> <h1 id=\"fha-loan-vs-conventional-title\">FHA Loan vs Conventional Loan: Full Comp..."
+      ],
+      "hard_pass_count": 26,
+      "hard_total_count": 40,
+      "soft_pass_count": 10,
+      "soft_total_count": 11,
+      "tier2_ran": true,
+      "claim_count": 20,
+      "unsourced_claims": 18,
+      "flagged_claims": 2,
+      "volatile_claims": 0,
+      "verdict": "REFRESH",
+      "verdict_reasons": [
+        "14 hard assertion failure(s)",
+        "1 leaked artifact(s)",
+        "18 unsourced high-stakes claims"
+      ]
+    },
+    {
+      "post_id": 1525,
+      "slug": "chapter-13-mortgage-during-repayment",
+      "title": "Buying a House During Chapter 13: Court Approval, FHA Rules, and Lender Requirements",
+      "top_query": "\"active chapter 13\" \"fha streamline refinance\"",
+      "position": 7.8,
+      "impressions": 504,
+      "word_count": 2535,
+      "target_word_count": 0,
+      "hard_failures": [
+        "18.1.2: Eyebrow element not found",
+        "18.1.9: No CTA element found",
+        "18.1.10: Expected 4 ATF cards, found 0",
+        "18.1.11: Expected 3 ATF FAQs, found 9",
+        "18.1.13b: Only 7 content H2s, minimum is 8",
+        "18.1.14: 'Top questions before you dig in' missing intro paragraph; 'Top questions before you dig in' missing structural element (table/ul/callout); 'The Bottom Line Up Front' missing structural element (table/ul/callout); 'How Does Chapter 13 Mortgage Approval Ac' missing structural element (table/ul/callout); 'What Does the Trustee Evaluate?' missing structural element (table/ul/callout)",
+        "18.1.15: Found 0 CTA elements, need >=2 (header + mid-article)",
+        "18.1.17: BTF FAQ section (.rl-faq) not found",
+        "18.1.18: Resources Used section not found",
+        "18.2.3: Internal anchors outside 1-5 word range: [\"'Find a Lender That Fits Your File' (7w)\", \"'Find a Lender That Fits Your File' (7w)\", \"'Find a Lender That Fits Your File' (7w)\"]",
+        "18.3.2: Body is 1367 words, fallback range is 1800-2400",
+        "18.4.1: Em dash found in body text: '...must fit within your existing repayment plan budget. Finding...'",
+        "18.4.6: Two consecutive H2 sections without structural elements"
+      ],
+      "soft_warnings": [
+        "18.5.5: 1 enumeration-as-prose flag(s):\n[How Does Chapter 13 Mortgage Approv] Grade/tier enum (3 items): basic, standard, budget",
+        "18.5.9: 5 repetition/join flag(s):\n  - Phrase \"start the trustee approval process\" repeated 4x\n  - Phrase \"the proposed mortgage payment\" repeated 4x\n  - Phrase \"after 12 months of on-time\" repeated 4x\n  - Phrase \"on-time plan payments with\" repeated 4x\n  - Phrase \"during active chapter 13\" repeated 7x"
+      ],
+      "quality_gate_failures": [
+        "SUBJECT UNDERCOUNT: '\"active chapter 13\" \"fha streamline refinance\"' appears 0 time(s) in body (minimum 5). Real guides mention their subject frequently. This suggests template content not customized for the neighborhood."
+      ],
+      "artifact_hits": [
+        "[h1-in-body] Matched: '<h1 id=\"chapter-13-mortgage-during-repayment-title\">' | Context: ...nts, Trustee Permission</strong> </div> <h1 id=\"chapter-13-mortgage-during-repayment-title\">Buying a House During Chapter 13: Court ..."
+      ],
+      "hard_pass_count": 27,
+      "hard_total_count": 40,
+      "soft_pass_count": 9,
+      "soft_total_count": 11,
+      "tier2_ran": true,
+      "claim_count": 15,
+      "unsourced_claims": 14,
+      "flagged_claims": 1,
+      "volatile_claims": 0,
+      "verdict": "REFRESH",
+      "verdict_reasons": [
+        "13 hard assertion failure(s)",
+        "1 quality gate failure(s)",
+        "1 leaked artifact(s)",
+        "14 unsourced high-stakes claims"
+      ]
+    },
+    {
+      "post_id": 1474,
+      "slug": "mortgage-escrow-refund",
+      "title": "Mortgage Escrow Refund: When You Get One, How Much, and What to Do If It Is Wrong",
+      "top_query": "",
+      "position": 0,
+      "impressions": 485,
+      "word_count": 2227,
+      "target_word_count": 0,
+      "hard_failures": [
+        "18.1.2: Eyebrow element not found",
+        "18.1.9: No CTA element found",
+        "18.1.10: Expected 4 ATF cards, found 0",
+        "18.1.11: Expected 3 ATF FAQs, found 8",
+        "18.1.13b: Only 7 content H2s, minimum is 8",
+        "18.1.14: 'Top questions before you dig in' missing intro paragraph; 'Top questions before you dig in' missing structural element (table/ul/callout); 'The Bottom Line Up Front' missing structural element (table/ul/callout); 'How Do Annual Escrow Analysis Refunds Wo' missing structural element (table/ul/callout); 'What Happens to Escrow When You Pay Off ' missing structural element (table/ul/callout)",
+        "18.1.15: Found 0 CTA elements, need >=2 (header + mid-article)",
+        "18.1.17: BTF FAQ section (.rl-faq) not found",
+        "18.1.18: Resources Used section not found",
+        "18.3.2: Body is 1203 words, fallback range is 1800-2400",
+        "18.4.1: Em dash found in body text: '...Escrow refunds are your money being returned \u2014 not a bonus. ...'",
+        "18.4.6: Two consecutive H2 sections without structural elements"
+      ],
+      "soft_warnings": [
+        "18.5.9: 5 repetition/join flag(s):\n  - Phrase \"send a qualified written request\" repeated 4x\n  - Phrase \"the analysis projections\" repeated 4x\n  - Phrase \"within 20 business days\" repeated 6x\n  - Phrase \"within 30 days of the\" repeated 4x\n  - Phrase \"your actual tax bill\" repeated 4x"
+      ],
+      "quality_gate_failures": [],
+      "artifact_hits": [
+        "[h1-in-body] Matched: '<h1 id=\"mortgage-escrow-refund-title\">' | Context: ...ghts, Wrong Projections</strong> </div> <h1 id=\"mortgage-escrow-refund-title\">Mortgage Escrow Refund: When You Get One..."
+      ],
+      "hard_pass_count": 28,
+      "hard_total_count": 40,
+      "soft_pass_count": 10,
+      "soft_total_count": 11,
+      "tier2_ran": true,
+      "claim_count": 19,
+      "unsourced_claims": 19,
+      "flagged_claims": 0,
+      "volatile_claims": 0,
+      "verdict": "REFRESH",
+      "verdict_reasons": [
+        "12 hard assertion failure(s)",
+        "1 leaked artifact(s)",
+        "19 unsourced high-stakes claims"
+      ]
+    },
+    {
+      "post_id": 64,
+      "slug": "apply-now",
+      "title": "Apply Now",
+      "top_query": "mortgage lenders network",
+      "position": 5.8,
+      "impressions": 443,
+      "word_count": 23,
+      "target_word_count": 0,
+      "hard_failures": [
+        "18.1.2: Eyebrow element not found",
+        "18.1.8: ATF lede paragraph not found",
+        "18.1.9: No CTA element found",
+        "18.1.10: Expected 4 ATF cards, found 0",
+        "18.1.11: Expected 3 ATF FAQs, found 0",
+        "18.1.13: Body has 0 H2 sections, expected 6-15",
+        "18.1.13b: Only 0 content H2s, minimum is 8",
+        "18.1.15: Found 0 CTA elements, need >=2 (header + mid-article)",
+        "18.1.16: Closing 'The Bottom Line' H2 not found",
+        "18.1.17: BTF FAQ section (.rl-faq) not found",
+        "18.1.18: Resources Used section not found",
+        "18.3.2: Body is 0 words, fallback range is 1800-2400"
+      ],
+      "soft_warnings": [
+        "18.5.9: 2 repetition/join flag(s):\n  - Phrase \"_builder_version 4 27 0 _module_preset\" repeated 4x\n  - Phrase \"4 27 0 _module_preset default\" repeated 4x"
+      ],
+      "quality_gate_failures": [
+        "SUBJECT UNDERCOUNT: 'mortgage lenders network' appears 0 time(s) in body (minimum 5). Real guides mention their subject frequently. This suggests template content not customized for the neighborhood.",
+        "WORD COUNT BELOW FLOOR: 23 words (minimum 1200). Content is too thin to publish.",
+        "PROSE PARAGRAPHS BELOW FLOOR: 0 substantial paragraphs (minimum 6). Real guides have multiple detailed sections."
+      ],
+      "artifact_hits": [],
+      "hard_pass_count": 28,
+      "hard_total_count": 40,
+      "soft_pass_count": 10,
+      "soft_total_count": 11,
+      "tier2_ran": true,
+      "claim_count": 0,
+      "unsourced_claims": 0,
+      "flagged_claims": 0,
+      "volatile_claims": 0,
+      "verdict": "REFRESH",
+      "verdict_reasons": [
+        "12 hard assertion failure(s)",
+        "3 quality gate failure(s)"
+      ]
+    },
+    {
+      "post_id": 1725,
+      "slug": "overtime-income-mortgage",
+      "title": "Mortgage with Overtime Income: Documentation Rules and Calculation by Loan Type",
+      "top_query": "",
+      "position": 0,
+      "impressions": 429,
+      "word_count": 2841,
+      "target_word_count": 0,
+      "hard_failures": [
+        "18.1.2: Eyebrow element not found",
+        "18.1.8: ATF lede is 38 words, expected 40-110",
+        "18.1.9: No CTA element found",
+        "18.1.10: Expected 4 ATF cards, found 0",
+        "18.1.11: Expected 3 ATF FAQs, found 10",
+        "18.1.14: 'Top questions before you dig in' missing intro paragraph; 'Top questions before you dig in' missing structural element (table/ul/callout)",
+        "18.1.15: Found 0 CTA elements, need >=2 (header + mid-article)",
+        "18.1.17: BTF FAQ section (.rl-faq) not found",
+        "18.1.18: Resources Used section not found",
+        "18.3.2: Body is 1596 words, fallback range is 1800-2400",
+        "18.4.1: Em dash found in body text: '...Overtime income can significantly increase your qualifying a...'"
+      ],
+      "soft_warnings": [
+        "18.5.9: 5 repetition/join flag(s):\n  - Phrase \"when overtime is declining\" repeated 4x\n  - Phrase \"when the trend is stable\" repeated 4x\n  - Phrase \"of documented overtime\" repeated 4x\n  - Phrase \"_builder_version 4 16\" repeated 4x\n  - Phrase \"expected to continue\" repeated 6x"
+      ],
+      "quality_gate_failures": [],
+      "artifact_hits": [
+        "[h1-in-body] Matched: '<h1 id=\"overtime-income-mortgage-title\">' | Context: ...ation and Qualification</strong> </div> <h1 id=\"overtime-income-mortgage-title\">Mortgage with Overtime Income: Documenta..."
+      ],
+      "hard_pass_count": 29,
+      "hard_total_count": 40,
+      "soft_pass_count": 10,
+      "soft_total_count": 11,
+      "tier2_ran": true,
+      "claim_count": 11,
+      "unsourced_claims": 11,
+      "flagged_claims": 0,
+      "volatile_claims": 0,
+      "verdict": "REFRESH",
+      "verdict_reasons": [
+        "11 hard assertion failure(s)",
+        "1 leaked artifact(s)",
+        "11 unsourced high-stakes claims"
+      ]
+    },
+    {
+      "post_id": 746,
+      "slug": "credit-repair-guide",
+      "title": "Credit Repair for Mortgage Qualification: A Step-by-Step Guide",
+      "top_query": "\"credit repair guide\"",
+      "position": 7.0,
+      "impressions": 421,
+      "word_count": 2164,
+      "target_word_count": 0,
+      "hard_failures": [
+        "18.1.2: Eyebrow element not found",
+        "18.1.9: No CTA element found",
+        "18.1.10: Expected 4 ATF cards, found 0",
+        "18.1.11: Expected 3 ATF FAQs, found 8",
+        "18.1.14: 'Top questions before you dig in' missing intro paragraph; 'Top questions before you dig in' missing structural element (table/ul/callout); 'The Bottom Line Up Front' missing structural element (table/ul/callout); 'Step 1: Crush Your Credit Card Utilizati' missing structural element (table/ul/callout); 'Step 2: Dispute Errors on All Three Bure' missing structural element (table/ul/callout)",
+        "18.1.15: Found 0 CTA elements, need >=2 (header + mid-article)",
+        "18.1.16: Closing is 70 words, expected 100-150",
+        "18.1.17: BTF FAQ section (.rl-faq) not found",
+        "18.1.18: Resources Used section not found",
+        "18.3.2: Body is 834 words, fallback range is 1800-2400",
+        "18.4.1: Em dash found in body text: '...Credit repair for mortgage qualification is a solvable probl...'",
+        "18.4.6: Two consecutive H2 sections without structural elements"
+      ],
+      "soft_warnings": [
+        "18.5.2: Internal link density is 0.4/section (recommended 0.5-2.0)",
+        "18.5.5: 1 enumeration-as-prose flag(s):\n[What to Avoid During Credit Repair] Parallel opener \"do not\" x4",
+        "18.5.9: 2 repetition/join flag(s):\n  - Phrase \"credit repair for mortgage qualification\" repeated 5x\n  - Phrase \"a credit repair company\" repeated 7x"
+      ],
+      "quality_gate_failures": [
+        "SUBJECT UNDERCOUNT: '\"credit repair guide\"' appears 0 time(s) in body (minimum 5). Real guides mention their subject frequently. This suggests template content not customized for the neighborhood."
+      ],
+      "artifact_hits": [
+        "[h1-in-body] Matched: '<h1>' | Context: ...r Mortgage Qualification</strong></div> <h1>Credit Repair for Mortgage Qualification..."
+      ],
+      "hard_pass_count": 28,
+      "hard_total_count": 40,
+      "soft_pass_count": 8,
+      "soft_total_count": 11,
+      "tier2_ran": true,
+      "claim_count": 12,
+      "unsourced_claims": 9,
+      "flagged_claims": 3,
+      "volatile_claims": 0,
+      "verdict": "REFRESH",
+      "verdict_reasons": [
+        "12 hard assertion failure(s)",
+        "1 quality gate failure(s)",
+        "1 leaked artifact(s)",
+        "9 unsourced high-stakes claims"
+      ]
+    },
+    {
+      "post_id": 1728,
+      "slug": "bonus-income-mortgage",
+      "title": "Mortgage with Bonus Income: How Lenders Calculate and Verify Variable Pay",
+      "top_query": "fannie mae bonus income",
+      "position": 25,
+      "impressions": 399,
+      "word_count": 2555,
+      "target_word_count": 0,
+      "hard_failures": [
+        "18.1.2: Eyebrow element not found",
+        "18.1.8: ATF lede is 37 words, expected 40-110",
+        "18.1.9: No CTA element found",
+        "18.1.10: Expected 4 ATF cards, found 0",
+        "18.1.11: Expected 3 ATF FAQs, found 9",
+        "18.1.13b: Only 7 content H2s, minimum is 8",
+        "18.1.14: 'Top questions before you dig in' missing intro paragraph; 'Top questions before you dig in' missing structural element (table/ul/callout)",
+        "18.1.15: Found 0 CTA elements, need >=2 (header + mid-article)",
+        "18.1.17: BTF FAQ section (.rl-faq) not found",
+        "18.1.18: Resources Used section not found",
+        "18.3.2: Body is 1392 words, fallback range is 1800-2400",
+        "18.4.1: Em dash found in body text: '...Conventional loans require at least 12 months. FHA, VA, and ...'"
+      ],
+      "soft_warnings": [
+        "18.5.9: 5 repetition/join flag(s):\n  - Phrase \"the qualifying calculation\" repeated 4x\n  - Phrase \"your qualifying income\" repeated 4x\n  - Phrase \"_builder_version 4 16\" repeated 4x\n  - Phrase \"as qualifying income\" repeated 6x\n  - Phrase \"the two-year average\" repeated 6x"
+      ],
+      "quality_gate_failures": [
+        "SUBJECT UNDERCOUNT: 'fannie mae bonus income' appears 0 time(s) in body (minimum 5). Real guides mention their subject frequently. This suggests template content not customized for the neighborhood."
+      ],
+      "artifact_hits": [
+        "[h1-in-body] Matched: '<h1 id=\"bonus-income-mortgage-title\">' | Context: ...ntation and Calculation</strong> </div> <h1 id=\"bonus-income-mortgage-title\">Mortgage with Bonus Income: How Lenders ..."
+      ],
+      "hard_pass_count": 28,
+      "hard_total_count": 40,
+      "soft_pass_count": 10,
+      "soft_total_count": 11,
+      "tier2_ran": true,
+      "claim_count": 11,
+      "unsourced_claims": 10,
+      "flagged_claims": 1,
+      "volatile_claims": 0,
+      "verdict": "REFRESH",
+      "verdict_reasons": [
+        "12 hard assertion failure(s)",
+        "1 quality gate failure(s)",
+        "1 leaked artifact(s)",
+        "10 unsourced high-stakes claims"
+      ]
+    },
+    {
+      "post_id": 1490,
+      "slug": "usda-guaranteed-vs-direct-loan",
+      "title": "USDA Guaranteed vs Direct Loan: Which Program Fits Your Income and Property",
+      "top_query": "",
+      "position": 0,
+      "impressions": 392,
+      "word_count": 2373,
+      "target_word_count": 0,
+      "hard_failures": [
+        "18.1.2: Eyebrow element not found",
+        "18.1.9: No CTA element found",
+        "18.1.10: Expected 4 ATF cards, found 0",
+        "18.1.11: Expected 3 ATF FAQs, found 9",
+        "18.1.13b: Only 7 content H2s, minimum is 8",
+        "18.1.14: 'Top questions before you dig in' missing intro paragraph; 'Top questions before you dig in' missing structural element (table/ul/callout); 'The Bottom Line Up Front' missing structural element (table/ul/callout); 'How Do You Check Property and Income Eli' missing structural element (table/ul/callout)",
+        "18.1.15: Found 0 CTA elements, need >=2 (header + mid-article)",
+        "18.1.17: BTF FAQ section (.rl-faq) not found",
+        "18.1.18: Resources Used section not found",
+        "18.3.2: Body is 1296 words, fallback range is 1800-2400",
+        "18.4.1: Em dash found in body text: '...Household income up to 115% of area median income \u2014 covers m...'",
+        "18.4.6: Two consecutive H2 sections without structural elements"
+      ],
+      "soft_warnings": [
+        "18.5.6: 2 bullet(s) under 18 words:\n[What Are the USDA Guaranteed Loan R] 16w: \"Down payment: $0 required \u2014 100% of the purchase price can be financed including\"\n[What Are the USDA Direct Loan Requi] 13w: \"Down payment: $0 required \u2014 100% financing with no down payment, same as Guarant\"",
+        "18.5.8: 1 near-duplicate section pair(s):\n  - \"What Are the USDA Guaranteed Loan Requirements?\" vs \"What Are the USDA Direct Loan Requirements?\" (4/5 overlap)",
+        "18.5.9: 5 repetition/join flag(s):\n  - Phrase \"115 of area median income\" repeated 4x\n  - Phrase \"program serves households\" repeated 4x\n  - Phrase \"through private lenders\" repeated 7x\n  - Phrase \"the guaranteed program\" repeated 9x\n  - Phrase \"usda rural development\" repeated 8x"
+      ],
+      "quality_gate_failures": [],
+      "artifact_hits": [
+        "[h1-in-body] Matched: '<h1 id=\"usda-guaranteed-vs-direct-loan-title\">' | Context: ... Geographic Eligibility</strong> </div> <h1 id=\"usda-guaranteed-vs-direct-loan-title\">USDA Guaranteed vs Direct Loan: Which Pr..."
+      ],
+      "hard_pass_count": 28,
+      "hard_total_count": 40,
+      "soft_pass_count": 8,
+      "soft_total_count": 11,
+      "tier2_ran": true,
+      "claim_count": 21,
+      "unsourced_claims": 20,
+      "flagged_claims": 1,
+      "volatile_claims": 0,
+      "verdict": "REFRESH",
+      "verdict_reasons": [
+        "12 hard assertion failure(s)",
+        "1 leaked artifact(s)",
+        "20 unsourced high-stakes claims"
+      ]
+    },
+    {
+      "post_id": 1522,
+      "slug": "authorized-user-mortgage",
+      "title": "Authorized User for Mortgage Credit: Does Piggybacking Actually Work with Lenders?",
+      "top_query": "fannie mae authorized user accounts",
+      "position": 9.3,
+      "impressions": 358,
+      "word_count": 2621,
+      "target_word_count": 0,
+      "hard_failures": [
+        "18.1.2: Eyebrow element not found",
+        "18.1.9: No CTA element found",
+        "18.1.10: Expected 4 ATF cards, found 0",
+        "18.1.11: Expected 3 ATF FAQs, found 9",
+        "18.1.13b: Only 6 content H2s, minimum is 8",
+        "18.1.14: 'Top questions before you dig in' missing intro paragraph; 'Top questions before you dig in' missing structural element (table/ul/callout); 'The Bottom Line Up Front' missing structural element (table/ul/callout); 'How Does Authorized User Piggybacking Wo' missing structural element (table/ul/callout); 'How Do Mortgage Lenders Treat Authorized' missing structural element (table/ul/callout)",
+        "18.1.15: Found 0 CTA elements, need >=2 (header + mid-article)",
+        "18.1.17: BTF FAQ section (.rl-faq) not found",
+        "18.1.18: Resources Used section not found",
+        "18.3.2: Body is 1405 words, fallback range is 1800-2400",
+        "18.4.1: Em dash found in body text: '...Being added as an authorized user on a family member's credi...'",
+        "18.4.2: Banned phrases found: ['discover']",
+        "18.4.6: Two consecutive H2 sections without structural elements"
+      ],
+      "soft_warnings": [
+        "18.5.9: 5 repetition/join flag(s):\n  - Phrase \"accept authorized user tradelines for\" repeated 4x\n  - Phrase \"lenders accept authorized user\" repeated 4x\n  - Phrase \"authorized user accounts\" repeated 5x\n  - Phrase \"the primary cardholder\" repeated 8x\n  - Phrase \"as an authorized user\" repeated 6x"
+      ],
+      "quality_gate_failures": [
+        "SUBJECT UNDERCOUNT: 'fannie mae authorized user accounts' appears 0 time(s) in body (minimum 5). Real guides mention their subject frequently. This suggests template content not customized for the neighborhood."
+      ],
+      "artifact_hits": [
+        "[h1-in-body] Matched: '<h1 id=\"authorized-user-mortgage-title\">' | Context: ...es, Which Accounts Work</strong> </div> <h1 id=\"authorized-user-mortgage-title\">Authorized User for Mortgage Credit: Doe..."
+      ],
+      "hard_pass_count": 27,
+      "hard_total_count": 40,
+      "soft_pass_count": 10,
+      "soft_total_count": 11,
+      "tier2_ran": true,
+      "claim_count": 24,
+      "unsourced_claims": 19,
+      "flagged_claims": 5,
+      "volatile_claims": 0,
+      "verdict": "REFRESH",
+      "verdict_reasons": [
+        "13 hard assertion failure(s)",
+        "1 quality gate failure(s)",
+        "1 leaked artifact(s)",
+        "19 unsourced high-stakes claims"
+      ]
+    },
+    {
+      "post_id": 1526,
+      "slug": "mortgage-late-payments",
+      "title": "How Late Payments Affect Your Mortgage: 30, 60, and 90-Day Impact on Approval",
+      "top_query": "",
+      "position": 0,
+      "impressions": 287,
+      "word_count": 2658,
+      "target_word_count": 0,
+      "hard_failures": [
+        "18.1.2: Eyebrow element not found",
+        "18.1.9: No CTA element found",
+        "18.1.10: Expected 4 ATF cards, found 0",
+        "18.1.11: Expected 3 ATF FAQs, found 9",
+        "18.1.13b: Only 6 content H2s, minimum is 8",
+        "18.1.14: 'Top questions before you dig in' missing intro paragraph; 'Top questions before you dig in' missing structural element (table/ul/callout); 'The Bottom Line Up Front' missing structural element (table/ul/callout); 'How Do 30-Day Late Payments Affect Mortg' missing structural element (table/ul/callout); 'How Long Does It Take to Recover from La' missing structural element (table/ul/callout)",
+        "18.1.15: Found 0 CTA elements, need >=2 (header + mid-article)",
+        "18.1.16: Closing is 157 words, expected 100-150",
+        "18.1.17: BTF FAQ section (.rl-faq) not found",
+        "18.1.18: Resources Used section not found",
+        "18.3.2: Body is 1425 words, fallback range is 1800-2400",
+        "18.4.1: Em dash found in body text: '...are not permanent disqualifiers \u2014 the scoring impact decreas...'",
+        "18.4.6: Two consecutive H2 sections without structural elements"
+      ],
+      "soft_warnings": [
+        "18.5.9: 5 repetition/join flag(s):\n  - Phrase \"mortgage payment behavior\" repeated 4x\n  - Phrase \"housing late payments\" repeated 5x\n  - Phrase \"a single 30-day late\" repeated 6x\n  - Phrase \"30-day late payment\" repeated 5x\n  - Phrase \"the scoring impact\" repeated 6x"
+      ],
+      "quality_gate_failures": [],
+      "artifact_hits": [
+        "[h1-in-body] Matched: '<h1 id=\"mortgage-late-payments-title\">' | Context: ...ayments, Score Recovery</strong> </div> <h1 id=\"mortgage-late-payments-title\">How Late Payments Affect Your Mortgage: ..."
+      ],
+      "hard_pass_count": 27,
+      "hard_total_count": 40,
+      "soft_pass_count": 10,
+      "soft_total_count": 11,
+      "tier2_ran": true,
+      "claim_count": 7,
+      "unsourced_claims": 7,
+      "flagged_claims": 0,
+      "volatile_claims": 0,
+      "verdict": "REFRESH",
+      "verdict_reasons": [
+        "13 hard assertion failure(s)",
+        "1 leaked artifact(s)",
+        "7 unsourced high-stakes claims"
+      ]
+    },
+    {
+      "post_id": 755,
+      "slug": "how-to-refinance-with-bad-credit",
+      "title": "10 Options to Refinance with Bad Credit",
+      "top_query": "",
+      "position": 0,
+      "impressions": 256,
+      "word_count": 2255,
+      "target_word_count": 0,
+      "hard_failures": [
+        "18.1.2: Eyebrow element not found",
+        "18.1.9: No CTA element found",
+        "18.1.10: Expected 4 ATF cards, found 0",
+        "18.1.11: Expected 3 ATF FAQs, found 8",
+        "18.1.13b: Only 6 content H2s, minimum is 8",
+        "18.1.14: 'Top questions before you dig in' missing intro paragraph; 'Top questions before you dig in' missing structural element (table/ul/callout); 'The Bottom Line Up Front' missing structural element (table/ul/callout); 'How Much Does Bad Credit Cost When Refin' missing structural element (table/ul/callout)",
+        "18.1.15: Found 0 CTA elements, need >=2 (header + mid-article)",
+        "18.1.16: Closing is 167 words, expected 100-150",
+        "18.1.17: BTF FAQ section (.rl-faq) not found",
+        "18.1.18: Resources Used section not found",
+        "18.3.2: Body is 1144 words, fallback range is 1800-2400",
+        "18.4.1: Em dash found in body text: '.... FHA Streamline and VA IRRRL skip the credit check entirely...'",
+        "18.4.6: Two consecutive H2 sections without structural elements",
+        "18.4.8: Semicolon density 9 in 2326 words (max 7). First: '...Not required \u2014 no income verification, no appraisal; 0.5% funding fee (waived if...'"
+      ],
+      "soft_warnings": [
+        "18.5.2: Internal link density is 2.3/section (recommended 0.5-2.0)",
+        "18.5.9: 5 repetition/join flag(s):\n  - Phrase \"no income verification no appraisal\" repeated 4x\n  - Phrase \"60-90 day credit improvement plan\" repeated 5x\n  - Phrase \"a 60-90 day credit improvement\" repeated 4x\n  - Phrase \"fha streamline and va irrrl\" repeated 4x\n  - Phrase \"refinance with bad credit\" repeated 4x"
+      ],
+      "quality_gate_failures": [],
+      "artifact_hits": [
+        "[h1-in-body] Matched: '<h1 id=\"how-to-refinance-with-bad-credit-title\">' | Context: ...Rate-and-Term, Cash-Out</strong> </div> <h1 id=\"how-to-refinance-with-bad-credit-title\">How to Refinance with Bad Credit: 10 Opt..."
+      ],
+      "hard_pass_count": 26,
+      "hard_total_count": 40,
+      "soft_pass_count": 9,
+      "soft_total_count": 11,
+      "tier2_ran": true,
+      "claim_count": 17,
+      "unsourced_claims": 10,
+      "flagged_claims": 7,
+      "volatile_claims": 0,
+      "verdict": "REFRESH",
+      "verdict_reasons": [
+        "14 hard assertion failure(s)",
+        "1 leaked artifact(s)",
+        "10 unsourced high-stakes claims"
+      ]
+    },
+    {
+      "post_id": 1527,
+      "slug": "debt-to-income-ratio-too-high",
+      "title": "DTI Ratio Too High for a Mortgage? Strategies to Lower It and Programs That Allow More",
+      "top_query": "\"56.99\" fha total scorecard",
+      "position": 10,
+      "impressions": 249,
+      "word_count": 2545,
+      "target_word_count": 0,
+      "hard_failures": [
+        "18.1.2: Eyebrow element not found",
+        "18.1.9: No CTA element found",
+        "18.1.10: Expected 4 ATF cards, found 0",
+        "18.1.11: Expected 3 ATF FAQs, found 9",
+        "18.1.13: Body has 5 H2 sections, expected 6-15",
+        "18.1.13b: Only 5 content H2s, minimum is 8",
+        "18.1.14: 'The Bottom Line Up Front' missing structural element (table/ul/callout); 'How Does Lowering the Purchase Price Aff' missing structural element (table/ul/callout); 'How Does Adding a Co-Borrower Fix High D' missing structural element (table/ul/callout)",
+        "18.1.15: Found 0 CTA elements, need >=2 (header + mid-article)",
+        "18.1.17: BTF FAQ section (.rl-faq) not found",
+        "18.1.18: Resources Used section not found",
+        "18.3.2: Body is 1445 words, fallback range is 1800-2400",
+        "18.4.1: Em dash found in body text: '...45% standard DU max; up to 50% with very strong compensating...'",
+        "18.4.2: Banned phrases found: ['explore']",
+        "18.4.4: ATF lede contains a question mark (must be declarative)",
+        "18.4.6: Two consecutive H2 sections without structural elements"
+      ],
+      "soft_warnings": [
+        "18.5.9: 5 repetition/join flag(s):\n  - Phrase \"with compensating factors\" repeated 6x\n  - Phrase \"compensating factors va\" repeated 4x\n  - Phrase \"on 6 000 month income\" repeated 4x\n  - Phrase \"residual income model\" repeated 6x\n  - Phrase \"_builder_version 4 x\" repeated 4x"
+      ],
+      "quality_gate_failures": [
+        "SUBJECT UNDERCOUNT: '\"56.99\" fha total scorecard' appears 0 time(s) in body (minimum 5). Real guides mention their subject frequently. This suggests template content not customized for the neighborhood."
+      ],
+      "artifact_hits": [
+        "[h1-in-body] Matched: '<h1 id=\"debt-to-income-ratio-too-high-title\">' | Context: ...on-Occupant Co-Borrower</strong> </div> <h1 id=\"debt-to-income-ratio-too-high-title\">DTI Ratio Too High for a Mortgage? Strat..."
+      ],
+      "hard_pass_count": 25,
+      "hard_total_count": 40,
+      "soft_pass_count": 10,
+      "soft_total_count": 11,
+      "tier2_ran": true,
+      "claim_count": 15,
+      "unsourced_claims": 15,
+      "flagged_claims": 0,
+      "volatile_claims": 0,
+      "verdict": "REFRESH",
+      "verdict_reasons": [
+        "15 hard assertion failure(s)",
+        "1 quality gate failure(s)",
+        "1 leaked artifact(s)",
+        "15 unsourced high-stakes claims"
+      ]
+    },
+    {
+      "post_id": 106,
+      "slug": "blog",
+      "title": "Blog",
+      "top_query": "mortgage lenders network usa",
+      "position": 3.3,
+      "impressions": 226,
+      "word_count": 46,
+      "target_word_count": 0,
+      "hard_failures": [
+        "18.1.2: Eyebrow element not found",
+        "18.1.8: ATF lede paragraph not found",
+        "18.1.9: No CTA element found",
+        "18.1.10: Expected 4 ATF cards, found 0",
+        "18.1.11: Expected 3 ATF FAQs, found 0",
+        "18.1.13: Body has 0 H2 sections, expected 6-15",
+        "18.1.13b: Only 0 content H2s, minimum is 8",
+        "18.1.15: Found 0 CTA elements, need >=2 (header + mid-article)",
+        "18.1.16: Closing 'The Bottom Line' H2 not found",
+        "18.1.17: BTF FAQ section (.rl-faq) not found",
+        "18.1.18: Resources Used section not found",
+        "18.3.2: Body is 0 words, fallback range is 1800-2400"
+      ],
+      "soft_warnings": [],
+      "quality_gate_failures": [
+        "SUBJECT UNDERCOUNT: 'mortgage lenders network usa' appears 0 time(s) in body (minimum 5). Real guides mention their subject frequently. This suggests template content not customized for the neighborhood.",
+        "WORD COUNT BELOW FLOOR: 46 words (minimum 1200). Content is too thin to publish.",
+        "PROSE PARAGRAPHS BELOW FLOOR: 0 substantial paragraphs (minimum 6). Real guides have multiple detailed sections."
+      ],
+      "artifact_hits": [],
+      "hard_pass_count": 28,
+      "hard_total_count": 40,
+      "soft_pass_count": 11,
+      "soft_total_count": 11,
+      "tier2_ran": true,
+      "claim_count": 1,
+      "unsourced_claims": 1,
+      "flagged_claims": 0,
+      "volatile_claims": 0,
+      "verdict": "REFRESH",
+      "verdict_reasons": [
+        "12 hard assertion failure(s)",
+        "3 quality gate failure(s)"
+      ]
+    },
+    {
+      "post_id": 1514,
+      "slug": "mortgage-with-collections",
+      "title": "Can You Get a Mortgage with Collections? Paid vs Unpaid and What Lenders Check",
+      "top_query": "",
+      "position": 0,
+      "impressions": 224,
+      "word_count": 2502,
+      "target_word_count": 0,
+      "hard_failures": [
+        "18.1.2: Eyebrow element not found",
+        "18.1.9: No CTA element found",
+        "18.1.10: Expected 4 ATF cards, found 0",
+        "18.1.11: Expected 3 ATF FAQs, found 9",
+        "18.1.13b: Only 6 content H2s, minimum is 8",
+        "18.1.14: 'Top questions before you dig in' missing intro paragraph; 'Top questions before you dig in' missing structural element (table/ul/callout); 'The Bottom Line Up Front' missing structural element (table/ul/callout); 'How Do Paid vs Unpaid Collections Affect' missing structural element (table/ul/callout); 'What Happens If You Pay a Collection Bef' missing structural element (table/ul/callout)",
+        "18.1.15: Found 0 CTA elements, need >=2 (header + mid-article)",
+        "18.1.17: BTF FAQ section (.rl-faq) not found",
+        "18.1.18: Resources Used section not found",
+        "18.3.2: Body is 1301 words, fallback range is 1800-2400",
+        "18.4.1: Em dash found in body text: '.... Always simulate before paying \u2014 reactivating a dormant col...'",
+        "18.4.6: Two consecutive H2 sections without structural elements"
+      ],
+      "soft_warnings": [
+        "18.5.9: 5 repetition/join flag(s):\n  - Phrase \"non-medical collections under 2 000\" repeated 4x\n  - Phrase \"fha does not require payoff\" repeated 4x\n  - Phrase \"does not require payoff of\" repeated 4x\n  - Phrase \"the date of last activity\" repeated 5x\n  - Phrase \"most mortgage lenders\" repeated 4x"
+      ],
+      "quality_gate_failures": [],
+      "artifact_hits": [
+        "[h1-in-body] Matched: '<h1 id=\"mortgage-with-collections-title\">' | Context: ...HA Rules, DTI Treatment</strong> </div> <h1 id=\"mortgage-with-collections-title\">Can You Get a Mortgage with Collections?..."
+      ],
+      "hard_pass_count": 28,
+      "hard_total_count": 40,
+      "soft_pass_count": 10,
+      "soft_total_count": 11,
+      "tier2_ran": true,
+      "claim_count": 15,
+      "unsourced_claims": 12,
+      "flagged_claims": 3,
+      "volatile_claims": 0,
+      "verdict": "REFRESH",
+      "verdict_reasons": [
+        "12 hard assertion failure(s)",
+        "1 leaked artifact(s)",
+        "12 unsourced high-stakes claims"
+      ]
+    },
+    {
+      "post_id": 450,
+      "slug": "8-first-time-home-buyer-grants-programs",
+      "title": "First-Time Homebuyer Programs &amp; Grants",
+      "top_query": "site:thelendersnetwork.com",
+      "position": 55.3,
+      "impressions": 216,
+      "word_count": 5217,
+      "target_word_count": 0,
+      "hard_failures": [
+        "18.1.1: Expected 0-1 H1, found 3",
+        "18.1.2: Eyebrow element not found",
+        "18.1.9: No CTA element found",
+        "18.1.10: Expected 4 ATF cards, found 0",
+        "18.1.11: ATF FAQ[0] answer is 29 words, expected 35-60; ATF FAQ[1] answer is 27 words, expected 35-60; ATF FAQ[2] answer is 30 words, expected 35-60",
+        "18.1.13: Body has 4 H2 sections, expected 6-15",
+        "18.1.13b: Only 4 content H2s, minimum is 8",
+        "18.1.14: 'Top questions before you dig in' missing intro paragraph; 'Top questions before you dig in' missing structural element (table/ul/callout); 'Conclusion: Making Homeownership a Reali' missing structural element (table/ul/callout)",
+        "18.1.15: Found 0 CTA elements, need >=2 (header + mid-article)",
+        "18.1.16: Closing 'The Bottom Line' H2 not found",
+        "18.1.17: BTF FAQ section (.rl-faq) not found",
+        "18.1.18: Resources Used section not found",
+        "18.3.2: Body is 2854 words, fallback range is 1800-2400",
+        "18.4.2: Banned phrases found: ['discover']",
+        "18.4.9: AI-lexicon words found: ['comprehensive', 'essential', 'navigate']"
+      ],
+      "soft_warnings": [
+        "18.5.2: Internal link density is 2.8/section (recommended 0.5-2.0)",
+        "18.5.6: 88 bullet(s) under 18 words:\n[What is a First-Time Homebuyer?] 11w: \"Has not owned a primary residence in the last three years.\"\n[What is a First-Time Homebuyer?] 12w: \"A single parent who only owned a home with a former spouse.\"\n[What is a First-Time Homebuyer?] 11w: \"A displaced homemaker who only owned a home with a spouse.\"\n[What is a First-Time Homebuyer?] 14w: \"A person who has only owned a residence not permanently affixed to a foundation.\"\n[What is a First-Time Homebuyer?] 14w: \"Grants: Non-repayable funds that cover a portion or all of the down payment.\"\n[What is a First-Time Homebuyer?] 14w: \"Type: Forgivable second mortgage with the option to use as a loan or grant\"\n[What is a First-Time Homebuyer?] 14w: \"Requirements: Minimum 620 credit score; income limits apply based on HUD Area Me\"\n[What is a First-Time Homebuyer?] 14w: \"Terms: Forgivable after 36 consecutive on-time payments; available for 3.5% down\"\n[What is a First-Time Homebuyer?] 10w: \"Best For: Buyers needing down payment help with FHA loans\"\n[What is a First-Time Homebuyer?] 10w: \"Type: Grant covering up to 5% of the loan amount\"\n[What is a First-Time Homebuyer?] 10w: \"Requirements: Minimum 640 credit score; must meet NHF eligibility requirements\"\n[What is a First-Time Homebuyer?] 14w: \"Terms: No repayment required; can be used for FHA, VA, USDA, and conventional lo\"\n[What is a First-Time Homebuyer?] 11w: \"Best For: Buyers seeking flexible loan options and non-repayable assistance\"\n[What is a First-Time Homebuyer?] 12w: \"Type: Second mortgage program that can cover down payment and closing costs\"\n[What is a First-Time Homebuyer?] 13w: \"Requirements: Must meet Fannie Mae income and credit requirements; terms vary by\"\n[What is a First-Time Homebuyer?] 12w: \"Terms: Repayment terms vary; often deferred or forgiven after a certain period\"\n[What is a First-Time Homebuyer?] 16w: \"Best For: Buyers who need more extensive financial support and have access to lo\"\n[What is a First-Time Homebuyer?] 9w: \"Type: 50% discount on HUD homes in revitalization areas\"\n[What is a First-Time Homebuyer?] 12w: \"Requirements: Minimum 620 credit score; buyer must work in an eligible professio\"\n[What is a First-Time Homebuyer?] 14w: \"Terms: Buyer must commit to living in the home for at least three years\"\n[What is a First-Time Homebuyer?] 14w: \"Best For: Teachers, law enforcement, EMTs, and firefighters looking to buy in re\"\n[What is a First-Time Homebuyer?] 8w: \"Type: 3% closing cost assistance on HomePath properties\"\n[What is a First-Time Homebuyer?] 11w: \"Requirements: Must complete an approved homebuyer education course; income limit\"\n[What is a First-Time Homebuyer?] 8w: \"Terms: Available for Fannie Mae-owned properties only\"\n[What is a First-Time Homebuyer?] 12w: \"Best For: Buyers looking for affordable homes with additional closing cost assis\"\n[Loan Programs for First-Time Homebu] 14w: \"Minimum credit score of 500 with 10% down or 580 with 3.5% down\"\n[Loan Programs for First-Time Homebu] 5w: \"Available for primary residences only\"\n[Loan Programs for First-Time Homebu] 9w: \"Requires mortgage insurance premium (MIP) regardless of down payment\"\n[Loan Programs for First-Time Homebu] 9w: \"Higher debt-to-income ratios allowed (up to 50%)\"\n[Loan Programs for First-Time Homebu] 4w: \"No down payment required\"\n[Loan Programs for First-Time Homebu] 5w: \"No private mortgage insurance (PMI)\"\n[Loan Programs for First-Time Homebu] 9w: \"Minimum credit score of 580-620, depending on lender\"\n[Loan Programs for First-Time Homebu] 8w: \"Access to competitive interest rates and flexible terms\"\n[Loan Programs for First-Time Homebu] 5w: \"Minimum credit score of 620\"\n[Loan Programs for First-Time Homebu] 4w: \"Zero down payment required\"\n[Loan Programs for First-Time Homebu] 7w: \"Low 0.35% annual mortgage insurance premium\"\n[Loan Programs for First-Time Homebu] 9w: \"Income restrictions apply based on location and household size\"\n[Loan Programs for First-Time Homebu] 5w: \"Minimum credit score of 680\"\n[Loan Programs for First-Time Homebu] 4w: \"3% down payment requirement\"\n[Loan Programs for First-Time Homebu] 8w: \"No private mortgage insurance required with 20% equity\"\n[Loan Programs for First-Time Homebu] 7w: \"Can be used for primary residences only\"\n[Loan Programs for First-Time Homebu] 5w: \"Minimum credit score of 620\"\n[Loan Programs for First-Time Homebu] 4w: \"3% down payment requirement\"\n[Loan Programs for First-Time Homebu] 10w: \"Borrowers must meet income limits (100% of area median income)\"\n[Loan Programs for First-Time Homebu] 4w: \"Requires homebuyer education course\"\n[Loan Programs for First-Time Homebu] 5w: \"Minimum credit score of 620\"\n[Loan Programs for First-Time Homebu] 4w: \"3% down payment requirement\"\n[Loan Programs for First-Time Homebu] 8w: \"Debt-to-income ratio (DTI) limit of 50%\"\n[Loan Programs for First-Time Homebu] 7w: \"Income limits apply based on property location\"\n[Loan Programs for First-Time Homebu] 5w: \"Minimum credit score of 580\"\n[Loan Programs for First-Time Homebu] 5w: \"3.5% down payment requirement\"\n[Loan Programs for First-Time Homebu] 7w: \"Allows financing for both purchase and renovations\"\n[Loan Programs for First-Time Homebu] 5w: \"Available for primary residences only\"\n[Loan Programs for First-Time Homebu] 5w: \"Minimum credit score of 620\"\n[Loan Programs for First-Time Homebu] 6w: \"$100 down payment for eligible properties\"\n[Loan Programs for First-Time Homebu] 6w: \"50% discount on HUD-owned homes\"\n[Loan Programs for First-Time Homebu] 8w: \"Available for specific professions in designated revitalization areas\"\n[Loan Programs for First-Time Homebu] 5w: \"3.5% down payment requirement\"\n[Loan Programs for First-Time Homebu] 11w: \"Up to $25,000 in financing for energy-efficient home improvements\"\n[Loan Programs for First-Time Homebu] 6w: \"Designed to reduce future energy costs\"\n[Loan Programs for First-Time Homebu] 16w: \"Ideal for environmentally conscious buyers More details can be found on the FHA \"\n[Loan Programs for First-Time Homebu] 6w: \"Minimum credit score of 620 required\"\n[Loan Programs for First-Time Homebu] 3w: \"Reduced PMI rates\"\n[Loan Programs for First-Time Homebu] 4w: \"3% down payment requirement\"\n[Loan Programs for First-Time Homebu] 15w: \"Designed for primary residences only Learn more at the Fannie Mae HFA Preferred \"\n[Loan Programs for First-Time Homebu] 9w: \"Includes grants, forgivable loans, and low-interest loan options\"\n[Loan Programs for First-Time Homebu] 8w: \"Requirements and benefits vary by state and municipality\"\n[Loan Programs for First-Time Homebu] 5w: \"Available for primary residence purchases\"\n[Loan Programs for First-Time Homebu] 5w: \"Minimum credit score of 580\"\n[Loan Programs for First-Time Homebu] 4w: \"No down payment required\"\n[Loan Programs for First-Time Homebu] 5w: \"No private mortgage insurance (PMI)\"\n[Loan Programs for First-Time Homebu] 15w: \"Best suited for Native American veterans Learn more about the Native American Di\"\n[Loan Programs for First-Time Homebu] 4w: \"No down payment required\"\n[Loan Programs for First-Time Homebu] 5w: \"No PMI or closing costs\"\n[Loan Programs for First-Time Homebu] 5w: \"Fixed below-market interest rates\"\n[Loan Programs for First-Time Homebu] 15w: \"Designed for low- to moderate-income buyers Visit the NACA program page for more\"\n[Loan Programs for First-Time Homebu] 14w: \"Minimum credit score of 580 with 2.25% down for loans over $50,000\"\n[Loan Programs for First-Time Homebu] 4w: \"Government-backed mortgage program\"\n[Loan Programs for First-Time Homebu] 6w: \"Available for homes on tribal land\"\n[Loan Programs for First-Time Homebu] 15w: \"Suitable for Native American first-time homebuyers Learn more about the FHA Sect\"\n[Loan Programs for First-Time Homebu] 5w: \"Low-cost home purchase opportunities\"\n[Loan Programs for First-Time Homebu] 7w: \"Often includes grant options for home repairs\"\n[Loan Programs for First-Time Homebu] 3w: \"Helps revitalize neighborhoods\"\n[Loan Programs for First-Time Homebu] 14w: \"Suitable for buyers open to renovations Learn more on the HUD Dollar Homes page \"\n[Loan Programs for First-Time Homebu] 9w: \"Financing up to 75% of the completed appraised value\"\n[Loan Programs for First-Time Homebu] 4w: \"3% down payment requirement\"\n[Loan Programs for First-Time Homebu] 7w: \"Ideal for buyers seeking a fixer-upper\"\n[Loan Programs for First-Time Homebu] 12w: \"Flexible renovation financing options Discover more about Freddie Mac\u2019s CHOICERe\"",
+        "18.5.8: 1 near-duplicate section pair(s):\n  - \"What is a First-Time Homebuyer?\" vs \"Loan Programs for First-Time Homebuyers\" (2/3 overlap)",
+        "18.5.9: 8 repetition/join flag(s):\n  - Phrase \"first-time homebuyer programs grants\" repeated 4x\n  - Phrase \"no private mortgage insurance pmi\" repeated 4x\n  - Phrase \"down payment assistance programs\" repeated 4x\n  - Phrase \"good neighbor next door program\" repeated 4x\n  - Phrase \"low to moderate-income buyers\" repeated 4x\n  - Paragraph-join: \"...ording to the U.S. Department of Ho...\"\n  - Paragraph-join: \"...ording to the U.S. Department of Ho...\"\n  - Paragraph-join: \"...ording to the U.S. Department of Ho...\""
+      ],
+      "quality_gate_failures": [
+        "SUBJECT UNDERCOUNT: 'site:thelendersnetwork.com' appears 0 time(s) in body (minimum 5). Real guides mention their subject frequently. This suggests template content not customized for the neighborhood."
+      ],
+      "artifact_hits": [
+        "[h1-in-body] Matched: '<h1>' | Context: ...uyer qualification for more context.</p><h1>First-Time Homebuyer Programs &amp; Gran...",
+        "[h1-in-body] Matched: '<h1>' | Context: ...gap.</div> </details> </div> </section> <h1>Get Pre-Approved Today!</h1><p>Check Rat...",
+        "[h1-in-body] Matched: '<h1>' | Context: ...er Programs &amp; Grants</strong></div> <h1>First-Time Homebuyer Programs &amp; Gran..."
+      ],
+      "hard_pass_count": 25,
+      "hard_total_count": 40,
+      "soft_pass_count": 7,
+      "soft_total_count": 11,
+      "tier2_ran": true,
+      "claim_count": 50,
+      "unsourced_claims": 43,
+      "flagged_claims": 7,
+      "volatile_claims": 0,
+      "verdict": "REFRESH",
+      "verdict_reasons": [
+        "15 hard assertion failure(s)",
+        "1 quality gate failure(s)",
+        "3 leaked artifact(s)",
+        "43 unsourced high-stakes claims"
+      ]
+    },
+    {
+      "post_id": 768,
+      "slug": "about-the-lenders-network",
+      "title": "Frequently Asked Questions",
+      "top_query": "mortgage lenders network",
+      "position": 14,
+      "impressions": 188,
+      "word_count": 577,
+      "target_word_count": 0,
+      "hard_failures": [
+        "18.1.2: Eyebrow element not found",
+        "18.1.8: ATF lede paragraph not found",
+        "18.1.9: No CTA element found",
+        "18.1.10: Expected 4 ATF cards, found 0",
+        "18.1.11: Expected 3 ATF FAQs, found 0",
+        "18.1.13: Body has 1 H2 sections, expected 6-15",
+        "18.1.13b: Only 1 content H2s, minimum is 8",
+        "18.1.14: 'Faq' missing structural element (table/ul/callout)",
+        "18.1.15: Found 0 CTA elements, need >=2 (header + mid-article)",
+        "18.1.16: Closing 'The Bottom Line' H2 not found",
+        "18.1.17: BTF FAQ section (.rl-faq) not found",
+        "18.1.18: Resources Used section not found",
+        "18.3.2: Body is 247 words, fallback range is 1800-2400"
+      ],
+      "soft_warnings": [
+        "18.5.9: 5 repetition/join flag(s):\n  - Phrase \"false false header_3_font_size_tablet 18px header_3_font_size_phone\" repeated 12x\n  - Phrase \"header_3_font_size_tablet 18px header_3_font_size_phone 14px locked\" repeated 11x\n  - Phrase \"false header_3_font_size_tablet 18px header_3_font_size_phone 14px\" repeated 12x\n  - Phrase \"montserrat 800 header_3_font_size 18px header_3_line_height\" repeated 12x\n  - Phrase \"header_3_font_size_phone 14px locked off global_colors_info\" repeated 11x"
+      ],
+      "quality_gate_failures": [
+        "SUBJECT UNDERCOUNT: 'mortgage lenders network' appears 0 time(s) in body (minimum 5). Real guides mention their subject frequently. This suggests template content not customized for the neighborhood.",
+        "WORD COUNT BELOW FLOOR: 577 words (minimum 1200). Content is too thin to publish.",
+        "PROSE PARAGRAPHS BELOW FLOOR: 4 substantial paragraphs (minimum 6). Real guides have multiple detailed sections."
+      ],
+      "artifact_hits": [
+        "[h1-in-body] Matched: '<h1>' | Context: ...color=\"#7cda24\" global_colors_info=\"{}\"]<h1>Contact Us</h1>[/et_pb_text][/et_pb_colu..."
+      ],
+      "hard_pass_count": 27,
+      "hard_total_count": 40,
+      "soft_pass_count": 10,
+      "soft_total_count": 11,
+      "tier2_ran": true,
+      "claim_count": 3,
+      "unsourced_claims": 2,
+      "flagged_claims": 1,
+      "volatile_claims": 0,
+      "verdict": "REFRESH",
+      "verdict_reasons": [
+        "13 hard assertion failure(s)",
+        "3 quality gate failure(s)",
+        "1 leaked artifact(s)"
+      ]
+    },
+    {
+      "post_id": 1740,
+      "slug": "alimony-child-support-mortgage-income",
+      "title": "Alimony and Child Support as Mortgage Income: Documentation and Qualification Rules",
+      "top_query": "fannie mae child support income continue for 3 years mortgage",
+      "position": 11.5,
+      "impressions": 176,
+      "word_count": 2797,
+      "target_word_count": 0,
+      "hard_failures": [
+        "18.1.2: Eyebrow element not found",
+        "18.1.9: No CTA element found",
+        "18.1.10: Expected 4 ATF cards, found 0",
+        "18.1.11: Expected 3 ATF FAQs, found 9",
+        "18.1.14: 'Top questions before you dig in' missing intro paragraph; 'Top questions before you dig in' missing structural element (table/ul/callout); 'Payment History Requirements by Loan Pro' missing intro paragraph",
+        "18.1.15: Found 0 CTA elements, need >=2 (header + mid-article)",
+        "18.1.17: BTF FAQ section (.rl-faq) not found",
+        "18.1.18: Resources Used section not found",
+        "18.3.2: Body is 1531 words, fallback range is 1800-2400",
+        "18.4.1: Em dash found in body text: '...Check your divorce decree or court order for the support end...'",
+        "18.4.9: AI-lexicon words found: ['essential']"
+      ],
+      "soft_warnings": [
+        "18.5.2: Internal link density is 0.3/section (recommended 0.5-2.0)",
+        "18.5.9: 5 repetition/join flag(s):\n  - Phrase \"the full court-ordered amount\" repeated 4x\n  - Phrase \"non-taxable to the recipient\" repeated 5x\n  - Phrase \"12 months documented receipt\" repeated 4x\n  - Phrase \"continue for at least three\" repeated 5x\n  - Phrase \"consistent payment history\" repeated 4x"
+      ],
+      "quality_gate_failures": [
+        "SUBJECT UNDERCOUNT: 'fannie mae child support income continue for 3 years mortgage' appears 0 time(s) in body (minimum 5). Real guides mention their subject frequently. This suggests template content not customized for the neighborhood."
+      ],
+      "artifact_hits": [
+        "[h1-in-body] Matched: '<h1 id=\"alimony-child-support-mortgage-income-title\">' | Context: ...ation and Qualification</strong> </div> <h1 id=\"alimony-child-support-mortgage-income-title\">Alimony and Child Support as Mortgage In..."
+      ],
+      "hard_pass_count": 29,
+      "hard_total_count": 40,
+      "soft_pass_count": 9,
+      "soft_total_count": 11,
+      "tier2_ran": true,
+      "claim_count": 14,
+      "unsourced_claims": 14,
+      "flagged_claims": 0,
+      "volatile_claims": 0,
+      "verdict": "REFRESH",
+      "verdict_reasons": [
+        "11 hard assertion failure(s)",
+        "1 quality gate failure(s)",
+        "1 leaked artifact(s)",
+        "14 unsourced high-stakes claims"
+      ]
+    },
+    {
+      "post_id": 1743,
+      "slug": "mortgage-disability-income",
+      "title": "Mortgage on Disability Income: SSDI, SSI, and VA Disability Qualification Rules",
+      "top_query": "",
+      "position": 0,
+      "impressions": 169,
+      "word_count": 2172,
+      "target_word_count": 0,
+      "hard_failures": [
+        "18.1.2: Eyebrow element not found",
+        "18.1.9: No CTA element found",
+        "18.1.10: Expected 4 ATF cards, found 0",
+        "18.1.11: Expected 3 ATF FAQs, found 9",
+        "18.1.13b: Only 7 content H2s, minimum is 8",
+        "18.1.14: 'Top questions before you dig in' missing intro paragraph; 'Top questions before you dig in' missing structural element (table/ul/callout)",
+        "18.1.15: Found 0 CTA elements, need >=2 (header + mid-article)",
+        "18.1.17: BTF FAQ section (.rl-faq) not found",
+        "18.1.18: Resources Used section not found",
+        "18.3.2: Body is 1011 words, fallback range is 1800-2400",
+        "18.4.1: Em dash found in body text: '...Disability income \u2014 including SSDI, SSI, and VA disability c...'",
+        "18.4.2: Banned phrases found: ['explore']",
+        "18.4.8: Semicolon density 8 in 2306 words (max 7). First: '...Supplemental Security Income \u2014 needs-based; maximum federal benefit $967/month i...'"
+      ],
+      "soft_warnings": [
+        "18.5.2: Internal link density is 0.3/section (recommended 0.5-2.0)",
+        "18.5.6: 1 bullet(s) under 18 words:\n[Your Rights: ECOA Protections Again] 16w: \"Lenders cannot apply stricter documentation standards to disability income than \"",
+        "18.5.9: 5 repetition/join flag(s):\n  - Phrase \"va disability compensation is\" repeated 4x\n  - Phrase \"ssdi ssi and va disability\" repeated 5x\n  - Phrase \"based on disability or\" repeated 4x\n  - Phrase \"_builder_version 4 16\" repeated 4x\n  - Phrase \"as qualifying income\" repeated 4x"
+      ],
+      "quality_gate_failures": [],
+      "artifact_hits": [
+        "[h1-in-body] Matched: '<h1 id=\"mortgage-disability-income-title\">' | Context: ...Disability Qualification</strong></div> <h1 id=\"mortgage-disability-income-title\">Mortgage on Disability Income: SSDI, SSI..."
+      ],
+      "hard_pass_count": 27,
+      "hard_total_count": 40,
+      "soft_pass_count": 8,
+      "soft_total_count": 11,
+      "tier2_ran": true,
+      "claim_count": 28,
+      "unsourced_claims": 28,
+      "flagged_claims": 0,
+      "volatile_claims": 0,
+      "verdict": "REFRESH",
+      "verdict_reasons": [
+        "13 hard assertion failure(s)",
+        "1 leaked artifact(s)",
+        "28 unsourced high-stakes claims"
+      ]
+    }
+  ]
+}
