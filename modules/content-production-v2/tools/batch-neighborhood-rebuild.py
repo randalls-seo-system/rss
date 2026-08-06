@@ -119,6 +119,58 @@ def _filter_serp_for_relevance(entry: dict) -> int:
     return len(rejected_titles)
 
 
+def _check_confabulation_risk(html: str, entry: dict) -> list[dict]:
+    """Post-gen advisory: flag H2 sections with heritage/history content
+    that lack SERP support. Ported from assemble-article.py:1040-1086."""
+    try:
+        from bs4 import BeautifulSoup
+    except ImportError:
+        return []
+
+    _CONFAB_MARKERS = [
+        "heritage", "history", "historical", "tradition", "founding",
+        "settlers", "cultural roots", "origin story", "established in",
+    ]
+
+    soup = BeautifulSoup(html, "html.parser")
+    h2s = soup.find_all("h2")
+    flags = []
+
+    # Load SERP titles for support check
+    nb_slug = re.sub(r'[^a-z0-9]+', '-', entry.get("neighborhood", "").lower()).strip('-')
+    serp_dir = Path.home() / "lrg-rewrite" / "serp"
+    serp_files = list(serp_dir.glob(f"*{nb_slug}*-neighborhood-serp.json"))
+    serp_titles = []
+    if serp_files:
+        try:
+            data = json.loads(serp_files[0].read_text())
+            serp_titles = [r.get("title", "").lower() for r in data.get("top_results", [])[:10]]
+        except Exception:
+            pass
+
+    for h2 in h2s:
+        h2_text = h2.get_text(strip=True)
+        h2_lower = h2_text.lower()
+        is_risk = any(m in h2_lower for m in _CONFAB_MARKERS)
+        if not is_risk:
+            continue
+        # Check SERP title support
+        title_support = sum(
+            1 for t in serp_titles
+            if any(m in t for m in _CONFAB_MARKERS) and nb_slug.replace('-', ' ') in t
+        )
+        if title_support < 1:
+            flags.append({
+                "type": "confabulation_risk",
+                "h2": h2_text,
+                "detail": f"Heritage/history H2 '{h2_text}' has 0 SERP title support. "
+                          f"Content may be fabricated from thin data.",
+                "post_id": entry.get("post_id", 0),
+            })
+
+    return flags
+
+
 def load_queue(queue_path: str) -> list[dict]:
     """Load the rebuild queue JSON.
 
@@ -245,6 +297,14 @@ def run_one_guide(entry: dict, site: str, output_dir: Path, resume: bool = False
                 status["thin_data_flag"] = risk["flag"]
                 eprint(f"  [THIN-DATA] {risk['flag']}")
             status["elapsed"] = gen_elapsed
+
+            # Confabulation guard (advisory)
+            confab_flags = _check_confabulation_risk(html, entry)
+            if confab_flags:
+                status["confab_flags"] = confab_flags
+                eprint(f"  [CONFAB] {len(confab_flags)} heritage/history flag(s)")
+                for cf in confab_flags:
+                    eprint(f"    {cf['detail'][:80]}")
 
             eprint(f"  [VERIFY OK] V={report.verified_count} W={report.wrong_count} "
                    f"C={report.couldnt_verify_count} H={report.human_flag_count}")
