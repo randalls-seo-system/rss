@@ -14,6 +14,8 @@ Prioritize clarity over cleverness. Lead every section with the answer or decisi
 
 Use a mix of short and medium sentences. Most paragraphs: two to four sentences. Use contractions naturally where appropriate.
 
+**Article mode (non-capture): third-person only.** Do not use first-person practitioner claims ("I work", "I see", "I advise", "on files I close", "I recommend"). Write as an informed editorial voice, not a personal practitioner diary. Use "lenders", "loan officers", "underwriters", or "borrowers" as subjects instead.
+
 ### 2. MORTGAGE PRECISION — ALWAYS DISTINGUISH THESE PAIRS
 
 Never conflate these terms. When either term appears, explain the financial consequence, not just the feature.

@@ -7,7 +7,7 @@
     "status": "parked",
     "added": "2026-08-06T01:13:10.288870+00:00",
     "attempts": 1,
-    "last_failure": "BLOCKED: 41/41 hard pass, D2 7 unsourced persistent claims",
+    "last_failure": "D2: 11 unsourced fee-range figures (need evidence enrichment with CFPB/HUD fee data)",
     "job_id": "20260805-201409-d9dd5002",
     "mode": "refresh",
     "post_id": 1501
@@ -17,7 +17,7 @@
     "topic": "conventional 97 loan requirements",
     "target_keyword": "conventional 97 loan requirements",
     "intent_hint": "",
-    "status": "parked",
+    "status": "awaiting_approval",
     "added": "2026-08-06T01:13:10.289728+00:00",
     "attempts": 1,
     "last_failure": "D2: 1 unsourced, 0 vent",
@@ -33,7 +33,7 @@
     "status": "parked",
     "added": "2026-08-06T01:13:10.289933+00:00",
     "attempts": 1,
-    "last_failure": "BLOCKED: 41/41 hard pass, D2 6 unsourced persistent claims",
+    "last_failure": "D2: 2 unsourced (child support duration/decree language claims)",
     "job_id": "20260805-201448-27bcd397",
     "mode": "refresh",
     "post_id": 1740
