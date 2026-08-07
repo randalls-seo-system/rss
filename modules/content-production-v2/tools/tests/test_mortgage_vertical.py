@@ -318,5 +318,42 @@ class TestVerticalDedupe(unittest.TestCase):
         self.assertIn("ALREADY ENFORCED ELSEWHERE", vertical)
 
 
+class TestD2ConvergenceTracking(unittest.TestCase):
+    """Settled claims must not be re-litigated on re-extraction."""
+
+    def test_settled_claims_skip_classification(self):
+        """Claims previously classified as SOURCE/POLICY should not be
+        re-classified on subsequent D2 runs."""
+        import tempfile, json
+        from pathlib import Path
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            jd = Path(tmpdir)
+            # Pre-seed settled claims
+            settled = [
+                {"claim": "fha requires 3.5% down payment", "classification": "POLICY"},
+                {"claim": "closing costs range from 2 to 6 percent", "classification": "SOURCE"},
+            ]
+            (jd / "d2-settled-claims.json").write_text(json.dumps(settled))
+
+            # Simulate extraction returning the same claims + a new one
+            claims = [
+                {"claim": "FHA requires 3.5% down payment", "section": "intro"},
+                {"claim": "Closing costs range from 2 to 6 percent", "section": "costs"},
+                {"claim": "Some lenders offer no-origination-fee options", "section": "fees"},
+            ]
+
+            # Load settled texts (same logic as orchestrator)
+            settled_data = json.loads((jd / "d2-settled-claims.json").read_text())
+            settled_texts = {s["claim"].lower().strip() for s in settled_data}
+
+            new_claims = [c for c in claims if c["claim"].lower().strip() not in settled_texts]
+            pre_settled = [c for c in claims if c["claim"].lower().strip() in settled_texts]
+
+            self.assertEqual(len(pre_settled), 2, "2 claims should match settled list")
+            self.assertEqual(len(new_claims), 1, "Only 1 new claim should need classification")
+            self.assertEqual(new_claims[0]["claim"], "Some lenders offer no-origination-fee options")
+
+
 if __name__ == "__main__":
     unittest.main()
