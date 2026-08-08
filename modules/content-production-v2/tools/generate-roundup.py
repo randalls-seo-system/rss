@@ -419,6 +419,125 @@ Return as JSON array: [{{"q": "...", "a": "..."}}, ...]"""
                  "a": f"The top neighborhoods in {metro} vary by buyer priorities. See the ranked list above for details."}]
 
 
+def generate_qa_sections(client, metro, neighborhoods, vertical_rules, brand_voice):
+    """Generate 4 topical Q&A sections for the roundup."""
+    nb_list = ", ".join(nb["name"] for nb in neighborhoods)
+    districts = sorted(set(nb["district"] for nb in neighborhoods))
+    prompt = f"""Write 4 topical Q&A sections for a "Best Neighborhoods in {metro}" roundup.
+
+Neighborhoods: {nb_list}
+Districts: {', '.join(districts)}
+
+Each section needs a question as H2 and a 60-100 word answer. Topics:
+1. How neighborhoods compare on affordability (reference specific neighborhoods and price ranges)
+2. Which neighborhoods have the best school district access (district-level only, no campus names)
+3. How commutes compare across neighborhoods (reference specific routes and times)
+4. What buyers should know about property taxes in this area (do NOT state exact tax rates, say "verify with county CAD")
+
+Do NOT use "safest neighborhood" framing. No em dashes. Feature-based language only, no demographic labels.
+
+{vertical_rules}
+{brand_voice}
+
+Return as JSON array: [{{"kicker": "...", "h2": "...", "prose": "<p>...</p>"}}]"""
+
+    h = hashlib.md5(f"roundup-qa|{metro}|v2|{len(neighborhoods)}".encode()).hexdigest()[:12]
+    response = client.call(prompt, cache_key=f"roundup-qa|{metro}|{h}")
+    try:
+        text = re.sub(r'^```json\s*', '', response.text.strip())
+        text = re.sub(r'\s*```$', '', text)
+        sections = json.loads(text)
+        for i, s in enumerate(sections):
+            s["alt"] = (i % 2 == 1)
+        return sections[:4]
+    except json.JSONDecodeError:
+        return []
+
+
+def inject_roundup_links(html, metro, neighborhoods):
+    """Inject inline contextual links into roundup HTML.
+
+    Links each neighborhood name in prose to its guide page (if exists),
+    plus directory and listings links in page-level sections.
+    """
+    # Known guide pages (slug patterns for existing guides)
+    guide_urls = {}
+    for nb in neighborhoods:
+        nb_slug = _slug(nb["name"])
+        city_slug = _slug(metro)
+        # Standard guide URL patterns
+        guide_urls[nb["name"]] = f"/lrg-blog/{nb_slug}-neighborhood-guide/"
+
+    # Also add directory and listings
+    metro_slug = _slug(metro)
+    directory_url = f"/{metro_slug}-neighborhoods/"
+    listings_url = f"/listings/homes-for-sale-{metro_slug}/"
+
+    # Split HTML into tags and text, only link in text nodes
+    tag_or_text = re.compile(r'(<[^>]+>)', re.DOTALL)
+    parts = tag_or_text.split(html)
+
+    linked = set()  # track which neighborhoods already linked (first occurrence only)
+    link_count = 0
+    in_anchor = False
+
+    for i, part in enumerate(parts):
+        if part.startswith('<'):
+            if part.startswith('<a ') or part.startswith('<a>'):
+                in_anchor = True
+            elif part.startswith('</a'):
+                in_anchor = False
+            continue
+        if in_anchor:
+            continue
+
+        # Link neighborhood names (first occurrence of each)
+        for nb_name, url in guide_urls.items():
+            if nb_name in linked:
+                continue
+            # Match the exact name, not inside another word
+            pattern = re.compile(r'\b' + re.escape(nb_name) + r'\b')
+            m = pattern.search(part)
+            if m:
+                replacement = f'<a href="{url}">{nb_name}</a>'
+                parts[i] = part[:m.start()] + replacement + part[m.end():]
+                part = parts[i]  # update for subsequent matches
+                linked.add(nb_name)
+                link_count += 1
+
+    html = ''.join(parts)
+
+    # Add directory link to methodology section if not already present
+    if directory_url not in html:
+        # Insert into a prose section
+        insert_marker = 'How we rank'
+        idx = html.find(insert_marker)
+        if idx > 0:
+            p_end = html.find('</p>', idx)
+            if p_end > 0:
+                html = (html[:p_end] +
+                        f' For a side-by-side comparison, see the <a href="{directory_url}">{metro} neighborhood directory</a>.' +
+                        html[p_end:])
+                link_count += 1
+
+    # Add listings link
+    if listings_url not in html:
+        insert_marker = 'The Bottom Line'
+        idx = html.find(insert_marker)
+        if idx < 0:
+            insert_marker = 'different paths'
+            idx = html.find(insert_marker)
+        if idx > 0:
+            p_end = html.find('</p>', idx)
+            if p_end > 0:
+                html = (html[:p_end] +
+                        f' Browse <a href="{listings_url}">{metro} homes for sale</a> to see current inventory.' +
+                        html[p_end:])
+                link_count += 1
+
+    return html, link_count
+
+
 # ---------------------------------------------------------------------------
 # Assembly
 # ---------------------------------------------------------------------------
@@ -639,13 +758,19 @@ Return as JSON: {{"good": ["..."], "warn": ["..."]}}"""
         faqs = generate_faqs(client, metro, nbs, vertical_block)
         time.sleep(1)
 
-        # Q&A sections (skip for now — page-level prose sections are lower priority)
-        prose_parts["qa_sections"] = []
+        # Q&A sections
+        eprint("  Generating Q&A sections...")
+        prose_parts["qa_sections"] = generate_qa_sections(client, metro, nbs, vertical_block, brand_voice)
+        time.sleep(1)
 
     # Assemble
     eprint("\nAssembling roundup HTML...")
     cta_ref = _slug(args.title)
     html = assemble_roundup(metro, args.title, nbs, prose_parts, faqs, cta_ref)
+
+    # Inject inline links
+    html, link_count = inject_roundup_links(html, metro, nbs)
+    eprint(f"Links injected: {link_count}")
 
     # Structural fingerprint
     h2_count = len(re.findall(r'<h2[\s>]', html))
