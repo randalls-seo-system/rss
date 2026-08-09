@@ -9,24 +9,84 @@
 
 ## 1. EXECUTIVE SUMMARY
 
-Texas led the nation in bank repossessions in H1 2026 with 3,322 properties.
-Austin home prices have fallen 27.3% from peak. 22.4% of 2022 Austin buyers
-are underwater; 65% of 2022 Austin FHA buyers are underwater. San Antonio
-sits at 4.3% negative equity overall. The Mortgage Forgiveness Debt Relief
-Act exclusion expired January 1, 2026, making forgiven mortgage debt taxable
-again — homeowners now face a new tax liability they didn't have six months ago.
+Texas had the most lender repossessions (REOs) of any state in H1 2026 by
+raw count: 3,322 properties. [VERIFIED — ATTOM Mid-Year 2026 via PRNewswire,
+fetched 2026-08-09. Texas rate was 0.18% (1 in 551 properties), well below
+Florida's 0.27%. Texas leads on volume because it is the second-largest
+state, not because its per-household foreclosure rate is worst.]
 
-LRG has a unique position: veteran-owned brokerage in the two Texas metros
-most affected by the correction, with a sister site (VALN) already owning
-the VA loan mechanics side. LRG can own the **local broker perspective** —
-what are your actual options as a San Antonio or Austin homeowner who's
-underwater, behind on payments, or forced to sell during a PCS.
+Austin home prices have declined significantly from their mid-2022 peak.
+The magnitude depends on the index: Cotality's repeat-sale HPI shows ~15%
+below peak as of March 2026; MLS-median-based sources report 24-25%.
+[VERIFIED — Cotality "US Home Price Insights May 2026," fetched 2026-08-09,
+quotes "Austin fell 15% from its mid 2022 peak." MLS-median figures from
+multiple secondary sources cluster around 24-25%; the 27.3% figure from
+teamprice.com could not be independently verified (403 on fetch) and is
+withdrawn.] Negative equity among 2022-vintage Austin borrowers was ~18%
+as of ICE's July 2025 Mortgage Monitor; ResiClub reported 22.4% using ICE
+data from a later period. Both figures describe the same phenomenon at
+different measurement dates. [VERIFIED — ICE July 2025 figure per Randall's
+correction; ResiClub December 2025 figure fetched via DeviceDaily.com
+2026-08-09.] Austin overall: 9.2% of all mortgages underwater as of
+December 2025 (ICE via ResiClub, #3 nationally). San Antonio: 8.8% (#4
+nationally, same source and date). [VERIFIED — DeviceDaily.com, sourcing
+ICE Mortgage Technology via ResiClub, "at the end of December 2025."]
 
-**Levi's hypothesis confirmed by the data:** The VA/military angle in San
-Antonio is wide open for a local broker. Veterans United and Military.com
-own the generic national content, but nobody owns "PCS from JBSA with an
-underwater mortgage, what do I actually do" — LRG already ranks #1 for
-"selling home pcs no equity."
+The qualified principal residence exclusion under the Mortgage Forgiveness
+Debt Relief Act does not apply to debt discharged after December 31, 2025
+(IRS Topic 431). This does NOT mean all forgiven mortgage debt is now
+automatically taxable — the insolvency exclusion and bankruptcy exclusion
+(Title 11) are permanent and not date-limited. Forgiven debt from a short
+sale or deed in lieu may create taxable income; other exclusions may apply;
+a CPA or tax attorney should evaluate each homeowner's situation.
+[VERIFIED — IRS.gov Topic 431, fetched 2026-08-09. Quoted: "Cancellation
+of qualified principal residence indebtedness that is discharged before
+January 1, 2026" and separately lists "Debt canceled to the extent
+insolvent" and "Debt canceled in a Title 11 bankruptcy case" as
+exclusions with no expiration date.]
+
+LRG has a unique position: veteran-owned brokerage in two Texas metros
+with significant negative equity exposure, with a sister site (VALN)
+already owning the VA loan mechanics side. LRG can own the **local broker
+perspective** — what are your actual options as a San Antonio or Austin
+homeowner who's underwater, behind on payments, or forced to sell during
+a PCS.
+
+**Levi's hypothesis — promising and differentiated, not yet quantified:**
+The VA/military angle in San Antonio appears strongly differentiated for a
+local broker. Veterans United and Military.com own the generic national
+content, but nobody owns "PCS from JBSA with an underwater mortgage, what
+do I actually do." [HYPOTHESIS — supported by SERP observations below but
+the JBSA/Lackland/Fort Sam/Randolph + PCS + equity SERPs need systematic
+volume quantification before calling it "wide open."] LRG post 8714
+appeared as the #1 organic result for "selling home pcs no equity" in a
+single Serper.dev SERP pull on 2026-08-09. [SERP OBSERVATION — not yet
+confirmed via 28/90-day GSC query-level position data. Call it an observed
+#1 result until GSC validates.]
+
+---
+
+## 1B. CLAIM PROVENANCE KEY
+
+Every data claim in this document carries one of these labels:
+
+| Label | Meaning |
+|-------|---------|
+| **VERIFIED** | Source URL was fetched this session, relevant passage was read and can be quoted. Source, date, and methodology noted. |
+| **SERP OBSERVATION** | Data observed in a Serper.dev or GSC API pull during this session. Represents a point-in-time snapshot, not a stable measurement. |
+| **INFERENCE** | Derived from verified or observed data, but the conclusion itself is not directly stated in any source. |
+| **HYPOTHESIS** | Strategic judgment or Levi's input. Supported by observations but not yet validated with systematic data. |
+
+---
+
+## 1C. PRE-PUBLISHING CHECKLIST (not required before drafting)
+
+These items must be completed before any Phase 1 content goes live:
+
+- [ ] **AEO/GEO audit artifact:** Fixed query set, actual ChatGPT / AI Overviews / Perplexity responses captured, cited domains recorded, date and method documented. The Serper `aiOverview` flag from Section 4A is a proxy, not a substitute.
+- [ ] **Post 8714 "#1" validation:** Pull 28-day and 90-day GSC query-level data for "selling home pcs no equity" to confirm durable position, not just a single SERP snapshot.
+- [ ] **Post 1516 redirect decision:** Backlink inventory (Ahrefs or GSC links report), historical GSC query set, internal links pointing at it, and intent overlap with new pillar — all checked before any 301 recommendation.
+- [ ] **JBSA/military SERP volume quantification:** Systematic volume pull for JBSA, Lackland, Fort Sam Houston, Randolph + PCS + equity/underwater/sell query combinations to validate the military lane size.
 
 ---
 
@@ -84,7 +144,7 @@ VALN (valoannetwork.com) already covers the VA loan mechanics side extensively:
 
 | Risk | Pages | Resolution |
 |------|-------|------------|
-| MODERATE | 1516 (Understanding Short Sales) vs. new pillar page | Retire or redirect 1516. Legacy slug, zero clicks, pre-pipeline quality. New pillar replaces it. |
+| MODERATE | 1516 (Understanding Short Sales) vs. new pillar page | Likely candidate for redirect, but no action until backlinks, historical GSC queries, internal links pointing at it, and intent overlap with the new pillar are all checked. Weak performance alone is not sufficient reason for a 301. |
 | LOW | 8688 (VA After Short Sale) vs. new "Short Sale Guide SA" | Different intent — 8688 is about buying again AFTER, new page is about going THROUGH. Complementary. |
 | LOW | 8714 (PCS No Equity) vs. new "PCS Underwater Mortgage" | 8714 focuses on legitimate-equity-thin sales. New page would cover actual underwater/negative scenarios. Keep both, cross-link with clear scope. |
 | NONE | Foreclosure buying guides (2233, 2226, 2230) | Buyer-side content, not seller-side. Different intent entirely. Cross-link as "what buyers should know" perspective. |
@@ -124,7 +184,7 @@ VALN (valoannetwork.com) already covers the VA loan mechanics side extensively:
 
 | Query | AI Overview? | Who Ranks | Opportunity |
 |-------|-------------|-----------|-------------|
-| selling home pcs no equity | NO | **LRG #1**, Reddit, milhousingnetwork | OWN IT — already #1 |
+| selling home pcs no equity | NO | **LRG #1 (observed)**, Reddit, milhousingnetwork | STRONG — observed #1 in single SERP pull 2026-08-09; validate with 28/90d GSC before treating as durable |
 | pcs with underwater mortgage | NO | Veterans United, Military.com, winklawfirm (Denver!) | HIGH — no Texas-specific content |
 | military pcs can't sell house | NO | Reddit, Military.com, Opendoor | VERY HIGH |
 | got orders can't sell house | NO | Reddit, Reddit, Quora | VERY HIGH — pure Reddit |
@@ -179,7 +239,12 @@ These impressions WITHOUT dedicated content indicate high potential with targete
 
 ### 4A. AI Overview Trigger Rate
 
-12 of 49 researched queries trigger Google AI Overviews (24%). These skew
+12 of 49 researched queries trigger Google AI Overviews. [SERP OBSERVATION
+— method: Serper.dev API, single pull per query, 2026-08-09. Serper
+reports `aiOverview` or `answerBox` presence. This is a point-in-time
+observation, not a stable percentage — AIO triggering varies by session,
+location, and Google's rollout. The directional signal (upstream queries
+skew toward AIO) is more reliable than the exact count.] These skew
 toward the **upstream/problem-aware queries** — exactly the queries where
 LRG should compete.
 
@@ -227,8 +292,8 @@ The AI Overviews for these queries follow a consistent structure:
 |-------|-------------------|---------------|
 | Underwater options for TX homeowners | Generic national content | TX-specific: 80% LTV constitutional limit, non-judicial foreclosure timeline, deficiency judgment risk |
 | Short sale vs foreclosure for TX military | No local content | JBSA/Fort Hood PCS timeline integration, VA compromise sale option, military-specific SCRA protections |
-| Tax on forgiven mortgage debt 2026 | IRS.gov (generic) | Post-MFDRA-expiration specifics, insolvency exception, TX-specific (no state income tax advantage) |
-| Austin 2022 buyer options | Nobody local | 27.3% decline, 22.4% of 2022 buyers underwater, what to actually do |
+| Tax on forgiven mortgage debt 2026 | IRS.gov (generic) | Post-MFDRA qualified-residence-exclusion expiration specifics, surviving insolvency/bankruptcy exclusions explained clearly, TX-specific (no state income tax advantage) |
+| Austin 2022 buyer options | Nobody local | Significant price decline (15-25% depending on index), ~18% of 2022-vintage borrowers underwater, what to actually do |
 
 ---
 
@@ -387,7 +452,7 @@ PILLAR PAGE (TX-authority)
   - How to choose a short sale agent (LRG positioning)
   - Common deal-killers
 - **COMPLIANCE:** Educational Notice required. "Consult an attorney" for lien subordination and deficiency waiver.
-- **CANNIBALIZATION:** Replaces post 1516. Redirect old URL.
+- **CANNIBALIZATION:** Potential overlap with post 1516. Requires backlink audit, historical GSC query check, and internal link inventory on 1516 before deciding redirect vs coexistence.
 
 #### SPOKE: "Short Sale vs Foreclosure in Texas: Which Is Better for You?"
 
@@ -423,7 +488,7 @@ PILLAR PAGE (TX-authority)
 - **Author:** Karishma Rupani (Austin/general buyer lane)
 - **Reviewer:** Mayra Torres
 - **Structure:**
-  - Data-driven lede: 27.3% decline from peak, 22.4% of 2022 buyers underwater, 65% of FHA 2022 loans underwater
+  - Data-driven lede: price decline range (Cotality ~15% repeat-sale; MLS median ~24-25%), 2022-vintage borrowers ~18% underwater (ICE Jul 2025), overall ~9.2% (ICE Dec 2025). Every number sourced and labeled.
   - Options organized by urgency (can wait vs must act now)
   - Neighborhood-level variation (where the declines are worst)
   - What's recovering vs what's still declining
@@ -437,7 +502,7 @@ PILLAR PAGE (TX-authority)
 - **Author:** Salena Arledge (seller lane)
 - **Reviewer:** Mayra Torres
 - **Structure:**
-  - SA market context (4.3% underwater, 459 Bexar County foreclosure properties)
+  - SA market context (8.8% underwater per ICE Dec 2025 via ResiClub, #4 nationally; 459 Bexar County foreclosure properties per KSAT Nov 2025)
   - Short sale process with local specifics (Bexar County recording, title companies)
   - Investor buyer dynamics in SA
   - Difference between legitimate short sale agent and "we buy ugly houses" operations
@@ -465,12 +530,13 @@ PILLAR PAGE (TX-authority)
 - **Author:** Levi Rodgers
 - **Reviewer:** Mayra Torres
 - **Structure:**
-  - The MFDRA expired Jan 1, 2026 — what changed
+  - The qualified principal residence exclusion expired for discharges after Dec 31, 2025 — what changed and what did NOT change
+  - Surviving exclusions: insolvency (no expiration), bankruptcy/Title 11 (no expiration) — sourced from IRS Topic 431
   - 1099-C process and what triggers it
-  - Insolvency exception (how it works, who qualifies)
-  - Texas advantage: no state income tax on the forgiven debt
+  - Correct framing: "may create taxable income; other exclusions may apply"
+  - Texas angle: no state income tax on the forgiven debt regardless of federal treatment
   - What the pending congressional legislation (H.R. 917) would do if passed
-- **COMPLIANCE:** CRITICAL — this is tax territory. "Consult a CPA" in every section. Source IRS.gov directly. Do NOT state specific tax amounts or rates as advice. Cite H.R. 917 by bill number only with "proposed" framing.
+- **COMPLIANCE:** CRITICAL — this is tax territory. "Consult a CPA or tax attorney" in every section. Source IRS.gov directly. Do NOT state "forgiven debt is now taxable" as a blanket statement — it is wrong for insolvency/bankruptcy cases. Cite H.R. 917 by bill number only with "proposed" framing.
 
 ### 6C. Internal Linking Plan
 
@@ -550,15 +616,16 @@ go to Reddit. It's the highest-value single page in the vertical.
 
 ### Phase 2: Weeks 4-6 — Austin Urgency + Texas Process
 
-**WHY SECOND:** Austin's 27.3% price decline and 22.4% underwater rate make
-this timely. These pages ride a current news cycle.
+**WHY SECOND:** Austin's significant price decline (15-25% depending on
+index) and elevated negative equity rate (~18% of 2022-vintage borrowers
+per ICE) make this timely. These pages ride a current news cycle.
 
 | # | Page | Type | Effort | Volume Signal | Priority |
 |---|------|------|--------|---------------|----------|
 | 4 | **Austin Homeowners Underwater 2026** | Austin-local | MEDIUM | High (news cycle, 2022-buyer audience) | P1 |
 | 5 | **Short Sale Process TX: Step by Step** | TX-authority | MEDIUM | Medium (how-to intent) | P1 |
 | 6 | **SA Short Sales 2026** | SA-local | MEDIUM | Medium (local intent) | P1 |
-| 7 | **Retire post 1516** (redirect to new Short Sale Process) | — | LOW | — | P1 |
+| 7 | **Evaluate post 1516** (backlink/query/intent audit before any redirect decision) | — | LOW | — | P1 |
 
 **TOTAL PHASE 2:** 3 new pages + 1 redirect. ~10-14 days.
 
@@ -595,7 +662,7 @@ They build the E-E-A-T authority that makes the whole cluster credible.
 | Second Liens / HOA Liens in TX Short Sale | DEFER | Niche, low volume, high compliance risk |
 | SCRA Protections for Military Foreclosure | DEFER | Existing post 8716 covers SCRA + selling. Expand that page instead of new one. |
 | Rent vs Sell PCS Thin Equity | DEFER | Existing 8714 and 8713 (Rent vs Buy) already cover. Cross-link instead. |
-| "Bought at the Peak in SA" | CUT | SA didn't see the same crash as Austin. 4.3% underwater isn't a crisis narrative. |
+| "Bought at the Peak in SA" | CUT | SA correction is milder than Austin. 8.8% underwater (ICE Dec 2025) is significant but not the same crisis-market narrative. The SA short-sale spoke covers this audience. |
 | Mortgage Hardship Letter template | CUT | Low value, legal risk, better served by linking to CFPB/HUD templates. |
 | Pre-foreclosure listings/map page | CUT | Investor intent, not distressed-homeowner intent. LRG is not a wholesaler. |
 
@@ -641,33 +708,34 @@ destination. This page should:
 
 ### Austin Is the Bigger Opportunity, SA Is the Homebase
 
-| Metric | San Antonio | Austin |
-|--------|------------|--------|
-| Overall underwater rate | 4.3% | 6.6% |
-| 2022 buyer underwater rate | Not reported | 22.4% |
-| 2022 FHA buyer underwater rate | Not reported | 65% |
-| Peak-to-current price decline | Moderate | 27.3% |
-| Bexar/Travis foreclosure inventory | 459 homes | Higher (199% YoY spike) |
-| LRG existing content advantage | STRONG (PCS, military, SA-local) | MODERATE (foreclosure guide, market updates) |
+| Metric | San Antonio | Austin | Source | Label |
+|--------|------------|--------|--------|-------|
+| Overall underwater rate | 8.8% (#4 nationally) | 9.2% (#3 nationally) | ICE Mortgage Technology via ResiClub, Dec 2025 | VERIFIED |
+| 2022-vintage borrower underwater rate | Not separately reported | ~18% | ICE Mortgage Monitor, Jul 2025 | VERIFIED (Randall's figure; ResiClub later reported 22.4% from a different measurement period) |
+| Peak-to-current price decline | Moderate (no specific index figure sourced) | 15% (Cotality repeat-sale HPI, Mar 2026) to ~24-25% (MLS-median sources) | Cotality May 2026 report; multiple secondary sources | VERIFIED (Cotality) / SERP OBSERVATION (MLS median range) |
+| Bexar/Travis foreclosure inventory | 459 homes (KSAT, Nov 2025) | Not separately reported; 199% YoY spike in foreclosure rates (Apr 2026, secondary source) | KSAT.com; web search result | VERIFIED (SA) / SERP OBSERVATION (Austin YoY) |
+| LRG existing content advantage | STRONG (PCS, military, SA-local) | MODERATE (foreclosure guide, market updates) | — | INFERENCE |
 
 ### Key National Context
 
-- Texas led nation in H1 2026 bank repossessions: 3,322 properties
-- Nationwide underwater homes reached 2 million (first time since 2021)
-- Mortgage Forgiveness Debt Relief Act exclusion expired Jan 1, 2026
-- H.R. 917 (Mortgage Debt Relief extension) pending in Congress
+- Texas had the most lender repossessions (REOs) by raw count in H1 2026: 3,322 properties. Texas's foreclosure RATE was 0.18% — not in the top 5 (Florida led at 0.27%). [VERIFIED — ATTOM Mid-Year 2026 via PRNewswire]
+- Nationwide underwater homes reached 2 million (first time since 2021). [SERP OBSERVATION — The Real Deal headline; underlying source not independently fetched]
+- The qualified principal residence exclusion under the MFDRA does not apply to debt discharged after Dec 31, 2025. Insolvency and bankruptcy exclusions remain in effect with no expiration. Forgiven debt may create taxable income; other exclusions may apply. [VERIFIED — IRS.gov Topic 431]
+- H.R. 917 (Mortgage Debt Relief extension) pending in Congress. [SERP OBSERVATION — congress.gov appeared in search results; bill text not fetched]
 
-### The VA/Military Lane — Data Supports the Hypothesis
+### The VA/Military Lane — Promising and Differentiated [HYPOTHESIS]
 
-Levi's hypothesis that LRG can own the VA/military distressed-homeowner
-category in SA is supported by the data:
+Levi's hypothesis that LRG can differentiate in the VA/military
+distressed-homeowner category in SA is supported by SERP observations,
+but the JBSA/Lackland/Fort Sam/Randolph + PCS + equity SERPs have not
+been systematically volume-quantified yet. What we know:
 
-1. **LRG already ranks #1** for "selling home pcs no equity"
-2. **Zero local Texas broker content** exists for "pcs with underwater mortgage"
-3. **Reddit is #1** for "military pcs can't sell house" and "got orders can't sell house" — pure opportunity
-4. **VALN covers the VA loan mechanics** (compromise sale, entitlement, waiting periods) — LRG doesn't need to duplicate this
-5. **The gap is the local broker perspective** — "you're at JBSA, you're underwater, here's what we'd actually recommend" — nobody writes this
-6. **Military.com and Veterans United write national content** — no Texas specificity, no SA/Austin market context
+1. **LRG post 8714 appeared as #1 organic** for "selling home pcs no equity" in a single SERP pull (2026-08-09). [SERP OBSERVATION — needs 28/90-day GSC query-level validation]
+2. **Zero local Texas broker content** found for "pcs with underwater mortgage" in SERP pull. [SERP OBSERVATION]
+3. **Reddit is #1** for "military pcs can't sell house" and "got orders can't sell house" — no professional content. [SERP OBSERVATION]
+4. **VALN covers the VA loan mechanics** (compromise sale, entitlement, waiting periods) — LRG doesn't need to duplicate this. [VERIFIED — VALN content audit this session]
+5. **The gap appears to be the local broker perspective** — "you're at JBSA, you're underwater, here's what we'd actually recommend." [INFERENCE from SERP observations]
+6. **Military.com and Veterans United write national content** — no Texas specificity, no SA/Austin market context. [SERP OBSERVATION]
 
 ---
 
@@ -684,7 +752,7 @@ category in SA is supported by the data:
 This entire vertical is adjacent to legal and financial advice. Every page
 needs the compliance framework from Section 6D. The biggest risks:
 
-1. **Tax content post-MFDRA:** The expiration of the Mortgage Forgiveness Debt Relief Act makes tax content especially dangerous. Stating "you won't owe taxes on forgiven debt" is now wrong for most homeowners. Every tax page needs CPA referral and explicit disclaimer.
+1. **Tax content post-MFDRA:** The qualified principal residence exclusion expired for discharges after Dec 31, 2025 — but the insolvency and bankruptcy exclusions are permanent (IRS Topic 431). Content must NOT say "forgiven debt is now taxable" as a blanket statement. Correct framing: "may create taxable income; other exclusions may apply; a CPA or tax attorney should evaluate your situation." Every tax page needs CPA referral and explicit disclaimer.
 
 2. **Foreclosure timeline assertions:** Texas non-judicial foreclosure can move fast, but stating specific day counts as fact requires citing the specific Property Code sections. "As fast as 21 days after notice" needs a citation.
 
