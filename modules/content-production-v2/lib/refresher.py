@@ -165,13 +165,58 @@ def run_postprocess(config: dict, job: dict) -> Path | None:
         shutil.copy2(article_path, deploy_path)
         return deploy_path
 
-    # Run the postprocessor
+    # Step 1: CSS class migration (rl-* → site prefix)
+    # The postprocessor expects site-prefixed classes (tln* for TLN).
+    # The pipeline emits rl-* classes. Migrate before postprocessing.
+    html = article_path.read_text(encoding="utf-8")
+    css_prefix = config.get("content", {}).get("css_prefix", ["rl-"])
+    if isinstance(css_prefix, list):
+        css_prefix = css_prefix[0] if css_prefix else "rl-"
+
+    if css_prefix != "rl-":
+        import re as _re
+        # Map rl-* classes to site-prefix equivalents
+        CLASS_MAP = {
+            "rl-page": f"{css_prefix}Page",
+            "rl-wrap": f"{css_prefix}Wrap",
+            "rl-hero": f"{css_prefix}Card",
+            "rl-eyebrow": f"{css_prefix}Eyebrow",
+            "rl-hero-eyebrow": f"{css_prefix}Eyebrow",
+            "rl-hero-lead": f"{css_prefix}HeroLead",
+            "rl-cta-pill": f"{css_prefix}NextPill",
+            "rl-cta-primary": f"{css_prefix}NextPill",
+            "rl-quick-grid": f"{css_prefix}QuickGrid",
+            "rl-quick-card": f"{css_prefix}QuickCard",
+            "rl-bluf": f"{css_prefix}BLUF",
+            "rl-kcards": f"{css_prefix}Kcards",
+            "rl-kcard": f"{css_prefix}Kcard",
+            "rl-callout": f"{css_prefix}Callout",
+            "rl-faq": f"{css_prefix}FAQ",
+            "rl-resources": f"{css_prefix}Disclosure",
+            "rl-toc": f"{css_prefix}TOC",
+        }
+        for old_cls, new_cls in CLASS_MAP.items():
+            html = html.replace(f'class="{old_cls}', f'class="{new_cls}')
+            html = html.replace(f'class="{old_cls} ', f'class="{new_cls} ')
+
+        # Convert element types: <header class="rl-hero"> → <header class="tlnCard">
+        # Also: <div class="rl-quick-card"> → <article class="tlnQuickCard">
+        html = html.replace("<div class=\"" + f"{css_prefix}QuickCard", "<article class=\"" + f"{css_prefix}QuickCard")
+        html = html.replace("</div><!-- quickcard -->", "</article>")
+
+        # Section → section for FAQ wrapper
+        html = html.replace(f'<div class="{css_prefix}FAQ">', f'<section class="{css_prefix}FAQ">')
+
+    migrated_path = jdir / f"{post_id}-migrated.html"
+    migrated_path.write_text(html, encoding="utf-8")
+
+    # Step 2: Run the site postprocessor
     cmd = [
         "python3", str(postprocessor),
-        "--input", str(article_path),
+        "--input", str(migrated_path),
         "--output", str(deploy_path),
         "--slug", slug,
-        "--title-id", f"tln-{slug}",
+        "--title-id", f"{css_prefix}-{slug}",
         "--category-slug", "mortgage-guides",
         "--category-name", "Mortgage Guides",
         "--breadcrumb-leaf", refresh.get("original_title", slug)[:40],
@@ -181,7 +226,11 @@ def run_postprocess(config: dict, job: dict) -> Path | None:
         result = subprocess.run(cmd, capture_output=True, text=True, timeout=30)
         if result.returncode != 0:
             eprint(f"[refresh] Postprocessor failed: {result.stderr[:200]}")
-            return None
+            # Fallback: use the migrated HTML as deploy artifact
+            import shutil
+            shutil.copy2(migrated_path, deploy_path)
+            eprint(f"[refresh] Using migrated HTML as fallback deploy artifact")
+            return deploy_path
         eprint(f"[refresh] Postprocessed: {deploy_path.name} ({deploy_path.stat().st_size} bytes)")
         return deploy_path
     except Exception as e:
