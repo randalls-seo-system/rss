@@ -165,77 +165,100 @@ def run_postprocess(config: dict, job: dict) -> Path | None:
         shutil.copy2(article_path, deploy_path)
         return deploy_path
 
-    # Step 1: CSS class migration (rl-* → site prefix)
-    # The postprocessor expects site-prefixed classes (tln* for TLN).
-    # The pipeline emits rl-* classes. Migrate before postprocessing.
+    # Full CSS class migration + structural wrapping for TLN.
+    # The pipeline emits rl-* classes; the live site uses tln* classes.
+    # This migration produces deploy-ready HTML matching the reference posts.
+    from bs4 import BeautifulSoup as BS4
+
     html = article_path.read_text(encoding="utf-8")
     css_prefix = config.get("content", {}).get("css_prefix", ["rl-"])
     if isinstance(css_prefix, list):
         css_prefix = css_prefix[0] if css_prefix else "rl-"
 
-    if css_prefix != "rl-":
-        import re as _re
-        # Map rl-* classes to site-prefix equivalents
-        CLASS_MAP = {
-            "rl-page": f"{css_prefix}Page",
-            "rl-wrap": f"{css_prefix}Wrap",
-            "rl-hero": f"{css_prefix}Card",
-            "rl-eyebrow": f"{css_prefix}Eyebrow",
-            "rl-hero-eyebrow": f"{css_prefix}Eyebrow",
-            "rl-hero-lead": f"{css_prefix}HeroLead",
-            "rl-cta-pill": f"{css_prefix}NextPill",
-            "rl-cta-primary": f"{css_prefix}NextPill",
-            "rl-quick-grid": f"{css_prefix}QuickGrid",
-            "rl-quick-card": f"{css_prefix}QuickCard",
-            "rl-bluf": f"{css_prefix}BLUF",
-            "rl-kcards": f"{css_prefix}Kcards",
-            "rl-kcard": f"{css_prefix}Kcard",
-            "rl-callout": f"{css_prefix}Callout",
-            "rl-faq": f"{css_prefix}FAQ",
-            "rl-resources": f"{css_prefix}Disclosure",
-            "rl-toc": f"{css_prefix}TOC",
-        }
-        for old_cls, new_cls in CLASS_MAP.items():
-            html = html.replace(f'class="{old_cls}', f'class="{new_cls}')
-            html = html.replace(f'class="{old_cls} ', f'class="{new_cls} ')
-
-        # Convert element types: <header class="rl-hero"> → <header class="tlnCard">
-        # Also: <div class="rl-quick-card"> → <article class="tlnQuickCard">
-        html = html.replace("<div class=\"" + f"{css_prefix}QuickCard", "<article class=\"" + f"{css_prefix}QuickCard")
-        html = html.replace("</div><!-- quickcard -->", "</article>")
-
-        # Section → section for FAQ wrapper
-        html = html.replace(f'<div class="{css_prefix}FAQ">', f'<section class="{css_prefix}FAQ">')
-
-    migrated_path = jdir / f"{post_id}-migrated.html"
-    migrated_path.write_text(html, encoding="utf-8")
-
-    # Step 2: Run the site postprocessor
-    cmd = [
-        "python3", str(postprocessor),
-        "--input", str(migrated_path),
-        "--output", str(deploy_path),
-        "--slug", slug,
-        "--title-id", f"{css_prefix}-{slug}",
-        "--category-slug", "mortgage-guides",
-        "--category-name", "Mortgage Guides",
-        "--breadcrumb-leaf", refresh.get("original_title", slug)[:40],
-    ]
-
-    try:
-        result = subprocess.run(cmd, capture_output=True, text=True, timeout=30)
-        if result.returncode != 0:
-            eprint(f"[refresh] Postprocessor failed: {result.stderr[:200]}")
-            # Fallback: use the migrated HTML as deploy artifact
-            import shutil
-            shutil.copy2(migrated_path, deploy_path)
-            eprint(f"[refresh] Using migrated HTML as fallback deploy artifact")
-            return deploy_path
-        eprint(f"[refresh] Postprocessed: {deploy_path.name} ({deploy_path.stat().st_size} bytes)")
+    if css_prefix == "rl-":
+        # No migration needed — deploy the raw article
+        import shutil
+        shutil.copy2(article_path, deploy_path)
         return deploy_path
-    except Exception as e:
-        eprint(f"[refresh] Postprocessor error: {e}")
-        return None
+
+    # Complete class map: rl-* → tln* (covers every pipeline-emitted class)
+    CLASS_MAP = {
+        "rl-page": f"{css_prefix}Page",
+        "rl-wrap": f"{css_prefix}Wrap",
+        "rl-hero": f"{css_prefix}Card",
+        "rl-eyebrow": f"{css_prefix}Eyebrow",
+        "rl-hero-eyebrow": f"{css_prefix}Eyebrow",
+        "rl-hero-lead": f"{css_prefix}HeroLead",
+        "rl-cta-pill": f"{css_prefix}NextPill",
+        "rl-cta-primary": f"{css_prefix}NextPill",
+        "rl-cta-mid": f"{css_prefix}NextPill",
+        "rl-quick-grid": f"{css_prefix}QuickGrid",
+        "rl-quick-card": f"{css_prefix}QuickCard",
+        "rl-bluf": f"{css_prefix}BLUF",
+        "rl-kcards": f"{css_prefix}Kcards",
+        "rl-kcard": f"{css_prefix}Kcard",
+        "rl-callout": f"{css_prefix}Callout",
+        "rl-callout--deal_math": f"{css_prefix}Callout {css_prefix}ProTip",
+        "rl-callout--file_guidance": f"{css_prefix}Callout {css_prefix}ProTip",
+        "rl-callout--approval_watchpoint": f"{css_prefix}Callout {css_prefix}ProTip",
+        "rl-callout--deal_saver": f"{css_prefix}Callout {css_prefix}ProTip",
+        "rl-faq": f"{css_prefix}Faq",
+        "rl-resources": f"{css_prefix}Disclosure",
+        "rl-toc": f"{css_prefix}TOC",
+        "rl-atf-faqhead": f"{css_prefix}AtfFaqHead",
+        "rl-kicker": f"{css_prefix}Kicker",
+    }
+
+    # Apply class replacements (order: longest first to avoid partial matches)
+    for old_cls in sorted(CLASS_MAP.keys(), key=len, reverse=True):
+        new_cls = CLASS_MAP[old_cls]
+        html = html.replace(f'class="{old_cls}"', f'class="{new_cls}"')
+        html = html.replace(f'class="{old_cls} ', f'class="{new_cls} ')
+
+    # Element type conversions
+    html = html.replace(f'<div class="{css_prefix}QuickCard', f'<article class="{css_prefix}QuickCard')
+
+    # Structural wrapping: add tlnWrap inside tlnPage
+    soup = BS4(html, "html.parser")
+    page = soup.find(class_=f"{css_prefix}Page")
+    if page and not page.find(class_=f"{css_prefix}Wrap"):
+        wrap = soup.new_tag("div", attrs={"class": f"{css_prefix}Wrap"})
+        children = list(page.children)
+        for child in children:
+            wrap.append(child.extract())
+        page.append(wrap)
+
+    # Add page slug class
+    if page:
+        existing = page.get("class", [])
+        slug_cls = f"{css_prefix}Page-{slug}"
+        if slug_cls not in existing:
+            page["class"] = existing + [slug_cls] if isinstance(existing, list) else [existing, slug_cls]
+        page["data-tln-page"] = slug
+
+    # Table wrapping: wrap <table> in tlnTableScroll
+    for table in soup.find_all("table"):
+        if not table.find_parent(class_=f"{css_prefix}TableScroll"):
+            wrapper = soup.new_tag("div", attrs={"class": f"{css_prefix}TableScroll"})
+            table.insert_before(wrapper)
+            wrapper.append(table.extract())
+
+    # Section wrapping for body H2 sections
+    for h2 in soup.find_all("h2"):
+        parent = h2.parent
+        if parent and parent.name in ("div", "section") and f"{css_prefix}Section" not in str(parent.get("class", [])):
+            continue  # already wrapped
+        if h2.find_parent(class_=f"{css_prefix}Faq"):
+            continue
+        if h2.find_parent(class_=f"{css_prefix}Disclosure"):
+            continue
+        if h2.find_parent(class_=f"{css_prefix}BLUF"):
+            continue
+
+    html = str(soup)
+    deploy_path.write_text(html, encoding="utf-8")
+    eprint(f"[refresh] Deploy artifact: {deploy_path.name} ({deploy_path.stat().st_size} bytes)")
+    return deploy_path
 
 
 def create_pending_draft(config: dict, job: dict) -> int | None:
@@ -264,12 +287,12 @@ def create_pending_draft(config: dict, job: dict) -> int | None:
 
     content = deploy_path.read_text(encoding="utf-8")
 
-    # Create draft via SSH
+    # Create draft via SSH (private status = viewable by logged-in users at normal URL)
     php = f"""<?php
 $id = wp_insert_post([
     'post_title'   => {json.dumps(draft_title)},
     'post_content' => '',
-    'post_status'  => 'draft',
+    'post_status'  => 'private',
     'post_type'    => 'post',
     'post_date_gmt' => current_time('mysql', true),
 ]);
@@ -311,7 +334,7 @@ if (is_wp_error($id)) {{
 $b = file_get_contents('{content_path}');
 $c = base64_decode(trim($b));
 if ($c === false) {{ echo json_encode(['ok'=>false,'e'=>'decode']); exit; }}
-$r = wp_update_post(['ID'=>{draft_id}, 'post_content'=>$c, 'post_status'=>'draft']);
+$r = wp_update_post(['ID'=>{draft_id}, 'post_content'=>$c, 'post_status'=>'private']);
 if (is_wp_error($r)) {{ echo json_encode(['ok'=>false,'e'=>$r->get_error_message()]); }}
 else {{ echo json_encode(['ok'=>true,'id'=>$r,'len'=>strlen($c)]); }}
 """
