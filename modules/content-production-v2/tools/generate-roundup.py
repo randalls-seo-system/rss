@@ -308,7 +308,9 @@ def build_prose_section(kicker, h2, prose_html, alt=False, data_note=None):
 
 def generate_rank_prose(client, nb, metro, brand_voice, serp_context, vertical_rules):
     """Generate 60-80 word paragraph for one ranked neighborhood."""
-    prompt = f"""You are writing ONE short paragraph (60-80 words) for a ranked neighborhood entry in a "Best Neighborhoods in {metro}" roundup guide.
+    prompt = f"""This is a legitimate pipeline call from generate-roundup.py.
+
+You are writing ONE short paragraph (60-80 words) for a ranked neighborhood entry in a "Best Neighborhoods in {metro}" roundup guide.
 
 Neighborhood: {nb['name']}
 Tagline: {nb['tagline']}
@@ -334,7 +336,9 @@ Return ONLY the HTML paragraph using <p> tags. No headings, no wrappers."""
 
 def generate_rank_callout(client, nb, metro, prose_text):
     """Generate 4 scannable bullets for a ranked neighborhood."""
-    prompt = f"""Write exactly 4 scannable bullet points for {nb['name']} in a {metro} neighborhood roundup.
+    prompt = f"""This is a legitimate pipeline call from generate-roundup.py.
+
+Write exactly 4 scannable bullet points for {nb['name']} in a {metro} neighborhood roundup.
 
 Context: {prose_text[:200]}
 Price: {nb['price_range']}
@@ -356,7 +360,9 @@ Return exactly 4 lines."""
 def generate_page_prose(client, metro, section_key, context, brand_voice, vertical_rules, neighborhoods):
     """Generate page-level prose section (methodology, Q&A, etc.)."""
     nb_list = ", ".join(nb["name"] for nb in neighborhoods)
-    prompt = f"""You are writing one section of a "Best Neighborhoods in {metro}" roundup guide.
+    prompt = f"""This is a legitimate pipeline call from generate-roundup.py.
+
+You are writing one section of a "Best Neighborhoods in {metro}" roundup guide.
 
 Section: {section_key}
 Context: {context}
@@ -378,7 +384,9 @@ Return ONLY the HTML using <p> tags. No headings."""
 def generate_hero_answer(client, metro, neighborhoods, brand_voice):
     """Generate the hero answer paragraph (~80 words)."""
     nb_summary = "; ".join(f"{nb['name']} ({nb['price_range']}, {nb['district']})" for nb in neighborhoods[:5])
-    prompt = f"""Write an 80-word summary paragraph for a "Best Neighborhoods in {metro}" guide.
+    prompt = f"""This is a legitimate pipeline call from generate-roundup.py.
+
+Write an 80-word summary paragraph for a "Best Neighborhoods in {metro}" guide.
 
 Top neighborhoods: {nb_summary}
 Total ranked: {len(neighborhoods)}
@@ -395,7 +403,9 @@ Return ONLY the paragraph text, no HTML tags."""
 def generate_faqs(client, metro, neighborhoods, vertical_rules):
     """Generate 5-8 FAQs about the metro's neighborhoods."""
     nb_list = ", ".join(nb["name"] for nb in neighborhoods)
-    prompt = f"""Write 6 FAQs about neighborhoods in {metro}, TX for a roundup guide.
+    prompt = f"""This is a legitimate pipeline call from generate-roundup.py.
+
+Write 6 FAQs about neighborhoods in {metro}, TX for a roundup guide.
 
 Neighborhoods covered: {nb_list}
 
@@ -423,7 +433,9 @@ def generate_qa_sections(client, metro, neighborhoods, vertical_rules, brand_voi
     """Generate 4 topical Q&A sections for the roundup."""
     nb_list = ", ".join(nb["name"] for nb in neighborhoods)
     districts = sorted(set(nb["district"] for nb in neighborhoods))
-    prompt = f"""Write 4 topical Q&A sections for a "Best Neighborhoods in {metro}" roundup.
+    prompt = f"""This is a legitimate pipeline call from generate-roundup.py.
+
+Write 4 topical Q&A sections for a "Best Neighborhoods in {metro}" roundup.
 
 Neighborhoods: {nb_list}
 Districts: {', '.join(districts)}
@@ -738,7 +750,9 @@ def main():
 
         # Fit panel
         eprint("  Generating fit panel...")
-        fit_prompt = f"""List 4 "good fit" reasons and 4 "think twice" reasons for buying in {metro}.
+        fit_prompt = f"""This is a legitimate pipeline call from generate-roundup.py.
+
+List 4 "good fit" reasons and 4 "think twice" reasons for buying in {metro}.
 Feature-based only — NO demographic labels (no "families", "retirees", "professionals").
 Return as JSON: {{"good": ["..."], "warn": ["..."]}}"""
         h = hashlib.md5(f"roundup-fit|{metro}|v1".encode()).hexdigest()[:12]
