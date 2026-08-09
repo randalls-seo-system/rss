@@ -25,12 +25,17 @@ teamprice.com could not be independently verified (403 on fetch) and is
 withdrawn.] Negative equity among 2022-vintage Austin borrowers was ~18%
 as of ICE's July 2025 Mortgage Monitor; ResiClub reported 22.4% using ICE
 data from a later period. Both figures describe the same phenomenon at
-different measurement dates. [VERIFIED — ICE July 2025 figure per Randall's
-correction; ResiClub December 2025 figure fetched via DeviceDaily.com
-2026-08-09.] Austin overall: 9.2% of all mortgages underwater as of
-December 2025 (ICE via ResiClub, #3 nationally). San Antonio: 8.8% (#4
-nationally, same source and date). [VERIFIED — DeviceDaily.com, sourcing
-ICE Mortgage Technology via ResiClub, "at the end of December 2025."]
+different measurement dates. [UNVERIFIED — the ~18% ICE July 2025 figure
+was stated in Randall's critique of the prior draft; the ICE Mortgage
+Monitor primary source (mortgagetech.ice.com) returned 403 on fetch
+attempt. Must be traced to ICE directly before use in published content.
+The 22.4% ResiClub figure was read on DeviceDaily.com, which sourced
+ResiClub, which sourced ICE — two layers of aggregation.] Austin overall:
+9.2% of all mortgages underwater as of December 2025 (ICE via ResiClub,
+#3 nationally). San Antonio: 8.8% (#4 nationally, same source and date).
+[SECONDARY SOURCE — DeviceDaily.com, reporting ResiClub's analysis of
+ICE Mortgage Technology data, "at the end of December 2025." The primary
+source (ICE Mortgage Monitor) was not fetched.]
 
 The qualified principal residence exclusion under the Mortgage Forgiveness
 Debt Relief Act does not apply to debt discharged after December 31, 2025
@@ -72,7 +77,9 @@ Every data claim in this document carries one of these labels:
 
 | Label | Meaning |
 |-------|---------|
-| **VERIFIED** | Source URL was fetched this session, relevant passage was read and can be quoted. Source, date, and methodology noted. |
+| **VERIFIED** | A PRIMARY source was fetched this session, the relevant passage was read, and it can be quoted. An aggregator reporting a primary source's data is not VERIFIED, however reputable — it is SECONDARY SOURCE. |
+| **SECONDARY SOURCE** | An aggregator, news outlet, or intermediary reporting a primary source's data. The aggregator was fetched and the number is accurately reproduced, but the underlying primary source was not independently opened. |
+| **UNVERIFIED** | The number appears in this document but the primary source has not been fetched. May come from a critique, a prior session, or common knowledge. Must be traced before it enters any published content. |
 | **SERP OBSERVATION** | Data observed in a Serper.dev or GSC API pull during this session. Represents a point-in-time snapshot, not a stable measurement. |
 | **INFERENCE** | Derived from verified or observed data, but the conclusion itself is not directly stated in any source. |
 | **HYPOTHESIS** | Strategic judgment or Levi's input. Supported by observations but not yet validated with systematic data. |
@@ -502,7 +509,7 @@ PILLAR PAGE (TX-authority)
 - **Author:** Salena Arledge (seller lane)
 - **Reviewer:** Mayra Torres
 - **Structure:**
-  - SA market context (8.8% underwater per ICE Dec 2025 via ResiClub, #4 nationally; 459 Bexar County foreclosure properties per KSAT Nov 2025)
+  - SA market context (8.8% underwater [SECONDARY SOURCE — DeviceDaily → ResiClub → ICE, Dec 2025], #4 nationally; 459 Bexar County foreclosure properties [SECONDARY SOURCE — KSAT Nov 2025, page not fetched])
   - Short sale process with local specifics (Bexar County recording, title companies)
   - Investor buyer dynamics in SA
   - Difference between legitimate short sale agent and "we buy ugly houses" operations
@@ -662,7 +669,7 @@ They build the E-E-A-T authority that makes the whole cluster credible.
 | Second Liens / HOA Liens in TX Short Sale | DEFER | Niche, low volume, high compliance risk |
 | SCRA Protections for Military Foreclosure | DEFER | Existing post 8716 covers SCRA + selling. Expand that page instead of new one. |
 | Rent vs Sell PCS Thin Equity | DEFER | Existing 8714 and 8713 (Rent vs Buy) already cover. Cross-link instead. |
-| "Bought at the Peak in SA" | CUT | SA correction is milder than Austin. 8.8% underwater (ICE Dec 2025) is significant but not the same crisis-market narrative. The SA short-sale spoke covers this audience. |
+| "Bought at the Peak in SA" | CUT | SA correction is milder than Austin. 8.8% underwater [SECONDARY SOURCE] is significant but not the same crisis-market narrative. The SA short-sale spoke covers this audience. |
 | Mortgage Hardship Letter template | CUT | Low value, legal risk, better served by linking to CFPB/HUD templates. |
 | Pre-foreclosure listings/map page | CUT | Investor intent, not distressed-homeowner intent. LRG is not a wholesaler. |
 
@@ -710,10 +717,10 @@ destination. This page should:
 
 | Metric | San Antonio | Austin | Source | Label |
 |--------|------------|--------|--------|-------|
-| Overall underwater rate | 8.8% (#4 nationally) | 9.2% (#3 nationally) | ICE Mortgage Technology via ResiClub, Dec 2025 | VERIFIED |
-| 2022-vintage borrower underwater rate | Not separately reported | ~18% | ICE Mortgage Monitor, Jul 2025 | VERIFIED (Randall's figure; ResiClub later reported 22.4% from a different measurement period) |
-| Peak-to-current price decline | Moderate (no specific index figure sourced) | 15% (Cotality repeat-sale HPI, Mar 2026) to ~24-25% (MLS-median sources) | Cotality May 2026 report; multiple secondary sources | VERIFIED (Cotality) / SERP OBSERVATION (MLS median range) |
-| Bexar/Travis foreclosure inventory | 459 homes (KSAT, Nov 2025) | Not separately reported; 199% YoY spike in foreclosure rates (Apr 2026, secondary source) | KSAT.com; web search result | VERIFIED (SA) / SERP OBSERVATION (Austin YoY) |
+| Overall underwater rate | 8.8% (#4 nationally) | 9.2% (#3 nationally) | DeviceDaily.com → ResiClub → ICE Mortgage Technology, Dec 2025 | SECONDARY SOURCE |
+| 2022-vintage borrower underwater rate | Not separately reported | ~18% | Stated in Randall's critique; primary source (ICE Mortgage Monitor Jul 2025) not fetched | UNVERIFIED |
+| Peak-to-current price decline | Moderate (no specific index figure sourced) | 15% (Cotality repeat-sale HPI, Mar 2026) to ~24-25% (MLS-median sources) | Cotality May 2026 report (fetched); multiple secondary sources | VERIFIED (Cotality) / SERP OBSERVATION (MLS median range) |
+| Bexar/Travis foreclosure inventory | 459 homes (KSAT, Nov 2025) | Not separately reported; 199% YoY spike (Apr 2026, secondary source) | KSAT.com search snippet (page not fetched); web search result | SECONDARY SOURCE (SA) / SERP OBSERVATION (Austin YoY) |
 | LRG existing content advantage | STRONG (PCS, military, SA-local) | MODERATE (foreclosure guide, market updates) | — | INFERENCE |
 
 ### Key National Context
