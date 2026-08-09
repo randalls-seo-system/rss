@@ -1,5 +1,7 @@
 # TLN Claims Policy
 
+> Ratified: Levi, 2026-08-06
+>
 > Governs all claims in content produced for The Lenders Network.
 > D2 classification uses this policy when evaluating UNSOURCED claims.
 
@@ -74,7 +76,7 @@ definitional — it requires a SOURCE citation even if the concept is standard.
 Exceptions: the following program-rule figures are POLICY (established by issuing agencies, not market-variable):
 - "Alimony/child support income must continue for at least 3 years after closing" (Fannie Mae B3-3.1-09)
 - "FHA seller concessions are limited to 6% of the purchase price" (HUD 4000.1 II.A.3.b)
-- "Conventional 97 caps LTV, CLTV, and HCLTV at 97%" (Fannie Mae Selling Guide B5-6-01)
+- "Conventional 97 caps first-lien LTV at 97%; CLTV may reach 105% only with an eligible Community Seconds subordinate lien" (Fannie Mae B5-6-01)
 - "FHA upfront MIP is 1.75% of the base loan amount" (HUD Mortgagee Letter 2023-05)
 - "FHA minimum down payment is 3.5% with a 580 credit score" (HUD 4000.1 II.A.2)
 
