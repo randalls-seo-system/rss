@@ -401,15 +401,19 @@ def approve_refresh(config: dict, job: dict) -> bool:
         eprint("[refresh-approve] Missing original_post_id or pending_draft_id in job")
         return False
 
-    # Fetch draft content
-    draft_data = fetch_post_html(config, draft_id)
-    if not draft_data:
-        eprint(f"[refresh-approve] Could not fetch draft {draft_id}")
+    # Re-run hard gates on the RAW article HTML (rl-* classes), not the
+    # class-migrated deploy artifact on WP. The deploy artifact has tln*
+    # classes which the rl-*-expecting assertions don't recognize.
+    jdir = job_dir(job)
+    raw_article = None
+    for f in sorted(jdir.glob("*-article.html")):
+        raw_article = f
+        break
+    if not raw_article or not raw_article.exists():
+        eprint("[refresh-approve] Raw article HTML not found in job dir")
         return False
 
-    draft_html = draft_data["html"]
-
-    # Re-run hard gates on draft content
+    raw_html = raw_article.read_text(encoding="utf-8")
     context = {
         "site_config": {
             "SITE_DOMAIN": config.get("identity", {}).get("public_url", "").replace("https://", "").rstrip("/"),
@@ -420,8 +424,9 @@ def approve_refresh(config: dict, job: dict) -> bool:
         "anchor_pool": None,
         "intent": "",
         "atf_faqs_text": [],
+        "intended_title": refresh.get("original_title", ""),
     }
-    soup = BeautifulSoup(draft_html, "html.parser")
+    soup = BeautifulSoup(raw_html, "html.parser")
     gate_failures = []
     for fn in ALL_HARD_ASSERTIONS:
         try:
@@ -432,10 +437,17 @@ def approve_refresh(config: dict, job: dict) -> bool:
             pass
 
     if gate_failures:
-        eprint(f"[refresh-approve] BLOCKED: {len(gate_failures)} gate failure(s) on draft content:")
+        eprint(f"[refresh-approve] BLOCKED: {len(gate_failures)} gate failure(s) on raw article:")
         for gf in gate_failures[:5]:
             eprint(f"  - {gf}")
         return False
+
+    # Fetch draft to get its content for the swap
+    draft_data = fetch_post_html(config, draft_id)
+    if not draft_data:
+        eprint(f"[refresh-approve] Could not fetch draft {draft_id}")
+        return False
+    draft_html = draft_data["html"]
 
     # Create revision of original as backup
     php_backup = f"""<?php
