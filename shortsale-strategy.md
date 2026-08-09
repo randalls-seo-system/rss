@@ -835,7 +835,11 @@ All distressed-homeowner queries LRG currently appears for (60-day window, June 
 | sell my distressed house fast | 0 | 21 | 10.7 |
 | va home loan after short sale | 0 | 18 | 8.1 |
 
-**Total distressed-topic impressions (60 days):** ~2,800+
+**Total distressed-topic impressions (60 days):** ~2,600+ (2,629 from the
+top 17 queries shown above; ~40 additional tail queries at 1-5 impressions
+each not shown). [VERIFIED — GSC Search Analytics API, sc-domain:lrgrealty.com,
+2026-06-10 to 2026-08-08, query-level filter for 15 distressed-topic terms,
+pulled via service account this session.]
 **Total distressed-topic clicks (60 days):** ~5
 
 This confirms: LRG has visibility but no conversion because the existing
