@@ -330,7 +330,7 @@ Write 60-80 words of expert, practical prose. Lead with the key differentiator. 
 Return ONLY the HTML paragraph using <p> tags. No headings, no wrappers."""
 
     h = hashlib.md5(f"roundup|{metro}|{nb['name']}|v1".encode()).hexdigest()[:12]
-    response = client.call(prompt, cache_key=f"roundup-rank|{metro}|{nb['name']}|{h}")
+    response = client.call(prompt, cache_key=f"roundup-rank-v3|{metro}|{nb['name']}|{h}")
     return extract_html(response.text)
 
 
@@ -351,8 +351,8 @@ DISTRICT-LEVEL school references only. Do NOT name specific campuses — use the
 
 Return exactly 4 lines."""
 
-    h = hashlib.md5(f"roundup-co|{metro}|{nb['name']}|v1".encode()).hexdigest()[:12]
-    response = client.call(prompt, cache_key=f"roundup-co|{metro}|{nb['name']}|{h}")
+    h = hashlib.md5(f"roundup-co-v3|{metro}|{nb['name']}|v1".encode()).hexdigest()[:12]
+    response = client.call(prompt, cache_key=f"roundup-co-v3|{metro}|{nb['name']}|{h}")
     lines = [l.strip().lstrip("•-*123456789. ") for l in response.text.strip().split("\n") if l.strip()]
     return lines[:4] if lines else [f"{nb['name']} offers buyers a competitive option in {metro}."]
 
@@ -376,8 +376,8 @@ Write 60-120 words of practical prose. No em dashes. No unsupported superlatives
 
 Return ONLY the HTML using <p> tags. No headings."""
 
-    h = hashlib.md5(f"roundup-page|{metro}|{section_key}|v1".encode()).hexdigest()[:12]
-    response = client.call(prompt, cache_key=f"roundup-page|{metro}|{section_key}|{h}")
+    h = hashlib.md5(f"roundup-page-v3|{metro}|{section_key}|v1".encode()).hexdigest()[:12]
+    response = client.call(prompt, cache_key=f"roundup-page-v3|{metro}|{section_key}|{h}")
     return extract_html(response.text)
 
 
@@ -395,7 +395,7 @@ Lead with the count and price range spread. Mention 3-4 specific neighborhoods b
 
 Return ONLY the paragraph text, no HTML tags."""
 
-    h = hashlib.md5(f"roundup-hero|{metro}|v1|{len(neighborhoods)}".encode()).hexdigest()[:12]
+    h = hashlib.md5(f"roundup-hero|{metro}|v3|{len(neighborhoods)}".encode()).hexdigest()[:12]
     response = client.call(prompt, cache_key=f"roundup-hero|{metro}|{h}")
     return response.text.strip()
 
@@ -415,7 +415,7 @@ Each FAQ: a question homebuyers actually ask about {metro} neighborhoods, and a 
 
 Return as JSON array: [{{"q": "...", "a": "..."}}, ...]"""
 
-    h = hashlib.md5(f"roundup-faq|{metro}|v1|{len(neighborhoods)}".encode()).hexdigest()[:12]
+    h = hashlib.md5(f"roundup-faq|{metro}|v3|{len(neighborhoods)}".encode()).hexdigest()[:12]
     response = client.call(prompt, cache_key=f"roundup-faq|{metro}|{h}")
     try:
         # Try to parse JSON from response
@@ -453,7 +453,7 @@ Do NOT use "safest neighborhood" framing. No em dashes. Feature-based language o
 
 Return as JSON array: [{{"kicker": "...", "h2": "...", "prose": "<p>...</p>"}}]"""
 
-    h = hashlib.md5(f"roundup-qa|{metro}|v2|{len(neighborhoods)}".encode()).hexdigest()[:12]
+    h = hashlib.md5(f"roundup-qa|{metro}|v3|{len(neighborhoods)}".encode()).hexdigest()[:12]
     response = client.call(prompt, cache_key=f"roundup-qa|{metro}|{h}")
     try:
         text = re.sub(r'^```json\s*', '', response.text.strip())
@@ -755,7 +755,7 @@ def main():
 List 4 "good fit" reasons and 4 "think twice" reasons for buying in {metro}.
 Feature-based only — NO demographic labels (no "families", "retirees", "professionals").
 Return as JSON: {{"good": ["..."], "warn": ["..."]}}"""
-        h = hashlib.md5(f"roundup-fit|{metro}|v1".encode()).hexdigest()[:12]
+        h = hashlib.md5(f"roundup-fit|{metro}|v3".encode()).hexdigest()[:12]
         fit_resp = client.call(fit_prompt, cache_key=f"roundup-fit|{metro}|{h}")
         try:
             fit_text = re.sub(r'^```json\s*', '', fit_resp.text.strip())
