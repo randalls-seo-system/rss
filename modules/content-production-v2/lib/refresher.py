@@ -322,7 +322,7 @@ def approve_refresh(config: dict, job: dict) -> bool:
 wp_save_post_revision({original_id});
 echo 'revision_saved';
 """
-    stdout, rc = ssh_pipe_php(config, php_backup, timeout=15)
+    stdout, rc = ssh_pipe_php(config, php_backup, timeout=30)
 
     # Swap: copy draft content + title onto original, preserve publish date
     original_title = refresh.get("original_title", "")
@@ -382,7 +382,7 @@ else {{ echo json_encode(['ok'=>true,'id'=>$r,'len'=>strlen($c)]); }}
 wp_delete_post({draft_id}, true);
 echo 'deleted';
 """
-    ssh_pipe_php(config, php_delete, timeout=15)
+    ssh_pipe_php(config, php_delete, timeout=30)
 
     # Purge cache
     from .orchestrator import purge_cache
