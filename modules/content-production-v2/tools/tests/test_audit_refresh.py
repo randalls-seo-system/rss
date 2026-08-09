@@ -281,6 +281,7 @@ class TestRefreshSafety(unittest.TestCase):
                 "generate": {"status": "done"},
                 "gates": {"status": "done", "validation": {"ran": True, "hard_passed": 30, "hard_total": 30}, "d2": {"ran": True}},
                 "link_pass": {"status": "done"},
+                "postprocess": {"status": "done"},
                 "create_pending_draft": {"status": "done"},
             },
             "refresh": {
@@ -303,6 +304,7 @@ class TestRefreshSafety(unittest.TestCase):
                 "generate": {"status": "done"},
                 "gates": {"status": "done", "validation": {"ran": False, "hard_passed": 0, "hard_total": 30}},
                 "link_pass": {"status": "done"},
+                "postprocess": {"status": "done"},
                 "create_pending_draft": {"status": "done"},
             },
             "refresh": {
@@ -325,6 +327,7 @@ class TestRefreshSafety(unittest.TestCase):
                 "generate": {"status": "done"},
                 "gates": {"status": "done", "validation": {"ran": True, "hard_passed": 30, "hard_total": 30}, "d2": {"ran": False}},
                 "link_pass": {"status": "done"},
+                "postprocess": {"status": "done"},
                 "create_pending_draft": {"status": "done"},
             },
             "refresh": {
@@ -337,8 +340,10 @@ class TestRefreshSafety(unittest.TestCase):
         self.assertIn("D2 claims check did not run", reason)
 
     def test_approve_accepts_fully_gated_job(self):
-        """approve gate passes when all stages done, validator ran+passed, D2 ran."""
-        from lib.refresher import refresh_job_ready_for_approval
+        """approve gate passes when all stages done, validator ran+passed, D2 ran,
+        and deploy artifact exists."""
+        import tempfile, shutil
+        from lib.refresher import refresh_job_ready_for_approval, JOBS_DIR
 
         job = {
             "id": "test-job-good",
@@ -347,6 +352,7 @@ class TestRefreshSafety(unittest.TestCase):
                 "generate": {"status": "done"},
                 "gates": {"status": "done", "validation": {"ran": True, "hard_passed": 30, "hard_total": 30}, "d2": {"ran": True}},
                 "link_pass": {"status": "done"},
+                "postprocess": {"status": "done"},
                 "create_pending_draft": {"status": "done"},
             },
             "refresh": {
@@ -354,9 +360,16 @@ class TestRefreshSafety(unittest.TestCase):
                 "pending_draft_id": 2531,
             },
         }
-        ready, reason = refresh_job_ready_for_approval(job)
-        self.assertTrue(ready)
-        self.assertEqual(reason, "")
+        # Create the deploy artifact the readiness check requires
+        deploy_dir = JOBS_DIR / "test-job-good"
+        deploy_dir.mkdir(parents=True, exist_ok=True)
+        (deploy_dir / "999-deploy.html").write_text("<html>deploy</html>")
+        try:
+            ready, reason = refresh_job_ready_for_approval(job)
+            self.assertTrue(ready, f"Should pass but got: {reason}")
+            self.assertEqual(reason, "")
+        finally:
+            shutil.rmtree(deploy_dir, ignore_errors=True)
 
     @patch("lib.refresher.fetch_post_html")
     def test_refuses_non_published(self, mock_fetch):

@@ -132,8 +132,68 @@ def _save_existing_post_evidence(jdir: Path, html: str, post_id: int, slug: str)
     evidence_path.write_text(json.dumps(evidence_items, indent=2))
 
 
+def run_postprocess(config: dict, job: dict) -> Path | None:
+    """Run the site's postprocessor on the article HTML to produce the deploy artifact.
+
+    Returns the path to {post_id}-deploy.html, or None on failure.
+    """
+    jdir = job_dir(job)
+    refresh = job.get("refresh", {})
+    post_id = refresh.get("original_post_id")
+    slug = refresh.get("original_slug", "")
+    site_slug = job.get("site", "")
+
+    # Find the article HTML
+    article_path = jdir / "article.html"
+    if not article_path.exists():
+        # Try the pipeline output pattern
+        for f in jdir.glob("*-article.html"):
+            article_path = f
+            break
+    if not article_path.exists():
+        eprint("[refresh] No article HTML found in job dir")
+        return None
+
+    deploy_path = jdir / f"{post_id}-deploy.html"
+
+    # Resolve postprocessor for this site
+    postprocessor = REPO_ROOT / "tools" / f"{site_slug}-postprocess.py"
+    if not postprocessor.exists():
+        # No postprocessor = deploy artifact is the raw article
+        eprint(f"[refresh] No postprocessor for site {site_slug} — using raw article")
+        import shutil
+        shutil.copy2(article_path, deploy_path)
+        return deploy_path
+
+    # Run the postprocessor
+    cmd = [
+        "python3", str(postprocessor),
+        "--input", str(article_path),
+        "--output", str(deploy_path),
+        "--slug", slug,
+        "--title-id", f"tln-{slug}",
+        "--category-slug", "mortgage-guides",
+        "--category-name", "Mortgage Guides",
+        "--breadcrumb-leaf", refresh.get("original_title", slug)[:40],
+    ]
+
+    try:
+        result = subprocess.run(cmd, capture_output=True, text=True, timeout=30)
+        if result.returncode != 0:
+            eprint(f"[refresh] Postprocessor failed: {result.stderr[:200]}")
+            return None
+        eprint(f"[refresh] Postprocessed: {deploy_path.name} ({deploy_path.stat().st_size} bytes)")
+        return deploy_path
+    except Exception as e:
+        eprint(f"[refresh] Postprocessor error: {e}")
+        return None
+
+
 def create_pending_draft(config: dict, job: dict) -> int | None:
     """Create a draft post titled '[REFRESH pending] <title>' on the live site.
+
+    Uses the POSTPROCESSED deploy artifact ({post_id}-deploy.html), NOT the
+    raw article HTML. If no deploy artifact exists, runs the postprocessor first.
 
     Returns the new draft post_id or None on failure.
     Does NOT modify the original post.
@@ -142,14 +202,18 @@ def create_pending_draft(config: dict, job: dict) -> int | None:
     original_title = refresh.get("original_title", "Untitled")
     draft_title = f"[REFRESH pending] {original_title}"
 
-    # Read the generated article HTML from the job dir
     jdir = job_dir(job)
-    article_path = jdir / "article.html"
-    if not article_path.exists():
-        eprint("[refresh] No article.html in job dir — pipeline hasn't run")
-        return None
+    post_id = refresh.get("original_post_id")
 
-    content = article_path.read_text(encoding="utf-8")
+    # Use deploy artifact (postprocessed), not raw article
+    deploy_path = jdir / f"{post_id}-deploy.html"
+    if not deploy_path.exists():
+        deploy_path = run_postprocess(config, job)
+        if not deploy_path or not deploy_path.exists():
+            eprint("[refresh] No deploy artifact — postprocess failed or no article")
+            return None
+
+    content = deploy_path.read_text(encoding="utf-8")
 
     # Create draft via SSH
     php = f"""<?php
@@ -225,7 +289,7 @@ def refresh_job_ready_for_approval(job: dict) -> tuple[bool, str]:
     stages = job.get("stages", {})
     refresh = job.get("refresh", {})
 
-    required = ["fetch_original", "generate", "gates", "link_pass", "create_pending_draft"]
+    required = ["fetch_original", "generate", "gates", "link_pass", "postprocess", "create_pending_draft"]
     for stage_name in required:
         if not stages.get(stage_name, {}).get("status") == "done":
             return False, f"Stage '{stage_name}' not completed"
@@ -246,6 +310,13 @@ def refresh_job_ready_for_approval(job: dict) -> tuple[bool, str]:
 
     if not refresh.get("pending_draft_id"):
         return False, "No pending_draft_id — draft not deployed to site"
+
+    # Deploy artifact must exist (last check — all logic gates pass first)
+    post_id = refresh.get("original_post_id")
+    if post_id:
+        deploy_path = JOBS_DIR / job.get("id", "") / f"{post_id}-deploy.html"
+        if not deploy_path.exists():
+            return False, f"Deploy artifact not found: {deploy_path.name}"
 
     return True, ""
 
@@ -325,15 +396,12 @@ echo 'revision_saved';
     stdout, rc = ssh_pipe_php(config, php_backup, timeout=30)
 
     # Swap: copy draft content + title onto original, preserve publish date
+    # TITLE FIX: always use the original title from the job record, never
+    # the draft's WP title (which may be truncated by WP or have the
+    # [REFRESH pending] prefix partially stripped).
     original_title = refresh.get("original_title", "")
     original_publish_date = refresh.get("original_publish_date", "")
-    new_title = original_title  # keep original title unless refresh changed it
-
-    # Read generated title from draft
-    if draft_data.get("title", "").startswith("[REFRESH pending] "):
-        new_title = draft_data["title"].replace("[REFRESH pending] ", "", 1)
-    elif draft_data.get("title"):
-        new_title = draft_data["title"]
+    new_title = original_title
 
     import base64
     b64 = base64.b64encode(draft_html.encode("utf-8")).decode("ascii")
