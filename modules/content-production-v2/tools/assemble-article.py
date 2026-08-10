@@ -2414,21 +2414,36 @@ def phase_h(state: PipelineState) -> None:
             eprint("  [H.26] Validator is still a stub — skipping validation")
         else:
             try:
-                json_report = _run_tool(str(validator), [
+                # Run validator directly (not via _run_tool) because exit 1
+                # means "test(s) failed" — we still need the JSON stdout to
+                # read the actual pass/fail counts.
+                vcmd = [PYTHON, str(validator),
                     "--html-file", str(linked_path),
                     "--intent", state.intent,
                     "--serp-json", str(state.serp_json_path),
                     "--site", state.site_slug,
                     "--output-format", "json",
-                ], "H.26")
+                ]
+                eprint(f"  [H.26] Running: {validator.name} {' '.join(vcmd[2:8])}...")
+                vresult = subprocess.run(
+                    vcmd, capture_output=True, text=True,
+                    timeout=LLM_CALL_TIMEOUT, cwd=str(REPO_ROOT),
+                )
+                json_report = vresult.stdout
+                if vresult.returncode != 0 and vresult.stderr:
+                    eprint(f"  [H.26] Validator exit {vresult.returncode}: {vresult.stderr.strip()[-200:]}")
                 vdata = json.loads(json_report)
                 hard_passed = vdata.get("summary", {}).get("hard_passed", 0)
                 hard_total = vdata.get("summary", {}).get("hard_total", 30)
                 validation_report_path.write_text(json_report)
                 eprint(f"  [H.26] Validator: {hard_passed}/{hard_total} hard passed")
-            except (RuntimeError, json.JSONDecodeError) as e:
-                # Validator crash or unparseable output — treat as failure, not a salvage
-                eprint(f"  [H.26] Validator FAILED: {e}")
+            except subprocess.TimeoutExpired:
+                eprint(f"  [H.26] Validator timed out")
+                hard_passed = 0
+                hard_total = 30
+            except (json.JSONDecodeError, KeyError) as e:
+                # Validator crashed hard or produced non-JSON — genuine failure
+                eprint(f"  [H.26] Validator output unparseable: {e}")
                 hard_passed = 0
                 hard_total = 30
     else:
@@ -3125,7 +3140,24 @@ def main():
         # Step CQG: Content quality gate (post-polish, pre-deploy)
         eprint("\n--- Content Quality Gate (post-polish) ---")
         from lib.content_quality_gate import run_content_quality_gate, run_ymyl_language_check
-        cqg_subject = state.target_keyword
+        # For neighborhood/community-guide intents, the subject is the
+        # neighborhood name and must appear frequently. For general articles
+        # (decision, comparison, process, etc.), the target keyword is a
+        # long-tail phrase — use the city/geo term as the subject instead.
+        if state.intent in ("community-guide",):
+            cqg_subject = state.target_keyword
+        else:
+            # Extract the geographic anchor from the keyword or fall back to
+            # the primary market from config. This catches "Texas", "San
+            # Antonio", "Austin" etc.
+            cqg_city_raw = state.config.get("LOCATION_PRIMARY", "").split(",")[0].strip()
+            kw_lower = state.target_keyword.lower()
+            if "texas" in kw_lower or "tx" in kw_lower:
+                cqg_subject = "Texas"
+            elif cqg_city_raw.lower() in kw_lower:
+                cqg_subject = cqg_city_raw
+            else:
+                cqg_subject = cqg_city_raw
         cqg_city = state.config.get("LOCATION_PRIMARY", "").split(",")[0].strip()
         cqg_failures = run_content_quality_gate(
             state.assembled_html, cqg_subject, cqg_city
