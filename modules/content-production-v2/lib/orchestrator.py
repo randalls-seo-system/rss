@@ -23,6 +23,9 @@ TOOLS_DIR = MODULE_DIR / "tools"
 JOBS_DIR = REPO_ROOT / "jobs"
 PYTHON = sys.executable
 
+sys.path.insert(0, str(REPO_ROOT))
+from lib.gate_library import run_universal_gates
+
 # ───────────────────────────────────────────────────────────────────────────
 # Centralized timeouts
 # ───────────────────────────────────────────────────────────────────────────
@@ -696,6 +699,23 @@ def deploy_draft(job: dict, config: dict, html_path: Path) -> bool:
 
     post_id = job["post_id"]
     content = html_path.read_text()
+
+    # Universal gate check before deploy
+    site_id = config.get("identity", {}).get("site_id", job.get("site", ""))
+    gate_report = run_universal_gates(
+        content,
+        site_slug=site_id,
+        title=job.get("topic", ""),
+        content_type="article",
+        config=config,
+    )
+    if not gate_report.passed:
+        from .tool_utils import eprint
+        eprint(f"[deploy] GATE FAILED — refusing to deploy:")
+        for fail in gate_report.failures:
+            eprint(f"  [{fail.name}] {fail.detail}")
+        return False
+
     wp_path = config["access"]["wp_path"]
 
     # Backup (even for new posts — the draft may have placeholder content)

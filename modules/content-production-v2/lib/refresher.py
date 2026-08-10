@@ -26,6 +26,10 @@ from .orchestrator import (
 )
 from .tool_utils import eprint
 
+import sys
+sys.path.insert(0, str(REPO_ROOT))
+from lib.gate_library import run_universal_gates
+
 
 def start_refresh_job(
     config: dict,
@@ -322,6 +326,21 @@ if (is_wp_error($id)) {{
 
     draft_id = resp["id"]
 
+    # Universal gate check before deploying to draft
+    site_id = config.get("identity", {}).get("site_id", site_slug)
+    gate_report = run_universal_gates(
+        content,
+        site_slug=site_id,
+        title=refresh.get("original_title", ""),
+        content_type="article",
+        config=config,
+    )
+    if not gate_report.passed:
+        eprint(f"[refresh] GATE FAILED — refusing to deploy draft:")
+        for fail in gate_report.failures:
+            eprint(f"  [{fail.name}] {fail.detail}")
+        return None
+
     # Deploy content to the draft via base64 (safe for large content)
     import base64
     b64 = base64.b64encode(content.encode("utf-8")).decode("ascii")
@@ -471,6 +490,21 @@ def approve_refresh(config: dict, job: dict) -> bool:
         eprint(f"[refresh-approve] Could not fetch draft {draft_id}")
         return False
     draft_html = draft_data["html"]
+
+    # Universal gate check on draft content before swap
+    site_id = config.get("identity", {}).get("site_id", "")
+    ug_report = run_universal_gates(
+        draft_html,
+        site_slug=site_id,
+        title=refresh.get("original_title", ""),
+        content_type="article",
+        config=config,
+    )
+    if not ug_report.passed:
+        eprint(f"[refresh-approve] UNIVERSAL GATE FAILED — refusing to swap:")
+        for fail in ug_report.failures:
+            eprint(f"  [{fail.name}] {fail.detail}")
+        return False
 
     # Create revision of original as backup
     php_backup = f"""<?php
