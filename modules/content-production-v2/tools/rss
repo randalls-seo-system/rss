@@ -857,6 +857,22 @@ def main():
     tg = sub.add_parser("topic-graph", help="Show topic graph summary (pending links, spokes, backfills)")
     tg.add_argument("--site", required=True, help="Site ID")
 
+    # gate
+    gt = sub.add_parser("gate", help="Run universal deploy gates on an HTML file")
+    gt.add_argument("--site", required=True, help="Site slug")
+    gt.add_argument("--file", required=True, help="Path to HTML file")
+    gt.add_argument("--type", default="article", help="Content type")
+    gt.add_argument("--slug", default="", help="Post slug for uniqueness check")
+    gt.add_argument("--title", default="", help="Post title for integrity check")
+    gt.add_argument("--json", action="store_true", help="Output as JSON")
+
+    # gate-scan
+    gs = sub.add_parser("gate-scan", help="Scan all published pages through universal gates (read-only)")
+    gs.add_argument("--site", required=True, help="Site slug")
+    gs.add_argument("--all-published", action="store_true", required=True)
+    gs.add_argument("--limit", type=int, default=0, help="Limit number of posts")
+    gs.add_argument("--output", default="", help="Output file path")
+
     args = parser.parse_args()
     if args.command == "new-article":
         cmd_new_article(args)
@@ -887,6 +903,25 @@ def main():
         print(f"  Queued backlink notes:        {summary['queued_backlink_notes']}")
         print(f"  Backfills completed:         {summary['backfills_completed']}")
         print(f"  Backfills failed:            {summary['backfills_failed']}")
+    elif args.command == "gate":
+        GATE_REPO = MODULE_DIR.parent.parent
+        sys.path.insert(0, str(GATE_REPO))
+        from lib.gate_library import cli_gate
+        sys.exit(cli_gate([
+            "--site", args.site, "--file", args.file,
+            "--type", args.type, "--slug", args.slug,
+            "--title", args.title,
+        ] + (["--json"] if args.json else [])))
+    elif args.command == "gate-scan":
+        GATE_REPO = MODULE_DIR.parent.parent
+        sys.path.insert(0, str(GATE_REPO))
+        from lib.gate_library import cli_gate_scan
+        scan_args = ["--site", args.site, "--all-published"]
+        if args.limit:
+            scan_args += ["--limit", str(args.limit)]
+        if args.output:
+            scan_args += ["--output", args.output]
+        sys.exit(cli_gate_scan(scan_args))
     elif args.command == "queue":
         if not args.queue_action:
             q.print_help()
