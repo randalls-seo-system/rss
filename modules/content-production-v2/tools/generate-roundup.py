@@ -68,6 +68,15 @@ def _slug(text):
     return re.sub(r"[^a-z0-9]+", "-", text.lower()).strip("-")
 
 
+def _slug_no_year(title):
+    """Derive a URL slug from a title, stripping year suffixes.
+    'Best Neighborhoods in Buda, TX (2026)' → 'best-neighborhoods-in-buda-tx'
+    """
+    # Strip (2026), (2025), etc.
+    clean = re.sub(r'\s*\(\d{4}\)\s*$', '', title)
+    return _slug(clean)
+
+
 def _meter_color(val):
     if val >= 7.0:
         return "green"
@@ -779,7 +788,7 @@ Return as JSON: {{"good": ["..."], "warn": ["..."]}}"""
 
     # Assemble
     eprint("\nAssembling roundup HTML...")
-    cta_ref = _slug(args.title)
+    cta_ref = _slug_no_year(args.title)
     html = assemble_roundup(metro, args.title, nbs, prose_parts, faqs, cta_ref)
 
     # Inject inline links
@@ -818,6 +827,7 @@ Return as JSON: {{"good": ["..."], "warn": ["..."]}}"""
         "post_id": post_id,
         "metro": metro,
         "title": args.title,
+        "suggested_slug": _slug_no_year(args.title),
         "generator": "generate-roundup.py",
         "format": "nh-rank",
         "neighborhood_count": len(nbs),
