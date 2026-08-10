@@ -117,17 +117,23 @@ def _price_width(price_range, max_price):
     return min(100, max(15, int(low / max(max_price, 1) * 100)))
 
 
-def build_hero(metro, title, answer_html, qstats, cta_ref):
-    """Hero block with answer, CTAs, and qstats."""
+def _article(word):
+    """Return 'an' if word starts with a vowel sound, else 'a'."""
+    return "an" if word and word[0].lower() in "aeiou" else "a"
+
+
+def build_hero(city, title, answer_html, qstats, cta_ref):
+    """Hero block with answer, CTAs, and qstats. Uses city, not metro."""
     qs_items = "\n".join(
         f'<div class="nh-qs"><div class="v">{s["val"]}</div><div class="l">{s["label"]}</div></div>'
         for s in qstats
     )
+    article = _article(city)
     return f'''<div class="nh-hero">
 <div class="nh-wrap">
 <p class="nh-answer">{answer_html}</p>
-<a class="nh-cta" href="/lrg-blog/connect-with-lrg/?ref={cta_ref}">Talk to a {metro} Agent &rarr;</a>
-<a class="nh-cta ghost" href="https://lrgrealty.com/listings/homes-for-sale-{_slug(metro)}/">Search {metro} Homes for Sale</a>
+<a class="nh-cta" href="/lrg-blog/connect-with-lrg/?ref={cta_ref}">Talk to {article} {city} Agent &rarr;</a>
+<a class="nh-cta ghost" href="https://lrgrealty.com/listings/homes-for-sale-{_slug(city)}/">Search {city} Homes for Sale</a>
 <div class="nh-qstats">
 {qs_items}
 </div>
@@ -563,7 +569,7 @@ def inject_roundup_links(html, metro, neighborhoods):
 # Assembly
 # ---------------------------------------------------------------------------
 
-def assemble_roundup(metro, title, neighborhoods, prose_parts, faqs, cta_ref):
+def assemble_roundup(city, metro, title, neighborhoods, prose_parts, faqs, cta_ref):
     """Assemble the full roundup HTML."""
     parts = []
 
@@ -584,7 +590,7 @@ def assemble_roundup(metro, title, neighborhoods, prose_parts, faqs, cta_ref):
         {"val": str(len(neighborhoods)), "label": "Neighborhoods Ranked"},
         {"val": f"{len(districts)} ISDs" if len(districts) > 1 else districts[0], "label": "School Districts"},
     ]
-    parts.append(build_hero(metro, title, prose_parts["hero"], qstats, cta_ref))
+    parts.append(build_hero(city, title, prose_parts["hero"], qstats, cta_ref))
 
     # 2. Quick-match table
     parts.append(build_quick_match_table(neighborhoods))
@@ -647,7 +653,8 @@ def assemble_roundup(metro, title, neighborhoods, prose_parts, faqs, cta_ref):
 def main():
     parser = argparse.ArgumentParser(description="Generate a multi-neighborhood roundup page")
     parser.add_argument("--site", required=True)
-    parser.add_argument("--metro", required=True, help="Metro area name (Austin, San Antonio, Killeen)")
+    parser.add_argument("--city", required=True, help="City name for hero, CTAs, listings (e.g. Belton, Buda)")
+    parser.add_argument("--metro", required=True, help="Metro area for regional context (e.g. Austin, Killeen)")
     parser.add_argument("--title", required=True, help="Page title")
     parser.add_argument("--neighborhoods", required=True, help="JSON file with neighborhood list")
     parser.add_argument("--post-id", type=int, default=0)
@@ -656,6 +663,7 @@ def main():
     parser.add_argument("--skip-llm", action="store_true", help="Use placeholder prose")
     args = parser.parse_args()
 
+    city = args.city
     metro = args.metro
     post_id = args.post_id
 
@@ -725,7 +733,7 @@ def main():
 
         # Hero
         eprint("  Generating hero answer...")
-        prose_parts["hero"] = generate_hero_answer(client, metro, nbs, brand_voice)
+        prose_parts["hero"] = generate_hero_answer(client, city, nbs, brand_voice)
         time.sleep(1)
 
         # Per-rank prose + callouts
@@ -789,10 +797,10 @@ Return as JSON: {{"good": ["..."], "warn": ["..."]}}"""
     # Assemble
     eprint("\nAssembling roundup HTML...")
     cta_ref = _slug_no_year(args.title)
-    html = assemble_roundup(metro, args.title, nbs, prose_parts, faqs, cta_ref)
+    html = assemble_roundup(city, metro, args.title, nbs, prose_parts, faqs, cta_ref)
 
     # Inject inline links
-    html, link_count = inject_roundup_links(html, metro, nbs)
+    html, link_count = inject_roundup_links(html, city, nbs)
     eprint(f"Links injected: {link_count}")
 
     # Structural fingerprint
