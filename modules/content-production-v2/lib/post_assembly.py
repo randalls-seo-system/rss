@@ -27,14 +27,29 @@ _TAG_SPLIT = re.compile(
 # ── Pass 1: Fair Housing phrase scan ──
 
 _FH_REPLACEMENTS = [
-    ("young families", "buyers with school-age children"),
-    ("Young families", "Buyers with school-age children"),
+    # ── Demographic targeting: familial status ──
+    ("young families", "first-time buyers"),
+    ("Young families", "First-time buyers"),
     ("family-friendly", "community-oriented"),
     ("Family-friendly", "Community-oriented"),
     ("Family-Friendly", "Community-Oriented"),
+    ("family-oriented", "community-oriented"),
+    ("Family-oriented", "Community-oriented"),
     ("best for families", "best for larger lots and community amenities"),
     ("Best for families", "Best for larger lots and community amenities"),
     ("ideal for families", "ideal for community amenities and school access"),
+    ("Ideal for families", "Ideal for community amenities and school access"),
+    ("draw families", "draw buyers"),
+    ("Draw families", "Draw buyers"),
+    ("draws families", "draws buyers"),
+    ("attract families", "attract buyers"),
+    ("Attract families", "Attract buyers"),
+    ("for families", "for buyers"),
+    # ── Socioeconomic framing ──
+    ("budget-conscious", "value-focused"),
+    ("Budget-conscious", "Value-focused"),
+    # ── Age-based targeting ──
+    ("attract retirees", "attract long-term owners"),
 ]
 
 
