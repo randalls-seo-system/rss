@@ -190,7 +190,7 @@ def build_price_bars(neighborhoods):
 <div class="nh-price-bars">
 {bars}
 </div>
-<div class="nh-data-note">Prices are approximate ranges based on recent listing and sales data. Verify current pricing before making an offer.</div>
+<div class="nh-data-note">Prices are approximate ranges compiled from publicly available listings and market research. Verify current pricing with a local agent before making an offer.</div>
 </div>
 </section>'''
 
@@ -203,7 +203,7 @@ def build_rank_block(nb, prose_html, callout_bullets, alt=False):
     sc_items = [
         {"val": nb["price_range"], "label": "Price Range"},
         {"val": nb["district"], "label": "School District"},
-        {"val": nb.get("commute", "See guide"), "label": "Commute"},
+        {"val": nb.get("commute", "See guide"), "label": "Commute (off-peak)"},
         {"val": nb.get("walk_label", "See guide"), "label": "Walkability"},
     ]
     scorecard = "\n".join(
@@ -748,12 +748,19 @@ def main():
             prose_parts["callouts"].append(bullets)
             time.sleep(1)
 
-        # Methodology
-        eprint("  Generating methodology...")
-        prose_parts["methodology"] = generate_page_prose(
-            client, metro, "methodology",
-            "Explain ranking methodology — editorial assessment, not algorithmic. Cite data sources.",
-            brand_voice, vertical_block, nbs
+        # Methodology — hardcoded honest text, NOT LLM-generated
+        eprint("  Methodology: using verified template (not LLM)")
+        prose_parts["methodology"] = (
+            "<p>Rankings reflect editorial assessment across multiple factors: "
+            "price positioning relative to the metro median, school district "
+            "performance verified through TEA accountability data, commute "
+            "access to major employment corridors, neighborhood amenities, "
+            "and development momentum. Price ranges are compiled from publicly "
+            "available listings and competitor market research, not proprietary "
+            "MLS data. School district boundaries are verified through the TEA "
+            "ArcGIS boundary layer. Walkability, dining, value, and commute "
+            "ratings are editorial assessments on a relative scale, not "
+            "measurements from any scoring service.</p>"
         )
         time.sleep(1)
 
