@@ -2400,7 +2400,7 @@ def phase_h(state: PipelineState) -> None:
             "educational purposes. Please consult a licensed Texas real estate attorney, CPA, or "
             "HUD-approved housing counselor regarding short sales, foreclosure alternatives, or "
             "the tax treatment of forgiven mortgage debt. HUD-approved housing counseling is "
-            'available at no cost \u2014 call 1-800-569-4287 or visit '
+            'available at no cost. Call 1-800-569-4287 or visit '
             '<a href="https://www.hud.gov/counseling" rel="noopener noreferrer" target="_blank">'
             "hud.gov/counseling</a> to find a counselor near you.</p>\n"
             "</div>\n"
