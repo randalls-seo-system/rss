@@ -2378,6 +2378,65 @@ def phase_h(state: PipelineState) -> None:
             "— refusing to deploy stacked cards. Post: " + str(state.post_id)
         )
 
+    # Step 24c: YMYL disclaimer injection (distressed-homeowner vertical)
+    # Injects Educational Notice (top) and Legal & Tax Disclaimer (bottom)
+    # when the target keyword matches distressed-homeowner topics.
+    _ymyl_keywords = [
+        "short sale", "foreclosure", "underwater", "negative equity",
+        "cant afford", "can't afford", "deed in lieu", "deficiency",
+        "forgiven debt", "loan modification", "distressed", "pcs.*underwater",
+        "sell.*loss", "owe more", "behind on mortgage", "hardship",
+    ]
+    _kw_lower = state.target_keyword.lower()
+    _is_ymyl_vertical = any(
+        re.search(pat, _kw_lower) for pat in _ymyl_keywords
+    )
+    if _is_ymyl_vertical:
+        eprint("  [H.24c] YMYL vertical detected — injecting disclaimer blocks")
+        _ed_notice = (
+            '<div class="rl-callout rl-callout--note" role="note">\n'
+            "<p><strong>Educational Notice:</strong> The Levi Rodgers Group provides real estate "
+            "transaction services, not legal or tax advice. The information below is for general "
+            "educational purposes. Please consult a licensed Texas real estate attorney, CPA, or "
+            "HUD-approved housing counselor regarding short sales, foreclosure alternatives, or "
+            "the tax treatment of forgiven mortgage debt. HUD-approved housing counseling is "
+            'available at no cost \u2014 call 1-800-569-4287 or visit '
+            '<a href="https://www.hud.gov/counseling" rel="noopener noreferrer" target="_blank">'
+            "hud.gov/counseling</a> to find a counselor near you.</p>\n"
+            "</div>\n"
+        )
+        _legal_disclaimer = (
+            '\n<section class="rl-callout rl-disclosure">\n'
+            "<h3>Legal &amp; Tax Disclaimer</h3>\n"
+            "<p>The information provided in this article is for general educational and "
+            "informational purposes only and does not constitute formal legal, tax, or financial "
+            "advice. The Levi Rodgers Group and its agents are licensed real estate professionals, "
+            "not licensed attorneys or certified public accountants.</p>\n"
+            "<p>Short sales, foreclosure alternatives, deficiency judgments, loan modifications, "
+            "and the federal tax treatment of forgiven mortgage debt are complex, subject to "
+            "change, and dependent on individual financial circumstances. Forgiven debt may "
+            "create taxable income; other exclusions (including insolvency and bankruptcy) may "
+            "apply.</p>\n"
+            "<p>Reading this content does not establish an attorney-client or advisory "
+            "relationship. You should not act or refrain from acting based on any content "
+            "included on this site without seeking independent professional counsel. Always "
+            "consult with a qualified Texas real estate attorney, CPA, or HUD-approved housing "
+            "counselor regarding your specific situation before making decisions about your "
+            "mortgage, home sale, or debt obligations.</p>\n"
+            "</section>\n"
+        )
+        # Insert Educational Notice after </header>
+        if "</header>" in assembled:
+            assembled = assembled.replace("</header>\n", "</header>\n" + _ed_notice, 1)
+            eprint("  [H.24c] Educational Notice injected after header")
+        # Insert Legal & Tax Disclaimer before closing </div> (rl-page)
+        if assembled.rstrip().endswith("</div>"):
+            assembled = assembled.rstrip()[:-6] + _legal_disclaimer + "</div>\n"
+            eprint("  [H.24c] Legal & Tax Disclaimer injected before closing")
+        assembled_path.write_text(assembled)
+    else:
+        eprint("  [H.24c] Not a YMYL-vertical keyword — disclaimer injection skipped")
+
     # Step 25: Inject internal links
     eprint("  [H.25] Injecting internal links")
     linked_path = state.output_dir / f"{state.post_id}-article.html"
