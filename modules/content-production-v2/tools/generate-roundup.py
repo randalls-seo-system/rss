@@ -658,6 +658,7 @@ def main():
     parser.add_argument("--title", required=True, help="Page title")
     parser.add_argument("--neighborhoods", required=True, help="JSON file with neighborhood list")
     parser.add_argument("--post-id", type=int, default=0)
+    parser.add_argument("--author", type=int, default=28, help="WP user ID for post_author (default: 28 Jason Szakel)")
     parser.add_argument("--output-dir", required=True)
     parser.add_argument("--skip-deploy", action="store_true")
     parser.add_argument("--skip-llm", action="store_true", help="Use placeholder prose")
@@ -818,24 +819,120 @@ Return as JSON: {{"good": ["..."], "warn": ["..."]}}"""
         eprint(f"HARD FAIL: div balance {div_open - div_close}")
         sys.exit(1)
 
-    # Em-dash check
-    prose_text = re.sub(r'<style[^>]*>.*?</style>', '', html, flags=re.DOTALL)
-    prose_text = re.sub(r'<script[^>]*>.*?</script>', '', prose_text, flags=re.DOTALL)
-    prose_text = re.sub(r'<[^>]+>', '', prose_text)
-    emdash_count = prose_text.count('\u2014')
-    eprint(f"Em dashes: {emdash_count}")
+    # ── POST-ASSEMBLY CLEANUP (runs before file write) ──
+
+    # 1. FH scan + replace
+    fh_replacements = [
+        ("young families", "buyers with school-age children"),
+        ("Young families", "Buyers with school-age children"),
+        ("family-friendly", "community-oriented"),
+        ("Family-friendly", "Community-oriented"),
+        ("Family-Friendly", "Community-Oriented"),
+        ("best for families", "best for larger lots and community amenities"),
+        ("Best for families", "Best for larger lots and community amenities"),
+        ("ideal for families", "ideal for community amenities and school access"),
+    ]
+    fh_fixes = 0
+    for old, new in fh_replacements:
+        c = html.count(old)
+        if c:
+            html = html.replace(old, new)
+            fh_fixes += c
+    eprint(f"  FH scan: {fh_fixes} replacements")
+
+    # 2. Em dash strip (prose only, skip style/script/JSON-LD)
+    _tag_split = re.compile(r'(<style[^>]*>.*?</style>|<script[^>]*>.*?</script>|<[^>]+>)', re.DOTALL)
+    parts = _tag_split.split(html)
+    emdash_count = 0
+    for idx, part in enumerate(parts):
+        if part.startswith('<'):
+            continue
+        c = part.count('\u2014')
+        if c:
+            parts[idx] = part.replace(' \u2014 ', ', ').replace('\u2014', ', ')
+            emdash_count += c
+    html = ''.join(parts)
+    eprint(f"  Em dash strip: {emdash_count} removed")
+
+    # 3. Markdown → <strong>
+    html = re.sub(r'\*\*([^*]+?)\*\*', r'<strong>\1</strong>', html)
+    # Strip orphaned ** in text nodes
+    parts = _tag_split.split(html)
+    md_fixes = 0
+    for idx, part in enumerate(parts):
+        if part.startswith('<'):
+            continue
+        if '**' in part:
+            md_fixes += part.count('**')
+            parts[idx] = part.replace('**', '')
+    html = ''.join(parts)
+    eprint(f"  Markdown fix: {md_fixes} orphaned ** stripped")
+
+    # 4. Whitespace collapse fix (from link removal)
+    parts = _tag_split.split(html)
+    ws_fixes = 0
+    for idx, part in enumerate(parts):
+        if part.startswith('<'):
+            continue
+        before = part
+        part = re.sub(r'([a-z])([A-Z])', lambda m: m.group(1) + ' ' + m.group(2), part)
+        part = re.sub(r'([,;.!?])([A-Z])', lambda m: m.group(1) + ' ' + m.group(2), part)
+        if part != before:
+            ws_fixes += 1
+            parts[idx] = part
+    html = ''.join(parts)
+    eprint(f"  Whitespace fix: {ws_fixes} nodes repaired")
+
+    # 5. Link validation (drop 404 hrefs)
+    try:
+        from bs4 import BeautifulSoup as _BS
+        import csv as _csv
+        live_slugs = set()
+        for csvf in ['/tmp/lrg-all-posts.csv', '/tmp/lrg-all-pages.csv']:
+            try:
+                with open(csvf) as fh:
+                    for row in _csv.DictReader(fh):
+                        live_slugs.add(row['post_name'])
+            except FileNotFoundError:
+                pass
+        if live_slugs:
+            soup = _BS(html, 'html.parser')
+            link_drops = 0
+            for a in soup.find_all('a', href=True):
+                href = a['href']
+                if not href.startswith('/lrg-blog/') or 'connect-with-lrg' in href:
+                    continue
+                slug = href.replace('/lrg-blog/', '').rstrip('/')
+                if slug not in live_slugs:
+                    a.replace_with(a.get_text())
+                    link_drops += 1
+            if link_drops:
+                html = str(soup)
+            eprint(f"  Link validation: {link_drops} 404 links dropped")
+        else:
+            eprint(f"  Link validation: skipped (no slug cache)")
+    except Exception as e:
+        eprint(f"  Link validation: skipped ({e})")
 
     # Write output
     article_path = out_dir / f"{post_id}-roundup.html"
     article_path.write_text(html)
     eprint(f"Written: {article_path} ({len(html)} bytes)")
 
+    # 6. Author assignment
+    # Default: Jason Szakel (28) per lrg.conf AUTHOR_LANE_MAP "neighborhood" lane.
+    # All neighborhood roundups go to Jason unless overridden via --author.
+    author_id = args.author if hasattr(args, 'author') and args.author else 28
+    eprint(f"  Author: user {author_id} (from lane map: neighborhood)")
+
     # Manifest
     manifest = {
         "post_id": post_id,
+        "city": city,
         "metro": metro,
         "title": args.title,
         "suggested_slug": _slug_no_year(args.title),
+        "suggested_author": author_id,
         "generator": "generate-roundup.py",
         "format": "nh-rank",
         "neighborhood_count": len(nbs),
@@ -843,6 +940,7 @@ Return as JSON: {{"good": ["..."], "warn": ["..."]}}"""
         "h2_count": h2_count,
         "byte_count": len(html),
         "emdash_count": emdash_count,
+        "fh_fixes": fh_fixes,
         "timestamp": datetime.now(timezone.utc).isoformat(),
     }
     manifest_path = out_dir / f"{post_id}-roundup-manifest.json"
