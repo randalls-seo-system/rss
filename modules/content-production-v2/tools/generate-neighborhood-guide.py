@@ -859,10 +859,7 @@ def build_default_data(nb, city, metro):
             {"q": f"Is {nb} a good place to buy?", "a": "[ANSWER]"},
             {"q": f"Is there new construction in {nb}?", "a": "[ANSWER]"},
         ],
-        "sources": [
-            {"name": "U.S. Census Bureau", "url": "https://data.census.gov/", "desc": "demographic data"},
-            {"name": "FEMA Flood Maps", "url": "https://msc.fema.gov/portal/home", "desc": "flood zone verification"},
-        ],
+        "sources": [],  # Empty by default — only data actually queried or supplied via --data-json appears
         "related_guides": [
             {"url": f"/listings/homes-for-sale-{city_slug}/", "label": f"{city} Homes for Sale"},
         ],
