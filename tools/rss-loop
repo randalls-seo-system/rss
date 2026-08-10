@@ -24,7 +24,7 @@ RSS_CLI = MODULE_DIR / "tools" / "rss"
 LOG_DIR = REPO_ROOT / "logs"
 
 sys.path.insert(0, str(MODULE_DIR))
-from lib.queue import load_queue, save_queue, pop_next, mark_done, park_item
+from lib.queue import load_queue, save_queue, pop_next, mark_done, park_item, mark_awaiting_approval
 
 
 def log_line(site: str, item_id: str, outcome: str, duration: float, cost: float = 0.0):
@@ -138,6 +138,39 @@ Instructions:
         return False
 
 
+def run_refresh(site: str, post_id: int, keyword: str,
+                dry_run: bool = False) -> tuple[bool, str, dict]:
+    """Run rss refresh for an existing post. Returns (success, job_id, info)."""
+    cmd = [
+        sys.executable, str(RSS_CLI), "refresh",
+        "--site", site,
+        "--post-id", str(post_id),
+    ]
+    if keyword:
+        cmd += ["--keyword", keyword]
+
+    eprint(f"[loop] Running: rss refresh --post-id {post_id}...")
+    t0 = time.time()
+    result = subprocess.run(cmd, capture_output=True, text=True, timeout=900)
+    duration = time.time() - t0
+
+    # Extract job ID
+    job_id = ""
+    for line in result.stdout.split("\n"):
+        if "Refresh job created:" in line:
+            job_id = line.split(":")[-1].strip()
+            break
+
+    if result.returncode == 0:
+        return True, job_id, {"duration": duration}
+    else:
+        return False, job_id, {
+            "duration": duration,
+            "stderr_tail": result.stderr[-500:] if result.stderr else "",
+            "stdout_tail": result.stdout[-500:] if result.stdout else "",
+        }
+
+
 def is_usage_limit(failure_info: dict) -> bool:
     """Check if failure looks like a usage/rate limit."""
     text = (failure_info.get("stderr_tail", "") + failure_info.get("stdout_tail", "")).lower()
@@ -175,18 +208,43 @@ def main():
         item_id = item["id"]
         keyword = item["target_keyword"]
         topic = item.get("topic", keyword)
-        eprint(f"\n[loop] Item {item_id}: {keyword}")
+        mode = item.get("mode", "new")
+        post_id = item.get("post_id")
+        eprint(f"\n[loop] Item {item_id}: {keyword} (mode={mode})")
 
         t0 = time.time()
-        success, job_id, info = run_article(
-            args.site, topic, keyword, status=args.status, dry_run=args.dry_run
-        )
+        if mode == "refresh" and post_id:
+            success, job_id, info = run_refresh(
+                args.site, post_id, keyword, dry_run=args.dry_run
+            )
+        else:
+            success, job_id, info = run_article(
+                args.site, topic, keyword, status=args.status, dry_run=args.dry_run
+            )
         duration = time.time() - t0
 
         if success:
-            mark_done(args.site, item_id, job_id=job_id)
-            log_line(args.site, item_id, "done", duration)
-            eprint(f"[loop] DONE: {keyword} (job {job_id}, {duration:.0f}s)")
+            if mode == "refresh":
+                # Refresh Stage A' complete (fetch + evidence). The loop does NOT
+                # mark awaiting_approval here — that requires a deployed pending
+                # draft with gates passed. The full pipeline must run next, and
+                # only the pipeline completion step sets awaiting_approval.
+                # For now, the item stays in_progress with the job_id recorded.
+                # The loop reports it and moves on; the pipeline run is a
+                # separate step (rss refresh --resume or manual pipeline run).
+                from lib.queue import load_queue, save_queue
+                items = load_queue(args.site)
+                for it in items:
+                    if it["id"] == item_id:
+                        it["job_id"] = job_id
+                        break
+                save_queue(args.site, items)
+                log_line(args.site, item_id, "stage-a-done", duration)
+                eprint(f"[loop] STAGE A' DONE: {keyword} (job {job_id}, {duration:.0f}s) — pipeline generation next")
+            else:
+                mark_done(args.site, item_id, job_id=job_id)
+                log_line(args.site, item_id, "done", duration)
+                eprint(f"[loop] DONE: {keyword} (job {job_id}, {duration:.0f}s)")
             completed += 1
             consecutive_failures = 0
             continue

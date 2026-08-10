@@ -230,7 +230,7 @@ def build_btf_questions(
 # Build modes
 # ---------------------------------------------------------------------------
 
-def _build_atf(args, serp, brand_voice, topic_context, client, evidence_block=""):
+def _build_atf(args, serp, brand_voice, topic_context, client, evidence_block="", vertical_rules=""):
     """Build 3 ATF FAQ items, one LLM call each."""
     questions = get_atf_questions(serp, args.target_keyword)
     template = load_prompt_template("atf-faq.md")
@@ -282,7 +282,7 @@ def _build_atf(args, serp, brand_voice, topic_context, client, evidence_block=""
     write_output(final_html, args.output)
 
 
-def _build_btf(args, serp, brand_voice, topic_context, client, evidence_block=""):
+def _build_btf(args, serp, brand_voice, topic_context, client, evidence_block="", vertical_rules=""):
     """Build BTF FAQ section with single LLM call."""
     exclude: list[str] = []
     if args.exclude_questions:
@@ -399,9 +399,9 @@ def main():
     client = LLMClient(provider=provider, model=model)
 
     if args.mode == "atf":
-        _build_atf(args, serp, brand_voice, topic_context, client, evidence_block)
+        _build_atf(args, serp, brand_voice, topic_context, client, evidence_block, vertical_rules)
     else:
-        _build_btf(args, serp, brand_voice, topic_context, client, evidence_block)
+        _build_btf(args, serp, brand_voice, topic_context, client, evidence_block, vertical_rules)
 
 
 if __name__ == "__main__":

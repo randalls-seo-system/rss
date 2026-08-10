@@ -42,6 +42,9 @@ sys.path.insert(0, str(REPO_ROOT / "modules" / "content-production-v2"))
 
 from lib.site_config import load_site_config
 
+sys.path.insert(0, str(REPO_ROOT))
+from lib.gate_library import run_universal_gates
+
 
 # ---------------------------------------------------------------------------
 # Constants
@@ -969,7 +972,8 @@ Tiers:
                 if args.execute and modified_html != html:
                     eprint(f"    Writing {report.tier1_fixes} fixes...")
                     # Write back via wp eval-file
-                    _write_post_content(ssh_cmd, wp_path, pid, modified_html)
+                    _write_post_content(ssh_cmd, wp_path, pid, modified_html,
+                                        site_slug=args.site)
                     eprint(f"    Written.")
                     time.sleep(5)  # deploy pacing
 
@@ -1042,13 +1046,22 @@ Tiers:
 # Write helper
 # ---------------------------------------------------------------------------
 
-def _write_post_content(ssh_cmd: list[str], wp_path: str, post_id: int, html: str):
+def _write_post_content(ssh_cmd: list[str], wp_path: str, post_id: int, html: str,
+                        site_slug: str = ""):
     """Write post content back via wp eval-file (safe method).
 
     Uses single SSH session: pipes PHP script that contains hex-encoded
     content, writes to /tmp, and executes — all in one session so WPE's
     session-local /tmp works correctly.
     """
+    # Universal gate check before write (link_update = style corrections)
+    if site_slug:
+        gate_report = run_universal_gates(
+            html, site_slug=site_slug, content_type="link_update",
+        )
+        if not gate_report.passed:
+            raise RuntimeError(f"Gate failed for post {post_id}: {gate_report.summary()}")
+
     # Hex-encode content so it survives shell transport without corruption
     hex_content = html.encode("utf-8").hex()
 

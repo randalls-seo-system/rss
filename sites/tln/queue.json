@@ -1,0 +1,41 @@
+[
+  {
+    "id": "f232115f97cd",
+    "topic": "fha closing costs",
+    "target_keyword": "fha closing costs",
+    "intent_hint": "",
+    "status": "done",
+    "added": "2026-08-06T01:13:10.288870+00:00",
+    "attempts": 1,
+    "last_failure": "ROLLED BACK: postprocessor bypass \u2014 raw rl-* HTML deployed without CSS structure",
+    "job_id": "20260805-201409-d9dd5002",
+    "mode": "refresh",
+    "post_id": 1501
+  },
+  {
+    "id": "021aaec4192c",
+    "topic": "conventional 97 loan requirements",
+    "target_keyword": "conventional 97 loan requirements",
+    "intent_hint": "",
+    "status": "done",
+    "added": "2026-08-06T01:13:10.289728+00:00",
+    "attempts": 1,
+    "last_failure": "ROLLED BACK: postprocessor bypass \u2014 raw rl-* HTML deployed without CSS structure",
+    "job_id": "20260805-201428-3912c3a1",
+    "mode": "refresh",
+    "post_id": 383
+  },
+  {
+    "id": "806183b5d709",
+    "topic": "child support and alimony as mortgage income",
+    "target_keyword": "child support and alimony as mortgage income",
+    "intent_hint": "",
+    "status": "done",
+    "added": "2026-08-06T01:13:10.289933+00:00",
+    "attempts": 1,
+    "last_failure": "ROLLED BACK: postprocessor bypass \u2014 raw rl-* HTML deployed without CSS structure",
+    "job_id": "20260805-201448-27bcd397",
+    "mode": "refresh",
+    "post_id": 1740
+  }
+]

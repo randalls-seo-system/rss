@@ -19,6 +19,7 @@
   "content": {
     "css_prefix": ["tln"],
     "brand_voice_archetype": "va-lending",
+    "vertical": "mortgage",
     "primary_color": "#00d93e",
     "secondary_color": "#1a1a1a",
     "logo_url": "https://thelendersnetwork.com/wp-content/uploads/2024/09/cjyesvtu0jqrobx44xsy-1.webp",
@@ -28,7 +29,8 @@
     "form_page_slug": "compare-loan-offers",
     "article_min_words": 1800,
     "article_max_words": 3500,
-    "default_post_status": "draft"
+    "default_post_status": "draft",
+    "claims_policy": "docs/tln-claims-policy.md"
   },
 
   "authors": {

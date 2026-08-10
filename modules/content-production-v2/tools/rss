@@ -407,6 +407,37 @@ def cmd_doctor(args):
     else:
         checks["deploy_ssh"] = "FAIL: ssh_host or ssh_user not configured"
 
+    # 10. Topic graph prerequisites — post inventory + GSC query cache
+    inv_path = REPO_ROOT / "sites" / args.site / "post-inventory.json"
+    if inv_path.exists():
+        try:
+            inv_data = json.loads(inv_path.read_text())
+            checks["post_inventory"] = f"pass ({len(inv_data)} posts)"
+        except json.JSONDecodeError:
+            checks["post_inventory"] = "FAIL: post-inventory.json is invalid JSON"
+    else:
+        checks["post_inventory"] = "WARN: no post-inventory.json (resolve-pending-links will fail closed)"
+
+    gsc_prop = config.get("integrations", {}).get("gsc_property", "")
+    if gsc_prop:
+        docs_dir = REPO_ROOT / "docs"
+        audit_files = sorted(docs_dir.glob(f"{args.site}-audit-*.json"), reverse=True)
+        has_audit_queries = False
+        if audit_files:
+            try:
+                aud = json.loads(audit_files[0].read_text())
+                has_audit_queries = any(r.get("top_query") for r in aud.get("results", []))
+            except Exception:
+                pass
+        if has_audit_queries:
+            checks["gsc_query_cache"] = "pass (from audit)"
+        else:
+            checks["gsc_query_cache"] = (
+                "WARN: GSC configured but no audit with query data found. "
+                "Run: rss audit-batch --site " + args.site + " --top 50 "
+                "(resolver linked_existing will miss GSC signal until then)"
+            )
+
     _doctor_report(checks, args.json)
     has_fail = any(v.startswith("FAIL") for v in checks.values())
     sys.exit(1 if has_fail else 0)
@@ -426,27 +457,226 @@ def _doctor_report(checks: dict, as_json: bool):
         print(f"  [{icon}] {name}: {result}")
 
 
+def cmd_audit(args):
+    """Audit a single post or batch of posts against the quality stack."""
+    from lib.auditor import (
+        audit_post, fetch_gsc_top_pages, fetch_slug_to_id_map,
+        write_audit_report, fetch_post_html,
+    )
+    import time
+
+    config_path = MODULE_DIR.parent.parent / "sites" / args.site / "config.json"
+    if not config_path.exists():
+        print(f"Config not found: {config_path}", file=sys.stderr)
+        sys.exit(1)
+    config = json.loads(config_path.read_text())
+
+    # Protected pages
+    do_not_touch = {
+        p["post_id"]
+        for p in config.get("protected", {}).get("do_not_touch_pages", [])
+    }
+
+    if hasattr(args, "post_id") and args.post_id:
+        # Single-post audit
+        if args.post_id in do_not_touch:
+            print(f"Post {args.post_id} is in do_not_touch_pages, skipping.")
+            return
+        result = audit_post(config, args.post_id, force_tier2=getattr(args, "full", False))
+        if result is None:
+            print(f"Could not fetch post {args.post_id}")
+            sys.exit(1)
+        md_path, json_path = write_audit_report([result], args.site)
+        _print_single_audit(result)
+        print(f"\nReport: {md_path}")
+
+    elif hasattr(args, "top") and args.top:
+        # Batch audit
+        print(f"Fetching top {args.top} pages from GSC...", file=sys.stderr)
+        gsc_pages = fetch_gsc_top_pages(config, limit=args.top)
+        if not gsc_pages:
+            print("No GSC data available.")
+            sys.exit(1)
+
+        print(f"Got {len(gsc_pages)} pages. Resolving post IDs...", file=sys.stderr)
+
+        # Batch resolve: one SSH call for full slug→ID map
+        slug_map = fetch_slug_to_id_map(config)
+        print(f"  Slug map: {len(slug_map)} posts", file=sys.stderr)
+
+        audit_targets = []
+        for gp in gsc_pages:
+            slug = gp["slug"]
+            pid = slug_map.get(slug)
+            if pid is None:
+                print(f"  SKIP: {slug} (no post_id found)", file=sys.stderr)
+                continue
+            if pid in do_not_touch:
+                print(f"  SKIP: {slug} (do_not_touch)", file=sys.stderr)
+                continue
+            gp["post_id"] = pid
+            audit_targets.append(gp)
+
+        print(f"\n{len(audit_targets)} posts to audit.\n", file=sys.stderr)
+
+        results = []
+        for i, target in enumerate(audit_targets):
+            pid = target["post_id"]
+            slug = target["slug"]
+            print(f"  [{i+1}/{len(audit_targets)}] {slug} (ID {pid})...", file=sys.stderr, end="", flush=True)
+            r = audit_post(
+                config, pid, gsc_data=target,
+                force_tier2=getattr(args, "full", False),
+            )
+            if r:
+                results.append(r)
+                print(f" {r.verdict} ({r.hard_pass_count}/{r.hard_total_count} hard)", file=sys.stderr)
+            else:
+                print(f" FETCH FAILED", file=sys.stderr)
+            time.sleep(1)  # SSH pacing
+
+        if results:
+            md_path, json_path = write_audit_report(results, args.site)
+            _print_batch_summary(results)
+            print(f"\nFull report: {md_path}")
+            print(f"JSON data:   {json_path}")
+        else:
+            print("No posts could be audited.")
+
+    else:
+        print("Specify --post-id N or --top N")
+        sys.exit(1)
+
+
+def _print_single_audit(r):
+    """Print a single audit result."""
+    print(f"\n{'='*60}")
+    print(f"Post {r.post_id}: {r.slug}")
+    print(f"Title: {r.title[:60]}")
+    print(f"Verdict: {r.verdict}")
+    print(f"Hard assertions: {r.hard_pass_count}/{r.hard_total_count}")
+    print(f"Soft assertions: {r.soft_pass_count}/{r.soft_total_count}")
+    if r.hard_failures:
+        print(f"\nHard failures:")
+        for f in r.hard_failures:
+            print(f"  - {f}")
+    if r.quality_gate_failures:
+        print(f"\nQuality gate failures:")
+        for f in r.quality_gate_failures:
+            print(f"  - {f[:100]}")
+    if r.artifact_hits:
+        print(f"\nArtifacts:")
+        for f in r.artifact_hits:
+            print(f"  - {f[:100]}")
+    if r.tier2_ran:
+        print(f"\nClaims: {r.claim_count} total, {r.unsourced_claims} unsourced, {r.volatile_claims} volatile")
+
+
+def _print_batch_summary(results):
+    """Print batch audit summary."""
+    refresh = [r for r in results if r.verdict == "REFRESH"]
+    review = [r for r in results if r.verdict == "REVIEW"]
+    passing = [r for r in results if r.verdict == "PASS"]
+
+    print(f"\n{'='*60}")
+    print(f"AUDIT SUMMARY: {len(results)} posts")
+    print(f"  REFRESH: {len(refresh)}")
+    print(f"  REVIEW:  {len(review)}")
+    print(f"  PASS:    {len(passing)}")
+
+    if refresh:
+        print(f"\nREFRESH candidates (worst first):")
+        for r in refresh[:10]:
+            print(f"  {r.post_id:>5} {r.slug[:35]:35s}  pos={r.position:<5.0f} imp={r.impressions:<5}  {'; '.join(r.verdict_reasons[:2])[:60]}")
+
+    if review:
+        print(f"\nREVIEW (human decides):")
+        for r in review[:10]:
+            print(f"  {r.post_id:>5} {r.slug[:35]:35s}  pos={r.position:<5.0f} imp={r.impressions:<5}  {'; '.join(r.verdict_reasons[:2])[:60]}")
+
+
+def cmd_refresh(args):
+    """Refresh a single post — creates pending draft, never modifies original."""
+    from lib.refresher import start_refresh_job
+    config_path = MODULE_DIR.parent.parent / "sites" / args.site / "config.json"
+    if not config_path.exists():
+        print(f"Config not found: {config_path}", file=sys.stderr)
+        sys.exit(1)
+    config = json.loads(config_path.read_text())
+
+    job = start_refresh_job(config, args.site, args.post_id,
+                            keyword_override=getattr(args, "keyword", ""))
+    if job is None:
+        sys.exit(1)
+
+    print(f"Refresh job created: {job['id']}")
+    print(f"  Original: post {args.post_id} ({job['refresh']['original_slug']})")
+    print(f"  Keyword:  {job['refresh']['keyword']}")
+    print(f"  Original HTML saved to job dir as rollback artifact.")
+    print(f"\nNext: run the pipeline, then 'rss refresh-approve --site {args.site} --job {job['id']}'")
+
+
+def cmd_refresh_approve(args):
+    """Approve a refresh — swap draft content onto original post."""
+    from lib.refresher import approve_refresh
+    from lib.orchestrator import load_job
+    config_path = MODULE_DIR.parent.parent / "sites" / args.site / "config.json"
+    config = json.loads(config_path.read_text())
+    job = load_job(args.job)
+    if approve_refresh(config, job):
+        print(f"APPROVED: post {job['refresh']['original_post_id']} updated.")
+    else:
+        print("BLOCKED: approve failed (see errors above).", file=sys.stderr)
+        sys.exit(1)
+
+
+def cmd_refresh_rollback(args):
+    """Rollback a refresh — restore original HTML."""
+    from lib.refresher import rollback_refresh
+    from lib.orchestrator import load_job
+    config_path = MODULE_DIR.parent.parent / "sites" / args.site / "config.json"
+    config = json.loads(config_path.read_text())
+    job = load_job(args.job)
+    if rollback_refresh(config, job):
+        print(f"ROLLED BACK: post {job['refresh']['original_post_id']} restored to original.")
+    else:
+        print("ROLLBACK FAILED (see errors above).", file=sys.stderr)
+        sys.exit(1)
+
+
 def cmd_queue(args):
     """Queue management subcommands."""
     from lib.queue import (
-        load_queue, save_queue, add_item, list_items,
-        park_item, retry_item, seed_from_gsc,
+        load_queue, save_queue, add_item, add_refresh_item, list_items,
+        park_item, retry_item, seed_from_gsc, seed_from_audit,
     )
     REPO_ROOT = MODULE_DIR.parent.parent
 
     if args.queue_action == "add":
-        item = add_item(args.site, args.topic, keyword=args.keyword or args.topic,
-                        intent_hint=getattr(args, "intent", ""))
-        print(f"Added: {item['id']} — {item['target_keyword']}")
+        if getattr(args, "refresh", False) and getattr(args, "post_id", None):
+            item = add_refresh_item(args.site, args.post_id,
+                                    keyword=getattr(args, "keyword", "") or "")
+            print(f"Added refresh: {item['id']} — post {args.post_id}")
+        else:
+            item = add_item(args.site, args.topic, keyword=args.keyword or args.topic,
+                            intent_hint=getattr(args, "intent", ""))
+            print(f"Added: {item['id']} — {item['target_keyword']}")
 
     elif args.queue_action == "list":
         items = list_items(args.site, status=getattr(args, "status", None))
+        # Filter by origin if specified
+        origin_filter = getattr(args, "origin", None)
+        if origin_filter:
+            items = [i for i in items if i.get("origin") == origin_filter]
         if not items:
             print("Queue is empty.")
             return
         for it in items:
-            print(f"  [{it['status']:12s}] {it['id'][:12]}  {it['target_keyword'][:60]}"
-                  f"  attempts={it.get('attempts', 0)}")
+            notes_count = len(it.get("backlink_notes", []))
+            notes_str = f"  notes={notes_count}" if notes_count else ""
+            origin_str = f"  origin={it['origin']}" if it.get("origin") else ""
+            print(f"  [{it['status']:12s}] {it['id'][:12]}  {it['target_keyword'][:50]}"
+                  f"  attempts={it.get('attempts', 0)}{origin_str}{notes_str}")
 
     elif args.queue_action == "seed":
         candidates = seed_from_gsc(
@@ -486,6 +716,49 @@ def cmd_queue(args):
                 added += 1
             print(f"\nAdded {added} items to queue (refresh candidates excluded).")
 
+    elif args.queue_action == "seed-refresh":
+        candidates, excluded = seed_from_audit(args.site, limit=getattr(args, "limit", 20))
+
+        if excluded:
+            # Group excluded by reason type
+            non_articles = [e for e in excluded if "page_type" in e.get("reason", "")]
+            frozen = [e for e in excluded if "frozen" in e.get("reason", "")]
+            other_excl = [e for e in excluded if e not in non_articles and e not in frozen]
+
+            if non_articles:
+                print(f"\n--- Non-article pages needing attention ({len(non_articles)}) ---")
+                for e in non_articles:
+                    print(f"  {e['post_id']:>5}  {e['slug'][:40]:40}  {e['reason']}")
+
+            if frozen:
+                print(f"\n--- Frozen (pos 1-10, ineligible until manually lifted) ({len(frozen)}) ---")
+                for e in frozen:
+                    print(f"  {e['post_id']:>5}  {e['slug'][:40]:40}  pos={e['position']:.0f}  imp={e['impressions']}")
+
+            if other_excl:
+                print(f"\n--- Other excluded ({len(other_excl)}) ---")
+                for e in other_excl:
+                    print(f"  {e['post_id']:>5}  {e['slug'][:40]:40}  {e['reason']}")
+
+        if not candidates:
+            print("\nNo eligible refresh candidates.")
+            return
+
+        print(f"\n--- {len(candidates)} eligible article refresh candidates (risk-first ranking) ---\n")
+        print(f"  {'#':>3}  {'Score':>6}  {'Post ID':>7}  {'Slug':35}  {'Pos':>5}  {'Imp':>6}  {'Unsrc':>5}  {'Hard':>4}")
+        for i, c in enumerate(candidates, 1):
+            print(f"  {i:3d}  {c['score']:6.0f}  {c['post_id']:>7}  {c['slug'][:35]:35}  {c['position']:5.0f}  {c['impressions']:>6}  {c['unsourced_claims']:>5}  {c['hard_failures']:>4}")
+
+        print(f"\nTo write to queue, re-run with --confirm")
+        if getattr(args, "confirm", False):
+            added = 0
+            for c in candidates:
+                add_refresh_item(args.site, c["post_id"],
+                                 keyword=c.get("top_query", ""),
+                                 slug=c.get("slug", ""))
+                added += 1
+            print(f"\nAdded {added} refresh items to queue.")
+
     elif args.queue_action == "park":
         park_item(args.site, args.id)
         print(f"Parked: {args.id}")
@@ -517,19 +790,34 @@ def main():
     doc.add_argument("--site", required=True, help="Site ID")
     doc.add_argument("--json", action="store_true", help="Output as JSON (for machine consumption)")
 
+    # audit (single post)
+    au = sub.add_parser("audit", help="Audit a single post against the quality stack (read-only)")
+    au.add_argument("--site", required=True, help="Site ID")
+    au.add_argument("--post-id", type=int, required=True, help="WordPress post ID")
+    au.add_argument("--full", action="store_true", help="Force Tier 2 (claims check) even if Tier 1 passes")
+
+    # audit-batch
+    ab = sub.add_parser("audit-batch", help="Audit top N posts by GSC impressions (read-only)")
+    ab.add_argument("--site", required=True, help="Site ID")
+    ab.add_argument("--top", type=int, required=True, help="Number of top pages to audit")
+    ab.add_argument("--full", action="store_true", help="Force Tier 2 on all posts")
+
     # queue
     q = sub.add_parser("queue", help="Manage the article generation queue")
     qsub = q.add_subparsers(dest="queue_action")
 
     qa = qsub.add_parser("add", help="Add a topic to the queue")
     qa.add_argument("--site", required=True)
-    qa.add_argument("--topic", required=True)
+    qa.add_argument("--topic", required=False, default="")
     qa.add_argument("--keyword", default="")
     qa.add_argument("--intent", default="")
+    qa.add_argument("--refresh", action="store_true", help="Add as refresh-mode item")
+    qa.add_argument("--post-id", type=int, default=None, help="Post ID (required for --refresh)")
 
     ql = qsub.add_parser("list", help="List queue items")
     ql.add_argument("--site", required=True)
     ql.add_argument("--status", default=None)
+    ql.add_argument("--origin", default=None, help="Filter by origin (e.g., pending_link)")
 
     qs = qsub.add_parser("seed", help="Seed queue from GSC queries")
     qs.add_argument("--site", required=True)
@@ -545,11 +833,95 @@ def main():
     qr.add_argument("--site", required=True)
     qr.add_argument("--id", required=True)
 
+    qsr = qsub.add_parser("seed-refresh", help="Seed refresh candidates from audit results")
+    qsr.add_argument("--site", required=True)
+    qsr.add_argument("--limit", type=int, default=20)
+    qsr.add_argument("--confirm", action="store_true", help="Actually write candidates to queue")
+
+    # refresh
+    rf = sub.add_parser("refresh", help="Start a refresh job for an existing post")
+    rf.add_argument("--site", required=True, help="Site ID")
+    rf.add_argument("--post-id", type=int, required=True, help="Post ID to refresh")
+    rf.add_argument("--keyword", default="", help="Override keyword (default: top GSC query)")
+
+    # refresh-approve
+    ra = sub.add_parser("refresh-approve", help="Approve a refresh — swap draft onto original")
+    ra.add_argument("--site", required=True, help="Site ID")
+    ra.add_argument("--job", required=True, help="Job ID to approve")
+
+    # refresh-rollback
+    rb = sub.add_parser("refresh-rollback", help="Rollback a refresh — restore original HTML")
+    rb.add_argument("--site", required=True, help="Site ID")
+    rb.add_argument("--job", required=True, help="Job ID to rollback")
+    # topic-graph
+    tg = sub.add_parser("topic-graph", help="Show topic graph summary (pending links, spokes, backfills)")
+    tg.add_argument("--site", required=True, help="Site ID")
+
+    # gate
+    gt = sub.add_parser("gate", help="Run universal deploy gates on an HTML file")
+    gt.add_argument("--site", required=True, help="Site slug")
+    gt.add_argument("--file", required=True, help="Path to HTML file")
+    gt.add_argument("--type", default="article", help="Content type")
+    gt.add_argument("--slug", default="", help="Post slug for uniqueness check")
+    gt.add_argument("--title", default="", help="Post title for integrity check")
+    gt.add_argument("--json", action="store_true", help="Output as JSON")
+
+    # gate-scan
+    gs = sub.add_parser("gate-scan", help="Scan all published pages through universal gates (read-only)")
+    gs.add_argument("--site", required=True, help="Site slug")
+    gs.add_argument("--all-published", action="store_true", required=True)
+    gs.add_argument("--limit", type=int, default=0, help="Limit number of posts")
+    gs.add_argument("--output", default="", help="Output file path")
+
     args = parser.parse_args()
     if args.command == "new-article":
         cmd_new_article(args)
     elif args.command == "doctor":
         cmd_doctor(args)
+    elif args.command == "audit":
+        cmd_audit(args)
+    elif args.command == "audit-batch":
+        # Remap: audit-batch uses the same handler as audit, with --top set
+        cmd_audit(args)
+    elif args.command == "refresh":
+        cmd_refresh(args)
+    elif args.command == "refresh-approve":
+        cmd_refresh_approve(args)
+    elif args.command == "refresh-rollback":
+        cmd_refresh_rollback(args)
+    elif args.command == "topic-graph":
+        from lib.topic_graph import build_topic_graph_summary
+        summary = build_topic_graph_summary(args.site)
+        print(f"\n=== Topic Graph: {args.site} ===\n")
+        print(f"  Pending topics discovered:  {summary['pending_topics']}")
+        if summary["pending_by_source"]:
+            for src, count in sorted(summary["pending_by_source"].items(), key=lambda x: -x[1]):
+                print(f"    {src}: {count}")
+        print(f"  Resolved → linked existing: {summary['resolved_linked']}")
+        print(f"  Resolved → no page:         {summary['resolved_no_page']}")
+        print(f"  Queued spoke articles:       {summary['queued_spokes']}")
+        print(f"  Queued backlink notes:        {summary['queued_backlink_notes']}")
+        print(f"  Backfills completed:         {summary['backfills_completed']}")
+        print(f"  Backfills failed:            {summary['backfills_failed']}")
+    elif args.command == "gate":
+        GATE_REPO = MODULE_DIR.parent.parent
+        sys.path.insert(0, str(GATE_REPO))
+        from lib.gate_library import cli_gate
+        sys.exit(cli_gate([
+            "--site", args.site, "--file", args.file,
+            "--type", args.type, "--slug", args.slug,
+            "--title", args.title,
+        ] + (["--json"] if args.json else [])))
+    elif args.command == "gate-scan":
+        GATE_REPO = MODULE_DIR.parent.parent
+        sys.path.insert(0, str(GATE_REPO))
+        from lib.gate_library import cli_gate_scan
+        scan_args = ["--site", args.site, "--all-published"]
+        if args.limit:
+            scan_args += ["--limit", str(args.limit)]
+        if args.output:
+            scan_args += ["--output", args.output]
+        sys.exit(cli_gate_scan(scan_args))
     elif args.command == "queue":
         if not args.queue_action:
             q.print_help()

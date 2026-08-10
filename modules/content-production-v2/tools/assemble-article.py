@@ -1405,22 +1405,35 @@ def _build_h2_inventory(state: PipelineState) -> list[dict]:
     for item in low_cov[:2]:
         h2s.append({"title": _extract_gap_title(item), "role": "competitive_moat", "source": "gap"})
 
-    # If SERP gave us fewer than 6, pad from PAA questions
-    if len(h2s) < 6 and state.serp:
+    # Fill from GSC-derived subtopic queries (required H2 slots from gsc-section-inputs.json)
+    gsc_section_path = state.output_dir / "gsc-section-inputs.json"
+    if gsc_section_path.exists():
+        gsc_sections = json.loads(gsc_section_path.read_text())
+        existing_titles_lower = {h["title"].lower() for h in h2s}
+        for gsc_q in gsc_sections:
+            if len(h2s) >= 15:
+                break
+            if gsc_q.lower() not in existing_titles_lower:
+                h2s.append({"title": gsc_q, "role": "gsc_required", "source": "gsc_subtopic"})
+                eprint(f"  [C.10] Added GSC-derived H2: {gsc_q}")
+
+    # Pad from PAA questions if below minimum 8
+    MIN_H2_COUNT = 8
+    if len(h2s) < MIN_H2_COUNT and state.serp:
         for paa in state.serp.paa_questions:
-            if len(h2s) >= 10:
+            if len(h2s) >= 12:
                 break
             q = paa.question if hasattr(paa, "question") else str(paa)
             if not any(h["title"].lower() == q.lower() for h in h2s):
                 h2s.append({"title": q, "role": "paa_derived", "source": "paa"})
 
-    # Fallback: if still too few, generate natural H2s via LLM
-    if len(h2s) < 6:
-        needed = 6 - len(h2s)
+    # Fallback: if still below minimum, generate natural H2s via LLM
+    if len(h2s) < MIN_H2_COUNT:
+        needed = MIN_H2_COUNT - len(h2s)
         existing_titles = [h["title"] for h in h2s]
         fallback_h2s = _generate_fallback_h2s(state, existing_titles, needed)
         for fb in fallback_h2s:
-            if len(h2s) >= 6:
+            if len(h2s) >= MIN_H2_COUNT:
                 break
             h2s.append({"title": fb, "role": "fallback", "source": "llm_fallback"})
 
@@ -2001,6 +2014,11 @@ def phase_f(state: PipelineState) -> None:
     eprint("PHASE F: Body Sections")
 
     body_target = state.target_wc.get("target", 2100)
+    # Enforce 1800 body-word floor
+    BODY_WC_FLOOR = 1800
+    if body_target < BODY_WC_FLOOR:
+        eprint(f"  [F.18] SERP target {body_target}w below floor {BODY_WC_FLOOR}w — scaling up")
+        body_target = BODY_WC_FLOOR
     h2_count = len(state.h2_inventory)
     per_section_wc = max(200, body_target // max(h2_count, 1))
 
@@ -2314,10 +2332,19 @@ def phase_h(state: PipelineState) -> None:
     if state.bluf_html:
         parts.append(state.bluf_html)
     parts.extend(state.body_section_htmls)  # includes mid CTA
+    # Wrap BTF FAQs in .rl-faq div if not already wrapped
+    btf_faq_block = state.btf_faqs_html.strip()
+    if btf_faq_block and '<div class="rl-faq">' not in btf_faq_block:
+        btf_faq_block = (
+            '<div class="rl-faq">\n'
+            '<h2>Frequently Asked Questions</h2>\n'
+            f'{btf_faq_block}\n'
+            '</div>'
+        )
     parts.extend([
         state.closing_html,
         state.mid_cta_html,  # second CTA before FAQ section
-        state.btf_faqs_html,
+        btf_faq_block,
         state.resources_html,
     ])
 

@@ -642,6 +642,42 @@ def assert_body_word_count_fallback_range(soup: BeautifulSoup, context: dict) ->
 _BANNED_PHRASES = [
     r"\bdiscover\b", r"\bexplore\b", r"\bvibrant communities\b",
     r"\bdive into\b", r"\blet's\b", r"\bwe'll cover\b",
+    # Mortgage standard additions (exact/near-exact phrase matches)
+    r"navigating the complexities of",
+    r"financial journey",
+    r"homeownership journey",
+    r"dream home",
+    r"turn your dreams into reality",
+    r"make your dreams come true",
+    r"take the first step",
+    r"peace of mind",
+    r"game changer",
+    r"one-stop shop",
+    r"look no further",
+    r"we'?ve got you covered",
+    r"rest assured",
+    r"it is worth noting",
+    r"at the end of the day",
+    r"whether you are a first-time buyer",
+    r"from first-time buyers to",
+    r"not only does this,? but it also",
+    r"more than just",
+    r"designed with you in mind",
+    r"a wide range of",
+    r"a variety of options",
+    r"best-in-class",
+    r"industry-leading",
+    r"hassle-free",
+    r"stress-free",
+    r"easy and convenient",
+    r"expert guidance every step",
+    r"deep dive",
+    r"\bunlock\b",
+    r"\bempower\b",
+    r"\belevate\b",
+    r"tailored solution",
+    r"unique needs",
+    r"comprehensive solution",
 ]
 _BANNED_RE = re.compile("|".join(_BANNED_PHRASES), re.IGNORECASE)
 
@@ -801,8 +837,9 @@ _AI_LEXICON_RE = re.compile("|".join(_AI_LEXICON), re.IGNORECASE)
 
 _AI_PHRASE_PATTERNS = [
     re.compile(r"in today'?s\s+\w+\s+landscape", re.I),
-    re.compile(r"it'?s important to note", re.I),
+    re.compile(r"it'?s? important to note", re.I),
     re.compile(r"when it comes to\b", re.I),
+    re.compile(r"in today'?s fast-paced world", re.I),
 ]
 
 
@@ -1418,6 +1455,224 @@ def assert_cg_military_fit(soup: BeautifulSoup, context: dict) -> AssertionResul
 
 
 # ---------------------------------------------------------------------------
+# 18.4.11+ Extended anti-pattern checks
+# ---------------------------------------------------------------------------
+
+_SYMMETRICAL_PATTERNS = [
+    re.compile(r"(?:it\s+is|it'?s)\s+not\s+just\s+about\s+\w[\w\s,]{2,30}[.;!]\s*(?:it\s+is|it'?s|that'?s)\s+about\b", re.I),
+    re.compile(r"the\s+answer\s+is\s+not\s+one-?size-?fits-?all", re.I),
+    re.compile(r"by\s+understanding\s+\w[\w\s,]+,\s*\w[\w\s,]+,\s*and\s+\w[\w\s,]+,\s*you\s+can", re.I),
+    re.compile(r"this\s+guide\s+will\s+walk\s+you\s+through\s+everything", re.I),
+    re.compile(r"whether\s+you\s+are\s+\w[\w\s,]+,\s*\w[\w\s,]+,\s*or\s+\w[\w\s,]+,\s*there\s+is", re.I),
+    re.compile(r"from\s+\w[\w\s]+\s+to\s+\w[\w\s]+,\s*the\s+benefits\s+are\s+clear", re.I),
+]
+
+
+def assert_no_symmetrical_construction(soup: BeautifulSoup, context: dict) -> AssertionResult:
+    """18.4.11 No symmetrical AI constructions (mortgage standard)."""
+    text = soup.get_text(separator=" ", strip=True)
+    for pat in _SYMMETRICAL_PATTERNS:
+        m = pat.search(text)
+        if m:
+            return AssertionResult(False, "hard",
+                f"Symmetrical AI construction: '{m.group()[:70]}'", "18.4.11")
+    return AssertionResult(True, "hard", None, "18.4.11")
+
+
+# Overuse word list (soft/warn). Thresholds are per 1000 words.
+# EXPLICITLY EXCLUDE "may" and "can" — compliance hedging in mortgage content
+# requires these words frequently ("borrowers may qualify", "you can apply").
+# Penalizing them would force writers to remove legally required hedging.
+_OVERUSE_WORDS = {
+    "help": 5,
+    "ensure": 3,
+    "provide": 4,
+    "offer": 4,
+    "solution": 3,
+    "strategy": 3,
+    "personalized": 2,
+    "flexible": 3,
+    "affordable": 3,
+    "competitive": 3,
+    "trusted": 2,
+    "expert": 3,
+    "landscape": 2,
+    # "explore" and "navigate" are already hard-banned in 18.4.2/18.4.9
+    # "discover" and "leverage" are already hard-banned
+    # "may" and "can" are EXCLUDED — see comment above
+}
+
+
+def assert_no_word_overuse(soup: BeautifulSoup, context: dict) -> AssertionResult:
+    """18.5.10 Warn when overuse words exceed per-1000-word frequency threshold.
+
+    Soft/warn only — does not block. "may" and "can" are explicitly excluded
+    because compliance hedging in mortgage content requires them.
+    """
+    text = soup.get_text(separator=" ", strip=True).lower()
+    word_count = len(text.split())
+    if word_count < 200:
+        return AssertionResult(True, "soft", None, "18.5.10")
+
+    scale = word_count / 1000.0
+    overused = []
+    for word, threshold_per_k in _OVERUSE_WORDS.items():
+        count = len(re.findall(r"\b" + word + r"\b", text))
+        allowed = max(1, int(threshold_per_k * scale))
+        if count > allowed:
+            overused.append(f"'{word}' {count}x (max {allowed})")
+
+    if overused:
+        return AssertionResult(False, "soft",
+            f"Overused words: {'; '.join(overused[:5])}", "18.5.10")
+    return AssertionResult(True, "soft", None, "18.5.10")
+
+
+def assert_no_keyword_stuffed_headings(soup: BeautifulSoup, context: dict) -> AssertionResult:
+    """18.5.11 Warn if target keyword appears in more than half the H2s."""
+    keyword = context.get("target_keyword", "")
+    if not keyword or len(keyword.split()) < 2:
+        return AssertionResult(True, "soft", None, "18.5.11")
+
+    sections = _get_body_h2_sections(soup)
+    if len(sections) < 4:
+        return AssertionResult(True, "soft", None, "18.5.11")
+
+    kw_lower = keyword.lower()
+    kw_count = sum(1 for h2, _ in sections if kw_lower in _text_of(h2).lower())
+    ratio = kw_count / len(sections)
+
+    if ratio > 0.5:
+        return AssertionResult(False, "soft",
+            f"Target keyword '{keyword}' in {kw_count}/{len(sections)} H2s "
+            f"({ratio:.0%}, max 50%)", "18.5.11")
+    return AssertionResult(True, "soft", None, "18.5.11")
+
+
+# ---------------------------------------------------------------------------
+# 18.4.12-14 Deploy-integrity assertions
+# ---------------------------------------------------------------------------
+
+def assert_no_fragment_list_items(soup: BeautifulSoup, context: dict) -> AssertionResult:
+    """18.4.12 Every <li> in main content has >=4 words and does not start with punctuation."""
+    fragments = []
+    for li in soup.find_all("li"):
+        # Skip items inside nav/breadcrumb/skip-link elements
+        if li.find_parent("nav"):
+            continue
+        text = _text_of(li).strip()
+        if not text:
+            fragments.append("(empty)")
+            continue
+        wc = _word_count(text)
+        if wc < 4:
+            fragments.append(f"{wc}w: \"{text[:40]}\"")
+        elif text[0] in ".,;:!?)>—":
+            fragments.append(f"starts with '{text[0]}': \"{text[:40]}\"")
+    if fragments:
+        return AssertionResult(False, "hard",
+            f"{len(fragments)} fragment <li>(s): {'; '.join(fragments[:3])}", "18.4.12")
+    return AssertionResult(True, "hard", None, "18.4.12")
+
+
+def assert_atf_document_order(soup: BeautifulSoup, context: dict) -> AssertionResult:
+    """18.4.13 ATF elements appear in correct document order.
+
+    Required sequence: eyebrow → BLUF → quick-cards/grid → ATF FAQs → first body H2.
+    Supports both rl-* (pre-postprocess) and tln* (post-postprocess) class prefixes.
+    """
+    # Map element markers to their first document position
+    markers = {
+        "eyebrow": None,
+        "bluf": None,
+        "cards": None,
+        "atf_faqs": None,
+        "first_body_h2": None,
+    }
+
+    soup_str = str(soup)
+
+    # Eyebrow
+    eb = soup.find(class_=re.compile(r"rl-eyebrow|rl-hero-eyebrow|tlnEyebrow"))
+    if eb:
+        markers["eyebrow"] = soup_str.find(str(eb))
+
+    # BLUF
+    bluf = soup.find(class_=re.compile(r"rl-bluf|tlnBLUF"))
+    if bluf:
+        markers["bluf"] = soup_str.find(str(bluf)[:100])
+
+    # Quick cards/grid
+    grid = soup.find(class_=re.compile(r"rl-quick-grid|tlnQuickGrid"))
+    if not grid:
+        first_card = soup.find(class_=re.compile(r"rl-quick-card|tlnQuickCard"))
+        if first_card:
+            grid = first_card
+    if grid:
+        markers["cards"] = soup_str.find(str(grid)[:100])
+
+    # ATF FAQs (details elements outside .rl-faq/.tlnFAQ)
+    btf_faq = soup.find(class_=re.compile(r"rl-faq|tlnFAQ"))
+    all_details = soup.find_all("details")
+    btf_set = set(btf_faq.find_all("details")) if btf_faq else set()
+    atf_details = [d for d in all_details if d not in btf_set]
+    if atf_details:
+        markers["atf_faqs"] = soup_str.find(str(atf_details[0])[:100])
+
+    # First body H2
+    body_h2s = _get_body_h2_sections(soup)
+    if body_h2s:
+        markers["first_body_h2"] = soup_str.find(str(body_h2s[0][0])[:100])
+
+    # Check order: each present element must come before the next present element
+    order = ["eyebrow", "bluf", "cards", "atf_faqs", "first_body_h2"]
+    positions = [(k, markers[k]) for k in order if markers[k] is not None]
+
+    for i in range(len(positions) - 1):
+        name_a, pos_a = positions[i]
+        name_b, pos_b = positions[i + 1]
+        if pos_a > pos_b:
+            return AssertionResult(False, "hard",
+                f"ATF order violation: {name_a} (pos {pos_a}) appears after "
+                f"{name_b} (pos {pos_b})", "18.4.13")
+
+    return AssertionResult(True, "hard", None, "18.4.13")
+
+
+def assert_title_integrity(soup: BeautifulSoup, context: dict) -> AssertionResult:
+    """18.4.14 Article title integrity: no trailing conjunction/comma, length >20 chars.
+
+    If context carries 'intended_title', asserts exact match.
+    """
+    intended = context.get("intended_title", "")
+    # Get title from H1 if present
+    h1 = soup.find("h1")
+    actual = _text_of(h1) if h1 else ""
+
+    if intended and actual:
+        if actual.strip() != intended.strip():
+            return AssertionResult(False, "hard",
+                f"Title mismatch: got \"{actual[:50]}\" expected \"{intended[:50]}\"",
+                "18.4.14")
+
+    title = actual or intended
+    if not title:
+        return AssertionResult(True, "hard", None, "18.4.14")
+
+    if len(title) < 20:
+        return AssertionResult(False, "hard",
+            f"Title too short ({len(title)} chars): \"{title}\"", "18.4.14")
+
+    # Trailing conjunction/comma/preposition
+    trailing = title.rstrip().rstrip(".")
+    if trailing and trailing[-1] in (",",) or trailing.endswith((" and", " or", " the", " a", " in", " of", " for")):
+        return AssertionResult(False, "hard",
+            f"Title has trailing conjunction/comma: \"{title[-20:]}\"", "18.4.14")
+
+    return AssertionResult(True, "hard", None, "18.4.14")
+
+
+# ---------------------------------------------------------------------------
 # Export lists
 # ---------------------------------------------------------------------------
 
@@ -1461,6 +1716,11 @@ ALL_HARD_ASSERTIONS: list[Callable] = [
     assert_semicolon_density,
     assert_no_ai_lexicon,
     assert_no_not_x_its_y,
+    assert_no_symmetrical_construction,
+    # 18.4.12-14 Deploy integrity
+    assert_no_fragment_list_items,
+    assert_atf_document_order,
+    assert_title_integrity,
     # 18.CG Community-guide (intent-gated: vacuous pass for other intents)
     assert_cg_builder_comparison,
     assert_cg_cost_strip,
@@ -1480,6 +1740,8 @@ ALL_SOFT_ASSERTIONS: list[Callable] = [
     assert_faq_topic_relevance,
     assert_no_near_duplicate_sections,
     assert_no_excessive_repetition,
+    assert_no_word_overuse,
+    assert_no_keyword_stuffed_headings,
     # 18.CG Community-guide soft (intent-gated)
     assert_cg_data_strip,
     assert_cg_military_fit,

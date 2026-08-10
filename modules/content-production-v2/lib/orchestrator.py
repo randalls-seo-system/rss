@@ -23,6 +23,9 @@ TOOLS_DIR = MODULE_DIR / "tools"
 JOBS_DIR = REPO_ROOT / "jobs"
 PYTHON = sys.executable
 
+sys.path.insert(0, str(REPO_ROOT))
+from lib.gate_library import run_universal_gates
+
 # ───────────────────────────────────────────────────────────────────────────
 # Centralized timeouts
 # ───────────────────────────────────────────────────────────────────────────
@@ -386,13 +389,20 @@ def generate_from_capture(job: dict, config: dict, capture_path: str) -> Path:
         voice_path = REPO_ROOT / "modules" / "brand-voice" / "archetypes" / f"{archetype}.md"
     voice_text = voice_path.read_text()[:2500] if voice_path.exists() else ""
 
-    # Load claims policy
+    # Load claims policy (resolve relative to REPO_ROOT, not CWD)
     policy_path = config.get("content", {}).get("claims_policy", "")
     policy_text = ""
     if policy_path:
-        expanded = Path(os.path.expanduser(policy_path))
+        expanded = REPO_ROOT / policy_path
+        if not expanded.exists():
+            expanded = Path(os.path.expanduser(policy_path))
         if expanded.exists():
             policy_text = expanded.read_text()[:3000]
+        else:
+            raise FileNotFoundError(
+                f"Claims policy declared but not found: {policy_path} "
+                f"(tried {REPO_ROOT / policy_path} and {os.path.expanduser(policy_path)})"
+            )
 
     css_prefix = (config.get("content", {}).get("css_prefix") or ["ahn"])[0]
     min_words = config.get("content", {}).get("article_min_words", 1800)
@@ -689,6 +699,23 @@ def deploy_draft(job: dict, config: dict, html_path: Path) -> bool:
 
     post_id = job["post_id"]
     content = html_path.read_text()
+
+    # Universal gate check before deploy
+    site_id = config.get("identity", {}).get("site_id", job.get("site", ""))
+    gate_report = run_universal_gates(
+        content,
+        site_slug=site_id,
+        title=job.get("topic", ""),
+        content_type="article",
+        config=config,
+    )
+    if not gate_report.passed:
+        from .tool_utils import eprint
+        eprint(f"[deploy] GATE FAILED — refusing to deploy:")
+        for fail in gate_report.failures:
+            eprint(f"  [{fail.name}] {fail.detail}")
+        return False
+
     wp_path = config["access"]["wp_path"]
 
     # Backup (even for new posts — the draft may have placeholder content)
@@ -877,12 +904,18 @@ def run_claims_classification(
     if not claims:
         return []
 
-    # Load policy file
+    # Load policy file (resolve relative to REPO_ROOT, not CWD)
     policy_text = ""
     if policy_path:
-        expanded = os.path.expanduser(policy_path)
-        if os.path.exists(expanded):
-            policy_text = Path(expanded).read_text()[:4000]
+        expanded = REPO_ROOT / policy_path
+        if not expanded.exists():
+            expanded = Path(os.path.expanduser(policy_path))
+        if expanded.exists():
+            policy_text = expanded.read_text()[:4000]
+        else:
+            raise FileNotFoundError(
+                f"Claims policy declared but not found: {policy_path}"
+            )
 
     # Load scan excerpts (gap analysis, SERP data, evidence store)
     scan_text = ""
@@ -1026,15 +1059,65 @@ def run_d2_claims_check(html: str, config: dict, job: dict, transcript_text: str
 
     print(f"  [D2] Extracted {len(claims)} claims", file=sys.stderr)
 
-    # Step 3: Classify claims (with optional transcript as source)
+    # Convergence tracking: load settled claims from prior runs.
+    # A settled claim is one previously classified as SOURCE or POLICY.
+    # Re-extraction may find the same claim text (or near-identical after
+    # neutralization); settled claims skip re-classification.
+    settled_path = jd / "d2-settled-claims.json"
+    settled_texts = set()
+    if settled_path.exists():
+        try:
+            settled_data = json.loads(settled_path.read_text())
+            settled_texts = {s.get("claim", "").lower().strip() for s in settled_data}
+            print(f"  [D2] Loaded {len(settled_texts)} settled claims from prior runs", file=sys.stderr)
+        except (json.JSONDecodeError, KeyError):
+            pass
+
+    # Split: new claims need classification; settled claims keep their prior verdict
+    new_claims = []
+    pre_settled = []
+    for c in claims:
+        if c.get("claim", "").lower().strip() in settled_texts:
+            c["classification"] = "SETTLED"
+            pre_settled.append(c)
+        else:
+            new_claims.append(c)
+
+    if pre_settled:
+        print(f"  [D2] {len(pre_settled)} claims settled from prior runs, {len(new_claims)} new to classify", file=sys.stderr)
+
+    # Step 3: Classify only NEW claims (with optional transcript as source)
     policy_path = config.get("content", {}).get("claims_policy", "")
-    classified = run_claims_classification(claims, policy_path, jd, jd, transcript_text=transcript_text)
+    if new_claims:
+        classified = run_claims_classification(new_claims, policy_path, jd, jd, transcript_text=transcript_text)
+    else:
+        classified = []
+
+    # Merge: pre-settled claims count as SOURCE for pass/fail purposes
+    all_classified = classified + pre_settled
+
+    # Update settled claims: add any newly classified SOURCE/POLICY claims
+    newly_settled = [
+        {"claim": c.get("claim", ""), "classification": c.get("classification", "")}
+        for c in classified
+        if c.get("classification") in ("SOURCE", "POLICY")
+    ]
+    if newly_settled:
+        existing_settled = []
+        if settled_path.exists():
+            try:
+                existing_settled = json.loads(settled_path.read_text())
+            except (json.JSONDecodeError, KeyError):
+                pass
+        existing_settled.extend(newly_settled)
+        settled_path.write_text(json.dumps(existing_settled, indent=2, ensure_ascii=False))
+        print(f"  [D2] Persisted {len(newly_settled)} newly settled claims ({len(existing_settled)} total)", file=sys.stderr)
 
     # Count
-    unsourced = [c for c in classified if c.get("classification") == "UNSOURCED"]
-    policy = [c for c in classified if c.get("classification") == "POLICY"]
-    source = [c for c in classified if c.get("classification") == "SOURCE"]
-    sme_sourced = [c for c in classified if c.get("classification") == "SME-SOURCED"]
+    unsourced = [c for c in all_classified if c.get("classification") == "UNSOURCED"]
+    policy = [c for c in all_classified if c.get("classification") == "POLICY"]
+    source = [c for c in all_classified if c.get("classification") in ("SOURCE", "SETTLED")]
+    sme_sourced = [c for c in all_classified if c.get("classification") == "SME-SOURCED"]
 
     # Check ventriloquism license
     voice_path = config.get("content", {}).get("claims_policy", "")
@@ -1047,8 +1130,8 @@ def run_d2_claims_check(html: str, config: dict, job: dict, transcript_text: str
     report = {
         "ventriloquism_hits": vent_hits,
         "ventriloquism_licensed": first_person_licensed,
-        "total_claims": len(classified),
-        "classified_claims": classified,
+        "total_claims": len(all_classified),
+        "classified_claims": all_classified,
         "unsourced_count": len(unsourced),
         "policy_count": len(policy),
         "source_count": len(source),

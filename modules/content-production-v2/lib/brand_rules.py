@@ -16,7 +16,7 @@ from pathlib import Path
 MODULE_DIR = Path(__file__).resolve().parent.parent
 VERTICALS_DIR = MODULE_DIR / "prompts" / "verticals"
 
-VALID_VERTICALS = {"real_estate"}  # extend as new verticals are added
+VALID_VERTICALS = {"real_estate", "mortgage"}  # extend as new verticals are added
 
 
 def load_brand_rules_block(config: dict) -> str:
@@ -213,7 +213,20 @@ def load_vertical_rules_block(site_slug: str) -> str:
     """
     from lib.site_config import load_site_config
     config = load_site_config(site_slug)
-    vertical = config.get("content", {}).get("vertical", "")
+    # Support both nested JSON (content.vertical) and flat .conf (VERTICAL=)
+    vertical = config.get("content", {}).get("vertical", "") if isinstance(config.get("content"), dict) else ""
+    if not vertical:
+        vertical = config.get("VERTICAL", "")
+    # Also try loading from JSON config directly
+    if not vertical:
+        import json
+        json_path = VERTICALS_DIR.parent.parent.parent.parent / "sites" / site_slug / "config.json"
+        if json_path.exists():
+            try:
+                jcfg = json.loads(json_path.read_text())
+                vertical = jcfg.get("content", {}).get("vertical", "")
+            except (json.JSONDecodeError, KeyError):
+                pass
     if not vertical:
         return ""
 

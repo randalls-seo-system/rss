@@ -1,8 +1,10 @@
 """Article generation queue — per-site, file-backed, atomic writes.
 
 Queue file: sites/<slug>/queue.json
-Items: {id, topic, target_keyword, intent_hint, status, added, attempts, last_failure, job_id}
-Status: pending | in_progress | done | parked
+Items: {id, topic, target_keyword, intent_hint, status, added, attempts, last_failure, job_id,
+        mode, post_id}
+Status: pending | in_progress | done | parked | awaiting_approval
+Mode: "new" (default) | "refresh"
 
 All writes use temp-file + rename for atomicity — the loop and a human
 may both touch the queue concurrently.
@@ -15,7 +17,7 @@ import uuid
 from datetime import datetime, timezone
 from pathlib import Path
 
-REPO_ROOT = Path(__file__).resolve().parent.parent.parent.parent
+REPO_ROOT = Path(os.environ.get("RSS_REPO_ROOT", Path(__file__).resolve().parent.parent.parent.parent))
 
 
 def _queue_path(site_slug: str) -> Path:
@@ -113,6 +115,134 @@ def retry_item(site_slug: str, item_id: str) -> None:
             item["status"] = "pending"
             break
     save_queue(site_slug, items)
+
+
+def add_refresh_item(site_slug: str, post_id: int, keyword: str = "",
+                     slug: str = "") -> dict:
+    """Add a refresh-mode item to the queue."""
+    items = load_queue(site_slug)
+    item = {
+        "id": uuid.uuid4().hex[:12],
+        "topic": keyword or slug or f"refresh-{post_id}",
+        "target_keyword": keyword,
+        "intent_hint": "",
+        "status": "pending",
+        "added": datetime.now(timezone.utc).isoformat(),
+        "attempts": 0,
+        "last_failure": "",
+        "job_id": "",
+        "mode": "refresh",
+        "post_id": post_id,
+    }
+    items.append(item)
+    save_queue(site_slug, items)
+    return item
+
+
+def mark_awaiting_approval(site_slug: str, item_id: str, job_id: str = "") -> None:
+    """Mark a refresh item as awaiting human approval."""
+    items = load_queue(site_slug)
+    for item in items:
+        if item["id"] == item_id:
+            item["status"] = "awaiting_approval"
+            if job_id:
+                item["job_id"] = job_id
+            break
+    save_queue(site_slug, items)
+
+
+def seed_from_audit(site_slug: str, limit: int = 20) -> tuple[list[dict], list[dict]]:
+    """Seed refresh candidates from the latest audit JSON.
+
+    Ranking: D2 unsourced-claim count dominates; structural failures are
+    a constant tiebreaker; opportunity (pos 11-30) is the multiplier.
+    Excluded: verdict PASS, page_type != article, frozen (pos 1-10).
+
+    Returns (candidates, excluded) — both for display, only candidates
+    eligible for seeding.
+    """
+    from .auditor import classify_page_type
+
+    docs_dir = REPO_ROOT / "docs"
+    audit_files = sorted(docs_dir.glob(f"{site_slug}-audit-*.json"), reverse=True)
+    if not audit_files:
+        return [], []
+
+    audit_data = json.loads(audit_files[0].read_text())
+    results = audit_data.get("results", [])
+
+    existing_queue = load_queue(site_slug)
+    queued_post_ids = {
+        i.get("post_id") for i in existing_queue
+        if i.get("mode") == "refresh" and i.get("status") in ("pending", "in_progress", "awaiting_approval")
+    }
+
+    candidates = []
+    excluded = []
+    for r in results:
+        pid = r.get("post_id")
+        slug = r.get("slug", "")
+        title = r.get("title", "")
+        pos = r.get("position", 0)
+
+        # Classify page type
+        page_type = r.get("page_type") or classify_page_type(slug, title)
+
+        # Determine exclusion reason
+        exclusion = ""
+        if r.get("verdict") == "PASS":
+            exclusion = "PASS verdict"
+        elif page_type != "article":
+            exclusion = f"page_type={page_type}"
+        elif r.get("frozen") or (1 <= pos <= 10):
+            exclusion = f"frozen (pos {pos:.0f})"
+        elif pid in queued_post_ids:
+            exclusion = "already queued"
+
+        if exclusion:
+            excluded.append({
+                "post_id": pid, "slug": slug, "title": title,
+                "page_type": page_type, "position": pos,
+                "impressions": r.get("impressions", 0),
+                "reason": exclusion,
+            })
+            continue
+
+        # Risk-first scoring: unsourced claims dominate,
+        # structural failures are tiebreaker (constant across posts)
+        unsourced = r.get("unsourced_claims", 0)
+        hard_fail = len(r.get("hard_failures", []))
+        risk_base = unsourced * 10 + hard_fail  # hard_fail is tiebreaker
+
+        # Opportunity multiplier by position
+        if 11 <= pos <= 30:
+            opportunity = 3.0
+        elif 31 <= pos <= 50:
+            opportunity = 2.0
+        else:
+            opportunity = 1.0
+
+        score = risk_base * opportunity
+
+        candidates.append({
+            "post_id": pid,
+            "slug": slug,
+            "title": title,
+            "top_query": r.get("top_query", ""),
+            "position": pos,
+            "impressions": r.get("impressions", 0),
+            "verdict": r.get("verdict", ""),
+            "page_type": page_type,
+            "unsourced_claims": unsourced,
+            "hard_failures": hard_fail,
+            "risk_base": risk_base,
+            "opportunity": opportunity,
+            "score": score,
+            "reasons": r.get("verdict_reasons", []),
+        })
+
+    candidates.sort(key=lambda x: x["score"], reverse=True)
+    return candidates[:limit], excluded
 
 
 def seed_from_gsc(site_slug: str, min_impressions: int = 50,
