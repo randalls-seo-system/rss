@@ -3121,6 +3121,67 @@ def main():
         phase_g(state)
         phase_h(state)
         phase_polish(state, skip=args.skip_polish)
+
+        # Step CQG: Content quality gate (post-polish, pre-deploy)
+        eprint("\n--- Content Quality Gate (post-polish) ---")
+        from lib.content_quality_gate import run_content_quality_gate, run_ymyl_language_check
+        cqg_subject = state.target_keyword
+        cqg_city = state.config.get("LOCATION_PRIMARY", "").split(",")[0].strip()
+        cqg_failures = run_content_quality_gate(
+            state.assembled_html, cqg_subject, cqg_city
+        )
+        cqg_path = state.output_dir / f"{state.post_id}-quality-gate.txt"
+        if cqg_failures:
+            lines = [
+                f"CONTENT QUALITY GATE FAILED — {state.site_slug} post {state.post_id}",
+                f"Target keyword: {state.target_keyword}",
+                f"Failures ({len(cqg_failures)}):",
+                "",
+            ]
+            for f in cqg_failures:
+                lines.append(f"  - {f}")
+            cqg_path.write_text("\n".join(lines))
+            eprint(f"  [CQG] FAILED: {len(cqg_failures)} failure(s) → {cqg_path.name}")
+            for f in cqg_failures:
+                eprint(f"        {f}")
+            raise RuntimeError(
+                f"Content quality gate failed with {len(cqg_failures)} failure(s). "
+                f"See {cqg_path} for details. Pipeline will NOT deploy."
+            )
+        else:
+            cqg_path.write_text(
+                f"CONTENT QUALITY GATE: PASS — {state.site_slug} post {state.post_id}\n"
+                f"Target keyword: {state.target_keyword}\n"
+                f"All checks passed.\n"
+            )
+            eprint(f"  [CQG] PASS (0 failures) → {cqg_path.name}")
+
+        # Step YMYL: Tax/foreclosure language check (advisory)
+        ymyl_findings = run_ymyl_language_check(state.assembled_html)
+        ymyl_path = state.output_dir / f"{state.post_id}-ymyl-language.txt"
+        if ymyl_findings:
+            lines = [
+                f"YMYL LANGUAGE CHECK — {state.site_slug} post {state.post_id}",
+                f"Target keyword: {state.target_keyword}",
+                f"",
+                f"ADVISORY FINDINGS ({len(ymyl_findings)}):",
+                f"These do not block the pipeline but MUST be reviewed before publish.",
+                f"",
+            ]
+            for f in ymyl_findings:
+                lines.append(f"  - {f}")
+            ymyl_path.write_text("\n".join(lines))
+            eprint(f"  [YMYL] {len(ymyl_findings)} advisory finding(s) → {ymyl_path.name}")
+            for f in ymyl_findings:
+                eprint(f"        {f}")
+        else:
+            ymyl_path.write_text(
+                f"YMYL LANGUAGE CHECK: CLEAN — {state.site_slug} post {state.post_id}\n"
+                f"Target keyword: {state.target_keyword}\n"
+                f"No tax-language or foreclosure-framing issues found.\n"
+            )
+            eprint(f"  [YMYL] Clean (0 findings) → {ymyl_path.name}")
+
         # Schema removed: FAQPage now handled by lrg-faq-schema.php mu-plugin
         # at render time; Article/Breadcrumb handled by Yoast in <head>.
         phase_i(state, skip_deploy=args.skip_deploy)

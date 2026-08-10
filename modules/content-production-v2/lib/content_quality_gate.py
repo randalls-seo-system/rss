@@ -198,6 +198,81 @@ def run_content_quality_gate(
     return failures
 
 
+def run_ymyl_language_check(html: str) -> list[str]:
+    """Advisory check for YMYL language violations in distressed-homeowner content.
+
+    Flags tax, legal, and foreclosure framing that states outcomes as fact
+    rather than using required qualified language. Advisory — surfaces in
+    the report but does not hard-fail the pipeline.
+
+    Returns:
+        List of advisory findings. Empty list = clean.
+    """
+    text = _strip_html(html)
+    text_lower = text.lower()
+    findings = []
+
+    # ── TAX LANGUAGE: forgiven debt stated as categorically taxable ──
+    # Required framing: "may create taxable income; other exclusions may apply"
+    # The insolvency and bankruptcy exclusions are permanent (IRS Topic 431).
+    tax_unqualified_patterns = [
+        (r'forgiven\s+debt\s+is\s+(?:now\s+)?taxable', "forgiven debt is [now] taxable"),
+        (r'now\s+taxable', "now taxable"),
+        (r'will\s+owe\s+taxes?\s+on\s+the\s+forgiven', "will owe taxes on the forgiven amount"),
+        (r'no\s+longer\s+excluded', "no longer excluded"),
+        (r'forgiven\s+(?:mortgage\s+)?debt\s+(?:is|will\s+be)\s+treated\s+as\s+(?:ordinary\s+)?income',
+         "forgiven debt is/will be treated as income"),
+        (r'you\s+(?:will|are\s+going\s+to)\s+owe\s+taxes?\s+on', "you will owe taxes on"),
+    ]
+    for pattern, desc in tax_unqualified_patterns:
+        matches = re.findall(pattern, text_lower)
+        if matches:
+            # Check if the qualifier phrase appears nearby (within 200 chars)
+            qualifier = "may create taxable income"
+            qualifier2 = "other exclusions may apply"
+            for m in re.finditer(pattern, text_lower):
+                start = max(0, m.start() - 200)
+                end = min(len(text_lower), m.end() + 200)
+                context = text_lower[start:end]
+                if qualifier not in context and qualifier2 not in context:
+                    findings.append(
+                        f"TAX LANGUAGE: '{desc}' stated without qualifier. "
+                        f"Required framing: 'may create taxable income; other exclusions may apply.' "
+                        f"Insolvency and bankruptcy exclusions are permanent (IRS Topic 431)."
+                    )
+                    break  # One finding per pattern is enough
+
+    # ── FORECLOSURE FRAMING: Texas leads without raw-count qualifier ──
+    fc_patterns = [
+        (r'texas\s+leads?\s+(?:the\s+)?(?:nation|country|u\.?s\.?)\s+in\s+foreclosures?',
+         "Texas leads the nation in foreclosures"),
+        (r'texas\s+(?:has|had)\s+the\s+(?:most|highest)\s+foreclosures?',
+         "Texas has the most/highest foreclosures"),
+        (r'texas\s+is\s+(?:#\s*1|number\s+one|first)\s+(?:in|for)\s+foreclosures?',
+         "Texas is #1 in foreclosures"),
+    ]
+    for pattern, desc in fc_patterns:
+        if re.search(pattern, text_lower):
+            # Check for qualifier within 200 chars
+            qualifiers = ["raw count", "by count", "by volume", "by raw",
+                          "not.*rate", "rate was"]
+            match = re.search(pattern, text_lower)
+            if match:
+                start = max(0, match.start() - 100)
+                end = min(len(text_lower), match.end() + 200)
+                context = text_lower[start:end]
+                has_qualifier = any(q in context for q in qualifiers[:4])
+                if not has_qualifier:
+                    findings.append(
+                        f"FORECLOSURE FRAMING: '{desc}' without raw-count qualifier. "
+                        f"Texas had the most REOs by raw count (3,322, H1 2026 ATTOM) but "
+                        f"its rate (0.18%) is not in the top 5. Must qualify."
+                    )
+                    break
+
+    return findings
+
+
 def check_thin_data_risk(serp_results_count: int, neighborhood: str) -> dict:
     """Flag guides generated from sparse SERP data as confabulation risk.
 
