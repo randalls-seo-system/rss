@@ -133,11 +133,37 @@ full inventory in HANDOFF-2026-08-09-roundups.md.
 4. **Killeen roundup (2797):** Protected flagship, excluded from all
    batches.
 
-5. **Single-guide pipeline:** PARKED. generate-neighborhood-guide.py +
-   batch-neighborhood-rebuild.py + all guards (FH, feeder strip, tax
-   rate, em dash, confabulation, qstat) committed on lrg-guides. Not
-   deployed because: the single-guide format produced flat 20KB output
-   that was a downgrade vs existing content, and the roundup format
-   (nh-rank, 28-32KB) proved to be the right content type for these
-   pages. Single guides may be appropriate for individual
-   neighborhood deep-dives later, but the priority is roundup coverage.
+5. **Single-guide pipeline: PARKED — scaffold-only, not production.**
+   generate-neighborhood-guide.py + batch-neighborhood-rebuild.py + all
+   guards committed on lrg-guides. Settled decision (2026-08-10):
+   - Cannot beat hand-built content on established guides — verified data
+     is thinner than the editorial knowledge behind the originals
+   - Regenerated Stone Oak (2736) was a downgrade on every metric: 50%
+     fewer links, 100% of bold-lead callouts lost, generic H2s, doubled
+     sentinel text ("the zoned high school and the zoned high school"),
+     fabricated $475K median with no data source
+   - Existing guides get refreshed in place (fix facts, links, schema)
+   - Net-new deep-dives get hand-built from a template copy
+   - Revisit only if net-new volume changes
+   - 6 post-assembly passes extracted to lib/post_assembly.py (shared
+     with roundup generator) — FH scan, em dash, markdown, whitespace,
+     link validation, author resolution
+   - build_default_data() Census/FEMA sources removed (was root cause
+     of 9 pages citing sources the generator never consulted)
+
+6. **FH regex is a FLOOR, not a detector.** Semantic review of 9 pages
+   found 32 FH hits; the regex caught 7. Categories missed: "for
+   families" (demographic targeting), "family-oriented/family-friendly"
+   without hyphen variants, "budget-conscious" (socioeconomic framing),
+   "retirees" (age-based targeting), fit-panel demographic steering,
+   FAQ questions targeting familial status. The "23 of 30 guides
+   flagged" figure from the July batch therefore understates the
+   problem — those 30 need the same full semantic read.
+
+7. **9-page remediation completed (2026-08-10).** Posts 9554, 9555,
+   9556, 9562, 9563, 9605, 9607, 9609, 9611: replaced fabricated
+   Census/FEMA sources with honest methodology disclosure, fixed 32
+   FH phrases (semantic, not regex), fixed doubled school names
+   (Buda, Manor), fixed broken href="None" CTAs (Salado). Backups at
+   `/nas/content/live/lrgrealtyblog/backups/guide-remediation-20260810/`.
+   Cache purged, curl-verified on 9554 + 9607.
