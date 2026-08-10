@@ -107,6 +107,39 @@ def run_content_quality_gate(
     text_lower = text.lower()
     words = text.split()
 
+    # ── CHECK 0: Editorial marker / placeholder detection (HARD FAIL) ──
+    # Bracketed editorial markers in body HTML = content is not ready to
+    # deploy. Catches [FLAG, [TODO, [FIXME, [NOTE TO, [REVIEW, [PLACEHOLDER,
+    # XXX tokens. Excludes matches inside href attributes.
+    _marker_patterns = [
+        (r'\[FLAG\b', '[FLAG'),
+        (r'\[TODO\b', '[TODO'),
+        (r'\[FIXME\b', '[FIXME'),
+        (r'\[NOTE\s+TO\b', '[NOTE TO'),
+        (r'\[REVIEW\b', '[REVIEW'),
+        (r'\[PLACEHOLDER\b', '[PLACEHOLDER'),
+        (r'\[INSERT\b', '[INSERT'),
+        (r'\[TBD\b', '[TBD'),
+    ]
+    # Strip href attributes before checking so URLs with random strings
+    # don't false-positive (e.g., a slug containing "xxx")
+    _text_no_hrefs = re.sub(r'href="[^"]*"', '', html)
+    _text_no_hrefs_stripped = _strip_html(_text_no_hrefs)
+    marker_hits = []
+    for pattern, label in _marker_patterns:
+        if re.search(pattern, _text_no_hrefs_stripped, re.IGNORECASE):
+            marker_hits.append(label)
+    # XXX check: only flag standalone XXX (word boundary), not inside URLs
+    if re.search(r'\bXXX\b', _text_no_hrefs_stripped):
+        marker_hits.append('XXX')
+
+    if marker_hits:
+        failures.append(
+            f"EDITORIAL MARKER IN CONTENT: {marker_hits}. "
+            f"Review notes, placeholders, and TODO markers must be removed "
+            f"before deploy. Move verification notes to the fact-check report."
+        )
+
     # ── CHECK 1: Boilerplate phrase detection ──
     bp_hits = []
     for phrase in BOILERPLATE_PHRASES:
