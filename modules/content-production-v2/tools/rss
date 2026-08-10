@@ -905,17 +905,22 @@ def main():
         print(f"  Backfills failed:            {summary['backfills_failed']}")
     elif args.command == "gate":
         GATE_REPO = MODULE_DIR.parent.parent
-        sys.path.insert(0, str(GATE_REPO))
-        from lib.gate_library import cli_gate
-        sys.exit(cli_gate([
+        import importlib.util as _ilu
+        _gs = _ilu.spec_from_file_location("gate_library", GATE_REPO / "lib" / "gate_library.py")
+        _gm = _ilu.module_from_spec(_gs)
+        _gs.loader.exec_module(_gm)
+        sys.exit(_gm.cli_gate([
             "--site", args.site, "--file", args.file,
             "--type", args.type, "--slug", args.slug,
             "--title", args.title,
         ] + (["--json"] if args.json else [])))
     elif args.command == "gate-scan":
         GATE_REPO = MODULE_DIR.parent.parent
-        sys.path.insert(0, str(GATE_REPO))
-        from lib.gate_library import cli_gate_scan
+        import importlib.util as _ilu
+        _gs = _ilu.spec_from_file_location("gate_library", GATE_REPO / "lib" / "gate_library.py")
+        _gm = _ilu.module_from_spec(_gs)
+        _gs.loader.exec_module(_gm)
+        cli_gate_scan = _gm.cli_gate_scan
         scan_args = ["--site", args.site, "--all-published"]
         if args.limit:
             scan_args += ["--limit", str(args.limit)]
