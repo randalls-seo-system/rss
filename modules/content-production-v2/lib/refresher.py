@@ -26,9 +26,11 @@ from .orchestrator import (
 )
 from .tool_utils import eprint
 
-import sys
-sys.path.insert(0, str(REPO_ROOT))
-from lib.gate_library import run_universal_gates
+import importlib.util as _ilu
+_gl_spec = _ilu.spec_from_file_location("gate_library", REPO_ROOT / "lib" / "gate_library.py")
+_gl_mod = _ilu.module_from_spec(_gl_spec)
+_gl_spec.loader.exec_module(_gl_mod)
+run_universal_gates = _gl_mod.run_universal_gates
 
 
 def start_refresh_job(

@@ -13,6 +13,8 @@ refresher, batch-inject-links, style-pass, and all LRG generators.
 |------|----------|-----------|-----------------|
 | 2026-08-10 | `[FLAG FOR MAYRA]` shipped live in article body | `no_editorial_markup` | all write paths |
 | 2026-08-10 | 23 duplicate slugs created across batch runs | `slug_unique` | push-post-content --create |
+| 2026-08-10 | Fabricated methodology ("according to our analysis") in roundup | `no_fabricated_sourcing` | all write paths + roundup generator |
+| 2026-08-10 | Campus hallucination reference in neighborhood guide | `no_editorial_markup` + `no_fabricated_sourcing` | guide generator + all write paths |
 | 2026-08-10 | Fabricated methodology claims ("according to our analysis of MLS data") | `no_fabricated_sourcing` | all write paths |
 | 2026-08-10 | `[REFRESH pending]` prefix leaked into live title | `title_integrity` | all write paths |
 | 2026-08-10 | Fragment `<li>` items (2-word bullets, leading punctuation) shipped | `no_fragment_list_items` | all write paths |

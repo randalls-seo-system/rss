@@ -921,6 +921,21 @@ Return as JSON: {{"good": ["..."], "warn": ["..."]}}"""
     except Exception as e:
         eprint(f"  Link validation: skipped ({e})")
 
+    # ── UNIVERSAL GATE (must pass before file write) ──
+    from lib.gate_library import run_universal_gates
+    gate_report = run_universal_gates(
+        html,
+        site_slug=args.site,
+        title=args.title,
+        content_type="roundup",
+    )
+    if not gate_report.passed:
+        eprint(f"\nUNIVERSAL GATE FAILED — refusing to write output:")
+        for fail in gate_report.failures:
+            eprint(f"  [{fail.name}] {fail.detail}")
+        sys.exit(1)
+    eprint("Universal gate: PASS")
+
     # Write output
     article_path = out_dir / f"{post_id}-roundup.html"
     article_path.write_text(html)

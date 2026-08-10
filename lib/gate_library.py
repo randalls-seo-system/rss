@@ -593,10 +593,20 @@ def cli_gate_scan(args: list[str] | None = None) -> int:
               file=sys.stderr, end="", flush=True)
 
         # Fetch post_content
-        fetch_result = subprocess.run(
-            ssh_base + [f"wp post get {pid} --field=post_content"],
-            capture_output=True, text=True, timeout=30,
-        )
+        try:
+            fetch_result = subprocess.run(
+                ssh_base + [f"wp post get {pid} --field=post_content"],
+                capture_output=True, text=True, timeout=60,
+            )
+        except subprocess.TimeoutExpired:
+            scan_results.append({
+                "id": pid, "slug": slug, "title": post["title"],
+                "status": "FETCH_FAILED", "failures": [],
+                "failure_details": {"timeout": "SSH fetch timed out (60s)"},
+            })
+            print(f" TIMEOUT", file=sys.stderr)
+            time.sleep(2)
+            continue
         if fetch_result.returncode != 0 or not fetch_result.stdout.strip():
             scan_results.append({
                 "id": pid, "slug": slug, "title": post["title"],

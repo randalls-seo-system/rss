@@ -23,6 +23,7 @@ TOOLS_DIR = Path(__file__).resolve().parent
 MODULE_DIR = TOOLS_DIR.parent
 REPO_ROOT = MODULE_DIR.parent.parent
 sys.path.insert(0, str(MODULE_DIR))
+sys.path.insert(0, str(REPO_ROOT))
 
 # Load .env
 _env_file = REPO_ROOT / ".env"
@@ -1303,6 +1304,22 @@ def main():
     manifest_path = out_dir / f"{post_id}-nh-manifest.json"
     manifest_path.write_text(json.dumps(manifest, indent=2))
     eprint(f"Manifest: {manifest_path}")
+
+    # ── UNIVERSAL GATE (must pass before any WP write) ──
+    from lib.gate_library import run_universal_gates
+    gate_report = run_universal_gates(
+        html,
+        site_slug=args.site,
+        slug="",  # slug already created via post-id
+        title=f"{nb} Neighborhood Guide",
+        content_type="guide",
+    )
+    if not gate_report.passed:
+        eprint(f"\nUNIVERSAL GATE FAILED — refusing to deploy:")
+        for fail in gate_report.failures:
+            eprint(f"  [{fail.name}] {fail.detail}")
+        sys.exit(1)
+    eprint("Universal gate: PASS")
 
     # Deploy
     if not args.skip_deploy:
