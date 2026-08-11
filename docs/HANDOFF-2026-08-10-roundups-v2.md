@@ -105,30 +105,66 @@ python3 modules/content-production-v2/tools/build-roundup-data.py \
 | rank | Editorial | Human judgment |
 | tagline | SERP-extracted or editorial | Varies |
 
-## SERP research for 33 remaining roundups
+## Remaining roundup conversions — enumerated (2026-08-11)
 
-**NOT STARTED.** The existing Aug 3-4 SERP files used metro-level
-queries that don't surface subdivision names. New SERP research needs
-city-specific queries: "best neighborhoods in [City] TX".
+The original "33 remaining" was never enumerated and included county,
+military, and audience roundups that are separate content types. Actual
+city roundup conversion candidates: 15.
 
-Run via analyze-serp.py (Serper.dev API, 2500/month quota). ~2 min
-per query, 33 queries = ~66 min. Can run overnight unattended.
+**Tier 1 — Viable (pop > 10K, SERP completed):**
 
-**33 cities needing SERP:**
-The flat-template roundups without fresh city-specific SERP. See the
-full inventory in HANDOFF-2026-08-09-roundups.md.
+| City | Metro | Pop | Existing post | SERP file |
+|------|-------|-----|--------------|-----------|
+| Cedar Park | Austin | ~82K | 1734/5133 | best-neighborhoods-in-cedar-park-tx.json |
+| Harker Heights | Killeen | ~35K | 5135 | best-neighborhoods-in-harker-heights-tx.json |
+| Copperas Cove | Killeen | ~35K | 5198 | best-neighborhoods-in-copperas-cove-tx.json |
+| Taylor | Austin | ~25K | 9563 (guide) | best-neighborhoods-in-taylor-tx.json |
+| Canyon Lake | SA | ~22K | 1791 | best-neighborhoods-in-canyon-lake-tx.json |
+| Lakeway | Austin | ~19K | 1800 | best-neighborhoods-in-lakeway-tx.json |
+| Live Oak | SA | ~18K | 1750 | best-neighborhoods-in-live-oak-tx.json |
+| Manor | Austin | ~15K | 9555 (guide) | best-neighborhoods-in-manor-tx.json |
+| Helotes | SA | ~12K | 1747 | best-neighborhoods-in-helotes-tx.json |
+| Leon Valley | SA | ~12K | 1820 | best-neighborhoods-in-leon-valley-tx.json |
+| Bastrop | Austin | ~11K | 4929 | best-neighborhoods-in-bastrop-tx.json |
+
+**Tier 2 — Borderline (might work, might fail floor):**
+
+| City | Metro | Pop | SERP file |
+|------|-------|-----|-----------|
+| Pleasanton | SA | ~10K | best-neighborhoods-in-pleasanton-tx.json |
+| Spring Branch | SA | CDP | best-neighborhoods-in-spring-branch-tx.json |
+| Nolanville | Killeen | ~7.4K | 9609 (guide only) |
+| Windcrest | SA | ~5.8K | best-neighborhoods-in-windcrest-tx.json |
+
+**Single-neighborhood deep-dive candidates (NOT roundups):**
+Olmos Park (~2.3K), Terrell Hills (~5K), Balcones Heights (~3K),
+Hollywood Park (~3.5K), Shavano Park (~4.1K) — these are enclaves
+inside San Antonio. They ARE neighborhoods, not cities containing
+neighborhoods. Correct content type is a single-guide or an entry in
+the SA flagship roundup, not a standalone roundup.
+
+**Deferred (too small as standalone towns):**
+Poteet (~3.5K), Castroville (~3K), Salado (~2.4K) — join Fischer,
+Bergheim, Garden Ridge, Selma in the deferred pool.
+
+**Not part of the city conversion program:**
+County roundups (Bexar, Travis, Williamson, Comal, Guadalupe,
+Atascosa), military roundups (JBSA, Randolph, Lackland, Camp Bullis,
+Fort Hood, NAS CC), and audience pages (Austin families, SA families,
+Fort Sam) are separate content types. They may get refreshed but not
+via the city roundup pipeline.
 
 ## Still open
 
-1. **33 roundup conversions** pending: need city-specific SERP research,
-   then builder → human review → generation → deploy.
+1. **15 roundup conversions** (11 Tier 1 + 4 Tier 2): need builder →
+   human review → generation → deploy.
 
 2. **Post 1733 slug typo:** "best-neighborhoods-in-borne-tx" should be
    "best-neighborhoods-in-boerne-tx". Requires 301 redirect. Decision
    from Randall.
 
-3. **4 below-floor cities deferred:** Fischer, Bergheim, Garden Ridge,
-   Selma — too small for 5-neighborhood roundups.
+3. **7 deferred cities:** Fischer, Bergheim, Garden Ridge, Selma,
+   Poteet, Castroville, Salado — too small for 5-neighborhood roundups.
 
 4. **Killeen roundup (2797):** Protected flagship, excluded from all
    batches.
