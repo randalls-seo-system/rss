@@ -57,19 +57,60 @@ DEFAULT_METERS = {
 }
 
 
-def geocode_and_tea(city, state="TX"):
-    """Geocode a city and look up its TEA school district."""
+# Texas county names — used to disambiguate geocode queries.
+# "Taylor, TX" returns Taylor County (Abilene area) instead of the city
+# near Austin. Adding the correct county to the query fixes this.
+_TX_COUNTY_NAMES = {
+    "live oak", "taylor", "bastrop", "comal", "kendall", "medina",
+    "bexar", "travis", "williamson", "hays", "guadalupe", "bell",
+    "burnet", "blanco", "bandera", "wilson", "karnes", "atascosa",
+    "frio", "gonzales", "caldwell", "lee", "milam", "falls",
+    "coryell", "lampasas", "llano",
+}
+
+
+def geocode_and_tea(city, state="TX", county_hint=None):
+    """Geocode a city and look up its TEA school district.
+
+    When a city name collides with a Texas county name, Nominatim may
+    return the county centroid (wrong region). The county_hint parameter
+    or automatic detection adds county disambiguation to the query.
+    """
     import requests
     time.sleep(1.1)
+
+    # Auto-detect county-name collision and require disambiguation
+    needs_disambiguation = city.lower() in _TX_COUNTY_NAMES
+    if needs_disambiguation and not county_hint:
+        eprint(f"  WARNING: '{city}' matches a Texas county name.")
+        eprint(f"  Pass --county-hint or add county_hint= to disambiguate.")
+        eprint(f"  Without it, the geocoder may return the wrong region.")
+
+    # Build query with county disambiguation when available
+    if county_hint:
+        query = f"{city}, {county_hint} County, {state}"
+    elif needs_disambiguation:
+        # Try "city" type filter as fallback
+        query = f"{city} city, {state}"
+    else:
+        query = f"{city}, {state}"
+
     try:
         resp = requests.get(NOM_URL, params={
-            "q": f"{city}, {state}", "format": "json", "limit": 1,
+            "q": query, "format": "json", "limit": 1,
             "countrycodes": "us",
         }, headers={"User-Agent": "lrg-roundup-builder/1.0"}, timeout=15)
         geo = resp.json()
         if not geo:
             return None, None, "geocode_failed"
         lat, lon = float(geo[0]["lat"]), float(geo[0]["lon"])
+        osm_type = geo[0].get("type", "")
+
+        # Warn if result looks like a county instead of a city
+        display = geo[0].get("display_name", "")
+        if osm_type == "administrative" and "County" in display.split(",")[0]:
+            eprint(f"  WARNING: Nominatim returned a county, not a city: {display[:80]}")
+            eprint(f"  Re-run with --county-hint to disambiguate.")
 
         resp = requests.get(TEA_URL, params={
             "geometry": f"{lon},{lat}",
@@ -136,6 +177,7 @@ def main():
     parser.add_argument("--serp-json", required=True, help="Path to SERP research JSON")
     parser.add_argument("--output-dir", required=True)
     parser.add_argument("--skip-tea", action="store_true", help="Skip TEA lookup (use cached)")
+    parser.add_argument("--county-hint", help="County name to disambiguate geocode (e.g. 'Williamson' for Taylor)")
     args = parser.parse_args()
 
     city = args.city
@@ -159,7 +201,7 @@ def main():
     # TEA district lookup
     if not args.skip_tea:
         eprint(f"  TEA lookup for {city}...")
-        district, coords, district_source = geocode_and_tea(city)
+        district, coords, district_source = geocode_and_tea(city, county_hint=args.county_hint)
         eprint(f"  District: {district} ({district_source})")
     else:
         district = "VERIFY"
@@ -195,9 +237,9 @@ def main():
             "rank": i + 1,
             "name": name,
             "tagline": tagline_hint if tagline_hint else f"REVIEW: assign tagline for {name}",
-            "price_range": price if price else "REVIEW: assign price range",
+            "price_range": price if price else None,
             "district": district or "VERIFY",
-            "commute": "REVIEW: assign commute time",
+            "commute": None,
             "walk_label": "Car-dependent",
             "priority": tagline_hint if tagline_hint else f"REVIEW: assign priority for {name}",
             "meters": dict(DEFAULT_METERS),
