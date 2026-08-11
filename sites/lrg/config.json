@@ -28,7 +28,14 @@
     "article_min_words": 1800,
     "article_max_words": 3500,
     "default_post_status": "draft",
-    "vertical": "real_estate"
+    "vertical": "real_estate",
+    "adversarial_review": {
+      "enabled": true,
+      "model": "gpt-5.6",
+      "content_types": ["article", "guide", "pillar"],
+      "budget_cap_tokens": 100000,
+      "monthly_budget_usd": 50.0
+    }
   },
 
   "authors": {

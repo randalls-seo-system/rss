@@ -21,6 +21,7 @@ refresher, batch-inject-links, style-pass, and all LRG generators.
 | 2026-08-10 | Empty/stub articles deployed to production | `body_not_empty` | all write paths |
 | 2026-08-10 | Content with no headline structure deployed | `headline_present` | all write paths |
 | 2026-08-10 | Articles with 2 H2 sections passed as complete | `min_sections` | all write paths |
+| 2026-08-10 | Wrong-but-plausible domain claims passing all gates | adversarial review stage | pipeline Stage E2 (bounded, evidence-verified) |
 
 ## Article-Pipeline Gates (spec_assertions.py)
 
