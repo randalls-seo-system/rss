@@ -142,11 +142,23 @@ def build_hero(city, title, answer_html, qstats, cta_ref):
 
 
 def build_quick_match_table(neighborhoods):
-    """Priority → neighborhood → price quick-match table."""
-    rows = "\n".join(
-        f'<tr><td>{nb["priority"]}</td><td>{nb["name"]} (#{nb["rank"]})</td><td>{nb["price_range"]}</td></tr>'
-        for nb in neighborhoods if nb.get("priority")
-    )
+    """Priority → neighborhood → price quick-match table.
+
+    Omits the price column when no neighborhood has sourced price data.
+    """
+    has_prices = _has_price_data(neighborhoods)
+    if has_prices:
+        rows = "\n".join(
+            f'<tr><td>{nb["priority"]}</td><td>{nb["name"]} (#{nb["rank"]})</td><td>{nb.get("price_range","—")}</td></tr>'
+            for nb in neighborhoods if nb.get("priority") and not str(nb.get("priority","")).startswith("REVIEW")
+        )
+        header = '<thead><tr><th>Your Priority</th><th>Start With</th><th>Price Range</th></tr></thead>'
+    else:
+        rows = "\n".join(
+            f'<tr><td>{nb["priority"]}</td><td>{nb["name"]} (#{nb["rank"]})</td></tr>'
+            for nb in neighborhoods if nb.get("priority") and not str(nb.get("priority","")).startswith("REVIEW")
+        )
+        header = '<thead><tr><th>Your Priority</th><th>Start With</th></tr></thead>'
     return f'''<section class="nh-blk">
 <div class="nh-wrap">
 <div class="nh-sec-head">
@@ -155,7 +167,7 @@ def build_quick_match_table(neighborhoods):
 </div>
 <div class="nh-tbl-wrap">
 <table>
-<thead><tr><th>Your Priority</th><th>Start With</th><th>Price Range</th></tr></thead>
+{header}
 <tbody>
 {rows}
 </tbody>
@@ -165,14 +177,31 @@ def build_quick_match_table(neighborhoods):
 </section>'''
 
 
+def _has_price_data(neighborhoods):
+    """Check if any neighborhood has a real (non-placeholder) price range."""
+    for nb in neighborhoods:
+        pr = nb.get("price_range", "")
+        if pr and not str(pr).startswith("REVIEW") and "$" in str(pr):
+            return True
+    return False
+
+
 def build_price_bars(neighborhoods):
-    """Visual price comparison bar chart, sorted by price descending."""
+    """Visual price comparison bar chart, sorted by price descending.
+
+    Returns empty string when no neighborhood has sourced price data —
+    don't render a fabricated or empty chart.
+    """
+    if not _has_price_data(neighborhoods):
+        return ""
+
     # Sort by lower price bound descending
+    priced = [nb for nb in neighborhoods if nb.get("price_range") and "$" in str(nb["price_range"])]
     def _price_sort(nb):
         m = re.search(r'\$(\d+)', nb["price_range"].replace(',', ''))
         return int(m.group(1)) if m else 0
 
-    sorted_nbs = sorted(neighborhoods, key=_price_sort, reverse=True)
+    sorted_nbs = sorted(priced, key=_price_sort, reverse=True)
     max_p = max(_price_low_bound(nb["price_range"]) for nb in sorted_nbs) if sorted_nbs else 500
 
     bars = "\n".join(
@@ -185,7 +214,7 @@ def build_price_bars(neighborhoods):
 <div class="nh-wrap">
 <div class="nh-sec-head">
 <div class="nh-sec-kicker">Price Comparison</div>
-<h2 class="nh-sec-title">How the {len(neighborhoods)} stack up on price</h2>
+<h2 class="nh-sec-title">How the {len(priced)} stack up on price</h2>
 </div>
 <div class="nh-price-bars">
 {bars}
@@ -199,12 +228,17 @@ def build_rank_block(nb, prose_html, callout_bullets, alt=False):
     """Per-neighborhood nh-rank block with scorecard, meters, prose, callout."""
     alt_cls = " alt" if alt else ""
 
-    # Scorecard
+    # Scorecard — omit rows with null/REVIEW/empty values
+    sc_candidates = [
+        (nb.get("price_range"), "Price Range"),
+        (nb.get("district"), "School District"),
+        (nb.get("commute"), "Commute (off-peak)"),
+        (nb.get("walk_label"), "Walkability"),
+    ]
     sc_items = [
-        {"val": nb["price_range"], "label": "Price Range"},
-        {"val": nb["district"], "label": "School District"},
-        {"val": nb.get("commute", "See guide"), "label": "Commute (off-peak)"},
-        {"val": nb.get("walk_label", "See guide"), "label": "Walkability"},
+        {"val": val, "label": label}
+        for val, label in sc_candidates
+        if val and not str(val).startswith("REVIEW") and val != "See guide"
     ]
     scorecard = "\n".join(
         f'<div class="nh-sc-item"><div class="sc-val">{s["val"]}</div><div class="sc-label">{s["label"]}</div></div>'
@@ -329,9 +363,9 @@ You are writing ONE short paragraph (60-80 words) for a ranked neighborhood entr
 
 Neighborhood: {nb['name']}
 Tagline: {nb['tagline']}
-Price range: {nb['price_range']}
+{f"Price range: {nb['price_range']}" if nb.get('price_range') and '$' in str(nb.get('price_range','')) else "Price range: NOT AVAILABLE — do NOT state any dollar amount"}
 School district: {nb['district']}
-Commute: {nb.get('commute', 'varies')}
+{f"Commute: {nb['commute']}" if nb.get('commute') and not str(nb.get('commute','')).startswith('REVIEW') else "Commute: NOT AVAILABLE — do NOT state any drive time in minutes"}
 
 SERP research context:
 {serp_context}
@@ -339,6 +373,8 @@ SERP research context:
 {vertical_rules}
 
 Write 60-80 words of expert, practical prose. Lead with the key differentiator. Balance pros and cons. No em dashes. No unsupported superlatives. Capitalize Veteran and Military. District-level school references only — do NOT name specific campuses.
+
+HARD BAN: Do NOT include any dollar amount ($) or drive time ("X minutes", "X min") unless the exact figure appears in the data fields above. If price or commute say NOT AVAILABLE, describe the neighborhood's value positioning or location qualitatively instead. A missing number stays missing.
 
 {brand_voice}
 
@@ -356,13 +392,14 @@ def generate_rank_callout(client, nb, metro, prose_text):
 Write exactly 4 scannable bullet points for {nb['name']} in a {metro} neighborhood roundup.
 
 Context: {prose_text[:200]}
-Price: {nb['price_range']}
+{f"Price: {nb['price_range']}" if nb.get('price_range') and '$' in str(nb.get('price_range','')) else "Price: NOT AVAILABLE"}
 District: {nb['district']}
 
 Each bullet: bold lead phrase, then 8-15 word explanation. No em dashes.
 Format: plain text, one per line, no HTML, no bullet markers.
 
 DISTRICT-LEVEL school references only. Do NOT name specific campuses — use the district name ({nb['district']}).
+HARD BAN: No dollar amounts ($) or drive times ("X min") unless provided in the data above.
 
 Return exactly 4 lines."""
 
@@ -574,22 +611,23 @@ def assemble_roundup(city, metro, title, neighborhoods, prose_parts, faqs, cta_r
     parts = []
 
     # 1. Hero
-    # Numeric extraction for hero qstat price range
-    all_lows = [_price_low_bound(nb["price_range"]) for nb in neighborhoods]
-    def _price_high_bound(pr):
-        nums = re.findall(r'\$(\d+)', pr.replace(',', ''))
-        return int(nums[-1]) if nums else 0
-    all_highs = [_price_high_bound(nb["price_range"]) for nb in neighborhoods]
-    low_k = min(all_lows) if all_lows else 0
-    high_k = max(all_highs) if all_highs else 0
-    price_low = f"${low_k}K" if low_k < 1000 else f"${low_k/1000:.1f}M"
-    price_high = f"${high_k}K+" if high_k < 1000 else f"${high_k/1000:.1f}M+"
+    # Hero qstats — only include price row when data exists
     districts = sorted(set(nb["district"] for nb in neighborhoods))
     qstats = [
-        {"val": f"{price_low}–{price_high}" if price_low != price_high else price_low, "label": "Price Range"},
         {"val": str(len(neighborhoods)), "label": "Neighborhoods Ranked"},
         {"val": f"{len(districts)} ISDs" if len(districts) > 1 else districts[0], "label": "School Districts"},
     ]
+    if _has_price_data(neighborhoods):
+        all_lows = [_price_low_bound(nb["price_range"]) for nb in neighborhoods if "$" in str(nb.get("price_range",""))]
+        def _price_high_bound(pr):
+            nums = re.findall(r'\$(\d+)', pr.replace(',', ''))
+            return int(nums[-1]) if nums else 0
+        all_highs = [_price_high_bound(nb["price_range"]) for nb in neighborhoods if "$" in str(nb.get("price_range",""))]
+        low_k = min(all_lows) if all_lows else 0
+        high_k = max(all_highs) if all_highs else 0
+        price_low = f"${low_k}K" if low_k < 1000 else f"${low_k/1000:.1f}M"
+        price_high = f"${high_k}K+" if high_k < 1000 else f"${high_k/1000:.1f}M+"
+        qstats.insert(0, {"val": f"{price_low}–{price_high}" if price_low != price_high else price_low, "label": "Price Range"})
     parts.append(build_hero(city, title, prose_parts["hero"], qstats, cta_ref))
 
     # 2. Quick-match table

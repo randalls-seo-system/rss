@@ -181,7 +181,46 @@ def validate_links(html: str, slug_cache_paths: list[str] | None = None,
     return html, [f"Link validation: {drops} 404 links dropped"]
 
 
-# ── Pass 6: Author resolution ──
+# ── Pass 6: Unsourced number flag ──
+
+_DOLLAR_PATTERN = re.compile(r'\$\d[\d,]*K?')
+_MINUTE_PATTERN = re.compile(r'\b\d{1,3}\s*(?:min(?:ute)?s?|min\.)\b', re.IGNORECASE)
+
+
+def flag_unsourced_numbers(html: str, verified_numbers: set[str] | None = None
+                           ) -> tuple[str, list[str]]:
+    """Flag dollar amounts and drive times in prose that aren't in verified data.
+
+    Does NOT modify html — returns it unchanged. The log entries are
+    warnings for human review. Pass verified_numbers as a set of strings
+    that ARE sourced (e.g. {"$350K", "$600K", "25 min"}) to suppress
+    false positives on those values.
+    """
+    verified = verified_numbers or set()
+    # Strip HTML tags for text-only scan
+    text = re.sub(r'<[^>]+>', ' ', html)
+    text = re.sub(r'\s+', ' ', text)
+
+    flags = []
+    for m in _DOLLAR_PATTERN.finditer(text):
+        val = m.group(0)
+        if val not in verified:
+            ctx_start = max(0, m.start() - 30)
+            ctx_end = min(len(text), m.end() + 30)
+            flags.append(f"UNSOURCED $: {val} in: ...{text[ctx_start:ctx_end].strip()}...")
+
+    for m in _MINUTE_PATTERN.finditer(text):
+        val = m.group(0)
+        if val not in verified:
+            ctx_start = max(0, m.start() - 30)
+            ctx_end = min(len(text), m.end() + 30)
+            flags.append(f"UNSOURCED TIME: {val} in: ...{text[ctx_start:ctx_end].strip()}...")
+
+    summary = f"Unsourced number check: {len(flags)} flags"
+    return html, [summary] + flags
+
+
+# ── Pass 7: Author resolution ──
 
 def resolve_author(site_config: dict, target_keyword: str = "",
                    override_id: int | None = None) -> tuple[int, str]:
@@ -212,15 +251,16 @@ def resolve_author(site_config: dict, target_keyword: str = "",
     return fallback_id, f"fallback: {fallback_name}"
 
 
-# ── Convenience: run all 5 HTML passes ──
+# ── Convenience: run all 6 HTML passes ──
 
 def run_all_passes(html: str, site_config: dict | None = None,
                    target_keyword: str = "",
                    slug_cache_paths: list[str] | None = None,
+                   verified_numbers: set[str] | None = None,
                    ) -> tuple[str, list[str]]:
-    """Run passes 1-5 on html. Returns (cleaned_html, log_entries).
+    """Run passes 1-6 on html. Returns (cleaned_html, log_entries).
 
-    Pass 6 (author resolution) is not included here — it doesn't modify
+    Pass 7 (author resolution) is not included here — it doesn't modify
     HTML, it resolves a metadata field. Call resolve_author() separately.
     """
     all_log = []
@@ -238,6 +278,9 @@ def run_all_passes(html: str, site_config: dict | None = None,
     all_log.extend(log)
 
     html, log = validate_links(html, slug_cache_paths)
+    all_log.extend(log)
+
+    html, log = flag_unsourced_numbers(html, verified_numbers)
     all_log.extend(log)
 
     return html, all_log
