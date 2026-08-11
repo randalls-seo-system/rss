@@ -98,5 +98,24 @@ if [ ${#UNPARAMETERIZED[@]} -gt 0 ]; then
   exit 1
 fi
 
+# Check 3: Secret/API key detection
+# Block commits containing OpenAI, SerpAPI, or other API keys
+SECRET_PATTERNS='sk-proj-[A-Za-z0-9_-]{20,}|sk-[A-Za-z0-9]{48,}|OPENAI_API_KEY\s*=\s*"?sk-|SERPAPI_KEY.*=.*[a-f0-9]{40,}'
+
+SECRET_STAGED=$(echo "$STAGED" | grep -v '\.env' | grep -v '\.env\.')
+
+if [ -n "$SECRET_STAGED" ]; then
+  SECRET_HITS=$(git diff --cached -- $SECRET_STAGED | grep -Ei "$SECRET_PATTERNS" 2>/dev/null | head -5)
+  if [ -n "$SECRET_HITS" ]; then
+    echo ""
+    echo "❌ SECRET DETECTED IN STAGED CHANGES"
+    echo ""
+    echo "API keys must stay in .env (gitignored). Remove from tracked files:"
+    echo "$SECRET_HITS"
+    echo ""
+    exit 1
+  fi
+fi
+
 # All checks passed
 exit 0

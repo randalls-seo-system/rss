@@ -233,6 +233,75 @@ def cmd_new_article(args):
         save_job(job)
         log(f"  {links_injected} links injected")
 
+    # ── Stage E2: Adversarial review (config-gated) ──
+    review_config = config.get("content", {}).get("adversarial_review", {})
+    review_enabled = review_config.get("enabled", False)
+    review_types = review_config.get("content_types", ["article"])
+    content_type = job.get("content_type", "article")
+
+    if review_enabled and content_type in review_types and not stage_done(job, "adversarial_review"):
+        log("Stage E2: ADVERSARIAL REVIEW")
+        linked_path = Path(job["artifacts"].get("article_linked", job["artifacts"]["article_html"]))
+        review_html = linked_path.read_text()
+
+        # Load claims policy
+        policy_text = ""
+        policy_path = config.get("content", {}).get("claims_policy", "")
+        if policy_path:
+            expanded = Path(policy_path).expanduser()
+            if not expanded.is_absolute():
+                expanded = REPO_ROOT / policy_path
+            if expanded.exists():
+                policy_text = expanded.read_text()[:3000]
+
+        import importlib.util as _ilu
+        _ar_spec = _ilu.spec_from_file_location("adversarial_review", REPO_ROOT / "lib" / "adversarial_review.py")
+        _ar_mod = _ilu.module_from_spec(_ar_spec)
+        _ar_spec.loader.exec_module(_ar_mod)
+
+        try:
+            review_result = _ar_mod.run_review_cycle(
+                review_html,
+                site_slug=args.site,
+                content_type=content_type,
+                target_keyword=job["topic"],
+                claims_policy_text=policy_text,
+                model=review_config.get("model", "gpt-5.6"),
+                config=config,
+                job_dir=jd,
+                post_id=job.get("post_id", 0),
+            )
+
+            log(f"  Review: {review_result.review_calls} calls, cost=${review_result.total_cost:.4f}")
+            log(f"  Fixes applied: {len([f for f in review_result.fixes_applied if f.status in ('verified', 'subtractive_no_auth')])}")
+            log(f"  Advisory: {len(review_result.advisory_additions)} items")
+
+            if review_result.revised_html and review_result.revised_html != review_html:
+                reviewed_path = jd / f"{job.get('post_id', 0)}-reviewed.html"
+                reviewed_path.write_text(review_result.revised_html)
+                job["artifacts"]["article_reviewed"] = str(reviewed_path)
+                save_job(job)
+                log(f"  Revised artifact saved: {reviewed_path.name}")
+
+            mark_stage(job, "adversarial_review", "done",
+                       review_calls=review_result.review_calls,
+                       total_cost=review_result.total_cost,
+                       confirmation_passed=review_result.confirmation_passed)
+
+            if not review_result.confirmation_passed:
+                # Unresolved criticals = PARK. "We know this claim is wrong
+                # and shipped anyway" is not an advisory situation.
+                log(f"  REVIEW PARKED — unresolved criticals: {review_result.confirmation_unresolved}")
+                log(f"  Job will NOT proceed to deploy. Review the advisory file and re-run.")
+                mark_stage(job, "adversarial_review", "parked",
+                           unresolved=review_result.confirmation_unresolved)
+                sys.exit(1)
+        except Exception as e:
+            # Infrastructure failure (OpenAI down, malformed JSON after retry)
+            # = non-blocking. Article proceeds through gates.
+            log(f"  REVIEW INFRASTRUCTURE FAILURE (non-blocking): {e}")
+            mark_stage(job, "adversarial_review", "failed", error=str(e))
+
     if args.dry_run:
         log("\nDRY RUN — stopping before deploy")
         job["completed"] = datetime.now().isoformat()
@@ -873,6 +942,13 @@ def main():
     gs.add_argument("--limit", type=int, default=0, help="Limit number of posts")
     gs.add_argument("--output", default="", help="Output file path")
 
+    # review
+    rv = sub.add_parser("review", help="Run adversarial review on a pipeline job")
+    rv.add_argument("--site", required=True, help="Site slug")
+    rv.add_argument("--job", required=True, help="Job ID")
+    rv.add_argument("--model", default="gpt-5.6", help="OpenAI model")
+    rv.add_argument("--dry-run", action="store_true", help="Show findings only")
+
     args = parser.parse_args()
     if args.command == "new-article":
         cmd_new_article(args)
@@ -927,6 +1003,16 @@ def main():
         if args.output:
             scan_args += ["--output", args.output]
         sys.exit(cli_gate_scan(scan_args))
+    elif args.command == "review":
+        GATE_REPO = MODULE_DIR.parent.parent
+        import importlib.util as _ilu
+        _rs = _ilu.spec_from_file_location("adversarial_review", GATE_REPO / "lib" / "adversarial_review.py")
+        _rm = _ilu.module_from_spec(_rs)
+        _rs.loader.exec_module(_rm)
+        review_args = ["--site", args.site, "--job", args.job, "--model", args.model]
+        if args.dry_run:
+            review_args.append("--dry-run")
+        sys.exit(_rm.cli_review(review_args))
     elif args.command == "queue":
         if not args.queue_action:
             q.print_help()
