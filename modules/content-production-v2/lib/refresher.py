@@ -32,6 +32,12 @@ _gl_mod = _ilu.module_from_spec(_gl_spec)
 _gl_spec.loader.exec_module(_gl_mod)
 run_universal_gates = _gl_mod.run_universal_gates
 
+_ar_spec = _ilu.spec_from_file_location("artifact_resolver", REPO_ROOT / "lib" / "artifact_resolver.py")
+_ar_mod = _ilu.module_from_spec(_ar_spec)
+_ar_spec.loader.exec_module(_ar_mod)
+resolve_deploy_artifact = _ar_mod.resolve_deploy_artifact
+ArtifactResolutionError = _ar_mod.ArtifactResolutionError
+
 
 def start_refresh_job(
     config: dict,
@@ -159,6 +165,10 @@ def run_postprocess(config: dict, job: dict) -> Path | None:
     if not article_path.exists():
         eprint("[refresh] No article HTML found in job dir")
         return None
+
+    # Record what we consumed so the class-migration gate can compare
+    job.setdefault("artifacts", {})["postprocess_source"] = str(article_path)
+    save_job(job)
 
     deploy_path = jdir / f"{post_id}-deploy.html"
 
@@ -292,6 +302,24 @@ def create_pending_draft(config: dict, job: dict) -> int | None:
             return None
 
     content = deploy_path.read_text(encoding="utf-8")
+
+    # Class-migration gate: deploy artifact for non-rl- sites must have converted
+    css_prefix = config.get("content", {}).get("css_prefix", ["rl-"])
+    if isinstance(css_prefix, list):
+        css_prefix = css_prefix[0] if css_prefix else "rl-"
+    source_path_str = job.get("artifacts", {}).get("postprocess_source")
+    if not source_path_str:
+        eprint("[refresh] BLOCKED: postprocess_source not recorded in job artifacts")
+        return None
+    source_path = Path(source_path_str)
+    if not source_path.exists():
+        eprint(f"[refresh] BLOCKED: postprocess source not found: {source_path}")
+        return None
+    source_html = source_path.read_text(encoding="utf-8")
+    migration_result = _gl_mod.assert_deploy_class_migration(content, source_html, css_prefix)
+    if not migration_result.passed:
+        eprint(f"[refresh] BLOCKED: {migration_result.detail}")
+        return None
 
     # Create draft via SSH (private status = viewable by logged-in users at normal URL)
     php = f"""<?php
@@ -484,6 +512,28 @@ def approve_refresh(config: dict, job: dict) -> bool:
         eprint(f"[refresh-approve] BLOCKED: {len(gate_failures)} gate failure(s) on raw article:")
         for gf in gate_failures[:5]:
             eprint(f"  - {gf}")
+        return False
+
+    # Resolve and gate-check the deploy artifact (postprocessed HTML)
+    try:
+        resolved = resolve_deploy_artifact(job, jdir)
+    except ArtifactResolutionError as e:
+        eprint(f"[refresh-approve] BLOCKED: {e}")
+        return False
+
+    deploy_html = resolved.path.read_text(encoding="utf-8")
+    site_id = config.get("identity", {}).get("site_id", "")
+    deploy_gate_report = run_universal_gates(
+        deploy_html,
+        site_slug=site_id,
+        title=refresh.get("original_title", ""),
+        content_type="article",
+        config=config,
+    )
+    if not deploy_gate_report.passed:
+        eprint(f"[refresh-approve] BLOCKED: {len(deploy_gate_report.failures)} gate failure(s) on deploy artifact:")
+        for fail in deploy_gate_report.failures:
+            eprint(f"  [{fail.name}] {fail.detail}")
         return False
 
     # Fetch draft to get its content for the swap

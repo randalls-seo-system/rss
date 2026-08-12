@@ -519,6 +519,8 @@ NAME DENSITY (mandatory): Use the full neighborhood name "{nb}" at most 1-2 time
 
 LOCAL SPECIFICITY: Use specific proper nouns over generic placeholders. "H-E-B Plus at Evans Rd" not "grocery stores." "Lopez Middle School" not "top schools." BUT only use specifics the SERP RESEARCH CONTEXT above actually provided. Do NOT fabricate business names, school feeders, street names, or landmarks. If the research did not surface a real named anchor, use a general description instead. Specific-but-wrong is worse than generic.
 
+NUMBER SOURCING: Use specific numbers ONLY when they appear in the SERP RESEARCH CONTEXT, AUTHORITATIVE DATA, or provided data JSON above. When no sourced number is available, use qualitative language. A number that does not trace to an item in the injected data is an unsourced assertion and will be rejected.
+
 VOLATILE vs FIXED NUMBERS: Market prices, DOM, school rating scores, inventory counts, appreciation percentages are VOLATILE — use durable ranges ("homes generally range from the $400s to $600s") not hard-coded figures ("$485,000 median"). Tax rates, HOA fees, loan limits, statutory references are FIXED — keep exact.
 
 COMMUTE REALISM: Use real intersections and bottlenecks from the SERP data. Do NOT invent a "newly completed flyover" or specific bottleneck not in the source data.

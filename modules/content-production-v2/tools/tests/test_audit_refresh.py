@@ -596,5 +596,62 @@ class TestUpstreamFixes(unittest.TestCase):
         self.assertTrue(result.passed, "8 H2s should pass")
 
 
+# ─── Deploy Artifact Gate on approve_refresh ─────────────────────────────
+
+class TestApproveRefreshDeployArtifactGate(unittest.TestCase):
+    """approve_refresh must refuse when deploy artifact is present but
+    job.post_id is null — the incident shape from job 20260805-201409-d9dd5002.
+    The readiness check uses refresh.original_post_id (passes); the resolver
+    uses job.post_id (catches null). Mutation test (c)."""
+
+    @patch("lib.spec_assertions.ALL_HARD_ASSERTIONS", [])
+    def test_refuses_null_post_id_despite_valid_original(self):
+        import io, shutil
+        from lib.refresher import approve_refresh, JOBS_DIR
+
+        job_id = "test-approve-null-postid"
+        jdir = JOBS_DIR / job_id
+        jdir.mkdir(parents=True, exist_ok=True)
+
+        try:
+            raw_html = '<div class="rl-page"><h1>Title</h1><p>Content.</p></div>'
+            deploy_html = '<div class="tlnPage"><h1>Title</h1><p>Content.</p></div>'
+            (jdir / "999-article.html").write_text(raw_html)
+            (jdir / "999-deploy.html").write_text(deploy_html)
+
+            job = {
+                "id": job_id,
+                "post_id": None,  # null — the incident shape
+                "site": "tln",
+                "stages": {
+                    "fetch_original": {"status": "done"},
+                    "generate": {"status": "done"},
+                    "gates": {
+                        "status": "done",
+                        "validation": {"ran": True, "hard_passed": 30, "hard_total": 30},
+                        "d2": {"ran": True},
+                    },
+                    "link_pass": {"status": "done"},
+                    "postprocess": {"status": "done"},
+                    "create_pending_draft": {"status": "done"},
+                },
+                "refresh": {
+                    "original_post_id": 999,
+                    "pending_draft_id": 5000,
+                    "original_title": "Test Article",
+                },
+            }
+            (jdir / "job.json").write_text(json.dumps(job))
+
+            captured = io.StringIO()
+            with patch("sys.stderr", captured):
+                result = approve_refresh(SITE_CONFIG, job)
+            self.assertFalse(result)
+            # The refusal must be from the resolver, not from a downstream SSH failure
+            self.assertIn("post_id is null", captured.getvalue())
+        finally:
+            shutil.rmtree(jdir, ignore_errors=True)
+
+
 if __name__ == "__main__":
     unittest.main()

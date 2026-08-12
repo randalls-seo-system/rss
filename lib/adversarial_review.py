@@ -719,26 +719,16 @@ def cli_review(args: list[str] | None = None) -> int:
     job = load_job(parsed.job)
     jdir = get_job_dir(job)
 
-    # Find deploy artifact
-    html_path = None
-    for candidate in [
-        jdir / f"{job.get('post_id', 0)}-deploy.html",
-        jdir / f"{job.get('post_id', 0)}-article.html",
-    ]:
-        if candidate.exists():
-            html_path = candidate
-            break
-
-    if not html_path:
-        # Try any HTML file
-        htmls = list(jdir.glob("*.html"))
-        if htmls:
-            html_path = htmls[0]
-
-    if not html_path:
-        print(f"ERROR: No HTML artifact found in {jdir}", file=sys.stderr)
+    # Resolve deploy artifact — no candidate list, no glob, no fallback
+    from lib.artifact_resolver import resolve_deploy_artifact, ArtifactResolutionError
+    try:
+        resolved = resolve_deploy_artifact(job, jdir)
+    except ArtifactResolutionError as e:
+        print(f"ERROR: {e}", file=sys.stderr)
         return 1
 
+    html_path = resolved.path
+    post_id = resolved.post_id
     html = html_path.read_text()
     print(f"Reviewing: {html_path.name} ({len(html)} bytes)")
 
@@ -791,7 +781,7 @@ def cli_review(args: list[str] | None = None) -> int:
         model=parsed.model,
         config=config,
         job_dir=jdir,
-        post_id=job.get("post_id", 0),
+        post_id=post_id,
     )
 
     print(f"\nReview cycle complete:")
@@ -807,7 +797,7 @@ def cli_review(args: list[str] | None = None) -> int:
 
     # Write revised artifact if fixes were applied
     if result.revised_html and result.revised_html != html:
-        revised_path = jdir / f"{job.get('post_id', 0)}-reviewed.html"
+        revised_path = jdir / f"{post_id}-reviewed.html"
         revised_path.write_text(result.revised_html)
         print(f"  Revised artifact: {revised_path.name}")
 
