@@ -472,7 +472,8 @@ School district: All neighborhoods in this guide are served by {district_str}.
 
 {vertical_rules}
 
-Each FAQ: a question homebuyers actually ask about {city} neighborhoods, and a 2-3 sentence answer. DISTRICT-LEVEL school references only. No em dashes. No "safest neighborhood" claims.
+Each FAQ: a question homebuyers actually ask about {city} neighborhoods, and a 2-3 sentence answer. DISTRICT-LEVEL school references only. No em dashes.
+EXCLUDED TOPICS for FAQs: crime, safety, safest, crime rate. These require sourced data we don't have.
 Use specific numbers ONLY when they appear in the data above. When no sourced number is available, use qualitative language.
 
 Return as JSON array: [{{"q": "...", "a": "..."}}, ...]"""
