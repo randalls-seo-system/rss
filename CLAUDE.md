@@ -108,6 +108,24 @@ operational claims: prices, hours, delivery zones, menu items, policies.
 **To create for a new site:** Copy the GFP template, fill confirmed
 facts, mark unknowns as VERIFY, get team ratification before content gen.
 
+## Prompt engineering rules (STANDING — all LLM prompt work)
+
+**POSITIVE CONSTRAINTS OVER NEGATIVE BANS.** "Use specific numbers ONLY
+when they appear in the evidence store or data JSON" cut fabricated
+numbers from 15 to 2 on the same content where "do NOT state dollar
+amounts" plus removing the field entirely only got from 15 to 9.
+Negative instructions about a topic appear to introduce the topic.
+Prefer positive constraints ("use X only from Y") over negative bans
+("do not use X") in all prompt work.
+
+**EVERY PROMPT RULE NEEDS A MECHANICAL BACKSTOP.** Prompt-level rules
+fail some fraction of the time. Tested failure rates (2026-08-12):
+em dash ban held ~95%, campus-name ban failed ~60%, dollar-amount ban
+failed 100%. A prompt rule without a post-gen mechanical check is a
+suggestion, not a gate. When a rule matters, back it with a check in
+`lib/post_assembly.py` or the content quality gate that blocks the
+write on violation.
+
 ## Article generation rules (do not violate)
 
 - Article HTML must NOT include inline TOC. RSS TOC Manager renders TOC
