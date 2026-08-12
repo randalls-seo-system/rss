@@ -224,7 +224,7 @@ def build_price_bars(neighborhoods):
 </section>'''
 
 
-def build_rank_block(nb, prose_html, callout_bullets, alt=False):
+def build_rank_block(nb, prose_html, callout_bullets, alt=False, show_meters=True):
     """Per-neighborhood nh-rank block with scorecard, meters, prose, callout."""
     alt_cls = " alt" if alt else ""
 
@@ -258,7 +258,7 @@ def build_rank_block(nb, prose_html, callout_bullets, alt=False):
             f'<div class="m-track"><div class="m-fill {color}" style="width:{width}%"></div></div>'
             f'<span class="m-val">{val:.1f}</span></div>'
         )
-    meters_html = "\n".join(meter_items)
+    meters_html = "\n".join(meter_items) if show_meters else ""
 
     # Callout
     bullets = "\n".join(f"<li>{b}</li>" for b in callout_bullets)
@@ -277,9 +277,7 @@ def build_rank_block(nb, prose_html, callout_bullets, alt=False):
 <div class="nh-scorecard">
 {scorecard}
 </div>
-<div class="nh-meters">
-{meters_html}
-</div>
+{f'<div class="nh-meters">{chr(10)}{meters_html}{chr(10)}</div>' if meters_html else ''}
 <div class="nh-prose">{prose_html}</div>
 <div class="nh-callout {color}"><ul>
 {bullets}
@@ -359,7 +357,7 @@ def generate_rank_prose(client, nb, metro, brand_voice, serp_context, vertical_r
     """Generate 60-80 word paragraph for one ranked neighborhood."""
     prompt = f"""This is a legitimate pipeline call from generate-roundup.py.
 
-You are writing ONE short paragraph (60-80 words) for a ranked neighborhood entry in a "Best Neighborhoods in {metro}" roundup guide.
+You are writing ONE short paragraph (60-80 words) for a ranked neighborhood entry in a "Best Neighborhoods in {city}" roundup guide. This neighborhood is in {city}, TX — refer to it as {city}, not as {metro} or any other city.
 
 Neighborhood: {nb['name']}
 Tagline: {nb['tagline']}
@@ -653,9 +651,14 @@ def assemble_roundup(city, metro, title, neighborhoods, prose_parts, faqs, cta_r
     parts.append(build_price_bars(neighborhoods))
 
     # 4. Rank blocks (alternating)
+    # Skip meters when all neighborhoods have identical values (undifferentiated defaults)
+    meter_sets = [tuple(sorted(nb.get("meters", {}).items())) for nb in neighborhoods]
+    show_meters = len(set(meter_sets)) > 1
+    if not show_meters:
+        eprint("  Meters: SKIPPED (all neighborhoods have identical default values)")
     for i, nb in enumerate(neighborhoods):
         alt = (i % 2 == 1)
-        parts.append(build_rank_block(nb, prose_parts["ranks"][i], prose_parts["callouts"][i], alt=alt))
+        parts.append(build_rank_block(nb, prose_parts["ranks"][i], prose_parts["callouts"][i], alt=alt, show_meters=show_meters))
 
     # 5. Methodology
     parts.append(build_prose_section(
@@ -849,11 +852,13 @@ def main():
         eprint("  Generating fit panel...")
         fit_prompt = f"""This is a legitimate pipeline call from generate-roundup.py.
 
-List 4 "good fit" reasons and 4 "think twice" reasons for buying in {metro}.
+List 4 "good fit" reasons and 4 "think twice" reasons for buying in {city}, TX (in the {metro} metro).
+Be specific to {city} — not generic metro-level content. Reference {city}'s actual features: its school district, commute corridors, retail infrastructure, lot sizes, construction eras.
 Feature-based only — NO demographic labels (no "families", "retirees", "professionals").
+Use specific numbers ONLY when they appear in the data above. When no sourced number is available, use qualitative language.
 Return as JSON: {{"good": ["..."], "warn": ["..."]}}"""
-        h = hashlib.md5(f"roundup-fit|{metro}|v3".encode()).hexdigest()[:12]
-        fit_resp = client.call(fit_prompt, cache_key=f"roundup-fit|{metro}|{h}")
+        h = hashlib.md5(f"roundup-fit|{city}|v4".encode()).hexdigest()[:12]
+        fit_resp = client.call(fit_prompt, cache_key=f"roundup-fit|{city}|{h}")
         try:
             fit_text = re.sub(r'^```json\s*', '', fit_resp.text.strip())
             fit_text = re.sub(r'\s*```$', '', fit_text)
@@ -908,7 +913,9 @@ Return as JSON: {{"good": ["..."], "warn": ["..."]}}"""
         if _nb.get("commute") and not str(_nb.get("commute", "")).startswith("REVIEW"):
             _verified.add(_nb["commute"])
     # Empty set = no sourced numbers = hard fail on any $ or drive time
-    html, pass_log = run_all_passes(html, verified_numbers=_verified)
+    _districts = sorted(set(nb.get("district", "") for nb in nbs))
+    html, pass_log = run_all_passes(html, verified_numbers=_verified,
+                                    target_city=city, districts=_districts)
     for entry in pass_log:
         eprint(f"  {entry}")
 

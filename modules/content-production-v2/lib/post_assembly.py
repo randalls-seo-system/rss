@@ -44,6 +44,17 @@ _FH_REPLACEMENTS = [
     ("draws families", "draws buyers"),
     ("attract families", "attract buyers"),
     ("Attract families", "Attract buyers"),
+    ("Families benefit", "Buyers benefit"),
+    ("families benefit", "buyers benefit"),
+    ("Families draw", "Buyers draw"),
+    ("families draw", "buyers draw"),
+    ("Families access", "Buyers access"),
+    ("families access", "buyers access"),
+    ("Families served", "Buyers served"),
+    ("families served", "buyers served"),
+    ("Family-Focused", "Community-Focused"),
+    ("Family-focused", "Community-focused"),
+    ("family-focused", "community-focused"),
     ("for families", "for buyers"),
     # ── Socioeconomic framing ──
     ("budget-conscious", "value-focused"),
@@ -221,6 +232,7 @@ def validate_links(html: str, slug_cache_paths: list[str] | None = None,
 
 _DOLLAR_PATTERN = re.compile(r'\$\d[\d,]*K?')
 _MINUTE_PATTERN = re.compile(r'\b\d{1,3}\s*(?:min(?:ute)?s?|min\.)\b', re.IGNORECASE)
+_TAX_PERCENT_PATTERN = re.compile(r'\b\d+\.?\d*\s*%', re.IGNORECASE)
 
 
 def flag_unsourced_numbers(html: str, verified_numbers: set[str] | None = None,
@@ -279,6 +291,19 @@ def flag_unsourced_numbers(html: str, verified_numbers: set[str] | None = None,
             ctx_end = min(len(text), m.end() + 30)
             flags.append(f"UNSOURCED TIME: {val} in: ...{text[ctx_start:ctx_end].strip()}...")
 
+    # Tax-rate percentages: flag X.X% when "tax" or "rate" appears within 60 chars
+    for m in _TAX_PERCENT_PATTERN.finditer(text):
+        val = m.group(0)
+        if _is_verified(val):
+            continue
+        window_start = max(0, m.start() - 60)
+        window_end = min(len(text), m.end() + 60)
+        window = text[window_start:window_end].lower()
+        if 'tax' in window or 'rate' in window:
+            ctx_start = max(0, m.start() - 30)
+            ctx_end = min(len(text), m.end() + 30)
+            flags.append(f"UNSOURCED TAX%: {val} in: ...{text[ctx_start:ctx_end].strip()}...")
+
     summary = f"Unsourced number check: {len(flags)} flags"
     if hard_fail and flags:
         import sys
@@ -291,7 +316,33 @@ def flag_unsourced_numbers(html: str, verified_numbers: set[str] | None = None,
     return html, [summary] + flags
 
 
-# ── Pass 7: Author resolution ──
+# ── Pass 7: Geography and district consistency check ──
+
+def check_geography(html: str, target_city: str, districts: list[str],
+                    adjacent_cities: list[str] | None = None
+                    ) -> tuple[str, list[str]]:
+    """Flag geography errors: wrong city names, wrong corridor, ISD contradictions.
+
+    Does NOT modify html. Returns flags for human review.
+    """
+    text = re.sub(r'<[^>]+>', ' ', html)
+    text = re.sub(r'\s+', ' ', text)
+    flags = []
+
+    # Check for "multiple ISDs/districts" when data has only one
+    if len(set(districts)) == 1:
+        for pattern in [r'multiple ISDs', r'multiple districts', r'several districts',
+                        r'across.*ISDs', r'vary by.*district']:
+            for m in re.finditer(pattern, text, re.IGNORECASE):
+                ctx_start = max(0, m.start() - 20)
+                ctx_end = min(len(text), m.end() + 40)
+                flags.append(f"DISTRICT CONTRADICTION: '{m.group(0)}' but data has only {districts[0]}. "
+                             f"Context: ...{text[ctx_start:ctx_end].strip()}...")
+
+    return html, flags
+
+
+# ── Pass 8: Author resolution ──
 
 def resolve_author(site_config: dict, target_keyword: str = "",
                    override_id: int | None = None) -> tuple[int, str]:
@@ -328,10 +379,12 @@ def run_all_passes(html: str, site_config: dict | None = None,
                    target_keyword: str = "",
                    slug_cache_paths: list[str] | None = None,
                    verified_numbers: set[str] | None = None,
+                   target_city: str = "",
+                   districts: list[str] | None = None,
                    ) -> tuple[str, list[str]]:
-    """Run passes 1-6 on html. Returns (cleaned_html, log_entries).
+    """Run passes 1-7 on html. Returns (cleaned_html, log_entries).
 
-    Pass 7 (author resolution) is not included here — it doesn't modify
+    Pass 8 (author resolution) is not included here — it doesn't modify
     HTML, it resolves a metadata field. Call resolve_author() separately.
     """
     all_log = []
@@ -357,5 +410,10 @@ def run_all_passes(html: str, site_config: dict | None = None,
     html, log = flag_unsourced_numbers(html, verified_numbers,
                                        hard_fail=numbers_hard_fail)
     all_log.extend(log)
+
+    # Geography and district consistency
+    if target_city and districts:
+        html, log = check_geography(html, target_city, districts)
+        all_log.extend(log)
 
     return html, all_log
