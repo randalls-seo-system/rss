@@ -61,6 +61,7 @@
 **Links to:** 9765 (pillar), 9774 (short sale vs foreclosure)
 **Links from:** 9765, 9774, 8891 (capital gains tax)
 **Cannibalization check:** 9765 pillar mentions walking away as one option in a list. This article goes deep on consequences (credit, deficiency under Property Code 51.003, tax). Different intent -- "what happens if" vs "what are my options." No conflict.
+**Compliance note:** High UPL exposure. Every section must use educational framing with attorney referral. Full disclaimer blocks (Educational Notice + Legal & Tax Disclaimer) required. Mayra sign-off before publish. This is high exposure, not a fast build, even though it ranks #1 in the queue.
 
 #### 2. Can You Sell a House If You Are Behind on Payments in Texas
 
@@ -69,7 +70,7 @@
 **SERP difficulty:** LOW-MEDIUM. AIO fires on "sell behind on payments." Realtor.com and HomeLight rank but are national, not TX-specific. Reddit is #3. [SERP OBSERVATION]
 **What currently ranks:** Realtor.com (national), matinrealestate.com (non-TX), Reddit.
 **Scope:** TX-authority
-**Author:** Salena Arledge (seller lane) | **Reviewer:** Mayra Torres (YMYL)
+**Author:** Levi Rodgers | **Reviewer:** Mayra Torres (YMYL)
 **Links to:** 9765 (pillar), 9774 (short sale vs foreclosure), this article's SA/Austin local variants
 **Links from:** 9765, 9773
 **Cannibalization check:** 9765 pillar covers "can't afford to sell" broadly. This article targets the specific "behind on payments" audience who may still have equity but are delinquent. Different trigger event. 9765 links to this as a spoke.
@@ -93,7 +94,7 @@
 **SERP difficulty:** LOW. Reddit #1, Texas Standard (news) #2, WSJ #3 (national). Zero local Austin broker content. [SERP OBSERVATION]
 **What currently ranks:** Reddit, news outlets, national publishers. No local voice.
 **Scope:** Austin-local
-**Author:** Karishma Rupani (Austin lane) | **Reviewer:** Mayra Torres (YMYL -- equity/value data)
+**Author:** Levi Rodgers | **Reviewer:** Mayra Torres (YMYL -- equity/value data)
 **Links to:** 9765 (pillar), Article #3 (negative equity), 2226 (buy foreclosure Austin, buyer cross-link)
 **Links from:** 9765, 7412 (Austin housing market)
 **Cannibalization check:** No existing Austin-specific distressed page. 9765 is TX-statewide. Clean.
@@ -154,6 +155,7 @@
 **Cannibalization check:** 8891 (capital gains tax) covers the standard home sale tax scenario. This article covers forgiven-debt tax treatment: MFDRA expiration, surviving insolvency/bankruptcy exclusions, 1099-C process. Different tax topic.
 **Tax language hard rule:** "may create taxable income; other exclusions may apply." Never "is now taxable."
 **Compliance note:** Highest YMYL risk in the cluster. Must source IRS.gov Topic 431 directly. CPA referral in every section.
+**MFDRA status VERIFIED:** The qualified principal residence exclusion applies to debt "discharged before January 1, 2026, or discharged subject to an arrangement that is entered into and evidenced in writing before January 1, 2026." As of August 2026, the exclusion has expired for new discharges. The insolvency exclusion and Title 11 bankruptcy exclusion remain permanent with no date limitation. [VERIFIED -- IRS.gov Topic 431, page last reviewed 2026-05-14, fetched 2026-08-12.] The "Post-MFDRA 2026" title and premise are correct.
 
 #### 9. Short Sale Process in Texas: Step by Step
 
@@ -162,7 +164,7 @@
 **SERP difficulty:** MEDIUM. texasnationaltitle.com, NAR, Reddit rank. [SERP OBSERVATION]
 **What currently ranks:** texasnationaltitle (TX title company), NAR (national), Reddit. No TX broker content.
 **Scope:** TX-authority
-**Author:** Salena Arledge (seller lane) | **Reviewer:** Mayra Torres
+**Author:** Levi Rodgers | **Reviewer:** Mayra Torres
 **Links to:** 9765, 9774, Article #7 (deficiency), Article #8 (tax)
 **Links from:** 9765, 9774
 **Cannibalization check with 1516 (UNRESOLVED):** Post 1516 ("Understanding Short Sales") covers the short sale process from both buyer and seller perspective. This article would cover the seller process in depth, TX-specific. If 1516 is redirected to 9765, this article fills the process-explainer gap cleanly. If 1516 stays, there is moderate overlap on the "how it works" sections. **Decision on 1516 must precede this article's build.**
@@ -202,7 +204,7 @@
 
 ## TOP 5 PICKS (in build order)
 
-1. **#1 Walk Away from Mortgage TX** -- Reddit #1, zero professional TX content, low difficulty, direct spoke from pillar. Fastest win.
+1. **#1 Walk Away from Mortgage TX** -- Reddit #1, zero professional TX content, low difficulty, direct spoke from pillar. High UPL exposure requires full disclaimer blocks, attorney referral per section, and Mayra sign-off. Not a fast build despite low SERP difficulty.
 2. **#3 Negative Equity TX** -- Reddit #1, UK site #3 (!), massive gap, the core problem this vertical exists to address. Must-have.
 3. **#2 Behind on Payments TX** -- AIO fires, Realtor.com is beatable with TX specifics. High upstream capture.
 4. **#4 Austin Underwater 2026** -- Timely, data-driven, local differentiation. Leverages existing Austin market content.
