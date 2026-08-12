@@ -156,15 +156,27 @@ via the city roundup pipeline.
 
 ## Still open
 
-1. **15 roundup conversions** (11 Tier 1 + 4 Tier 2): need builder →
-   human review → generation → deploy.
+1. **10 roundup conversions ready** (editorial review in progress):
+   Cedar Park (7), Harker Heights (5), Taylor (6), Canyon Lake (5),
+   Lakeway (6), Live Oak (6), Manor (6), Helotes (5), Leon Valley (6),
+   Bastrop (6). Total: 59 neighborhoods. Builder output at
+   `~/lrg-rewrite/roundup-data/`. Editorial review file at
+   `~/lrg-rewrite/roundup-final-review.txt` (38 fields to edit).
+   Grey Forest Estates dropped from Helotes (separate incorporated city).
+   13 thin-SERP entries dropped across all cities.
 
-2. **Post 1733 slug typo:** "best-neighborhoods-in-borne-tx" should be
+2. **5 deferred (thin SERP):** Copperas Cove (1 substantive), Pleasanton
+   (2), Spring Branch (3), Nolanville (3), Windcrest (2). SERP surfaced
+   fewer than 5 neighborhoods with real descriptive evidence. They need
+   better research (targeted SERP queries per subdivision, or local
+   knowledge), not a lower floor.
+
+3. **7 deferred (too small):** Fischer, Bergheim, Garden Ridge, Selma,
+   Poteet, Castroville, Salado.
+
+4. **Post 1733 slug typo:** "best-neighborhoods-in-borne-tx" should be
    "best-neighborhoods-in-boerne-tx". Requires 301 redirect. Decision
    from Randall.
-
-3. **7 deferred cities:** Fischer, Bergheim, Garden Ridge, Selma,
-   Poteet, Castroville, Salado — too small for 5-neighborhood roundups.
 
 4. **Killeen roundup (2797):** Protected flagship, excluded from all
    batches.
