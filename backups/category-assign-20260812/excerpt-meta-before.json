@@ -1,0 +1,26 @@
+BACKUP 9765: excerpt=0 bytes, metadesc=0 bytes
+BACKUP 9773: excerpt=0 bytes, metadesc=0 bytes
+BACKUP 9774: excerpt=0 bytes, metadesc=0 bytes
+[
+    {
+        "post_id": 9765,
+        "post_excerpt": null,
+        "post_excerpt_length": 0,
+        "_yoast_wpseo_metadesc": "",
+        "_yoast_wpseo_metadesc_length": 0
+    },
+    {
+        "post_id": 9773,
+        "post_excerpt": null,
+        "post_excerpt_length": 0,
+        "_yoast_wpseo_metadesc": "",
+        "_yoast_wpseo_metadesc_length": 0
+    },
+    {
+        "post_id": 9774,
+        "post_excerpt": null,
+        "post_excerpt_length": 0,
+        "_yoast_wpseo_metadesc": "",
+        "_yoast_wpseo_metadesc_length": 0
+    }
+]
