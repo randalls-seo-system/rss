@@ -252,3 +252,16 @@ via the city roundup pipeline.
    (Buda, Manor), fixed broken href="None" CTAs (Salado). Backups at
    `/nas/content/live/lrgrealtyblog/backups/guide-remediation-20260810/`.
    Cache purged, curl-verified on 9554 + 9607.
+
+10. **Bastrop (4929): SKIP — refresh in place, don't regenerate.**
+    Same class as Stone Oak. Live page is 40K with 10 neighborhoods,
+    5 tables, and a flood/wildfire hazard section covering the 2011
+    Complex Fire and Colorado River floodplain — the most locally
+    valuable content on the page. The roundup generator produces 26K
+    with 6 neighborhoods and no hazard context. Conversion is a
+    downgrade. Refresh the existing page in place.
+
+11. **Cedar Park: consolidation pending.** Two competing posts:
+    1734 (slug "cedar-creek-tx", wrong city name) and 5133 (slug
+    "cedar-park-neighborhood-guide", correct). GSC data pull needed
+    to determine which has equity. Deploy blocked until resolved.
