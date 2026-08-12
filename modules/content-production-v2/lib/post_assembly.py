@@ -416,4 +416,13 @@ def run_all_passes(html: str, site_config: dict | None = None,
         html, log = check_geography(html, target_city, districts)
         all_log.extend(log)
 
+    # HARD FAIL: unfilled placeholders must never ship
+    review_hits = re.findall(r'REVIEW:[^<"]{0,80}', html)
+    if review_hits:
+        import sys
+        print(f"\nHARD FAIL: {len(review_hits)} unfilled REVIEW: placeholders in output.", file=sys.stderr)
+        for hit in review_hits:
+            print(f"  {hit}", file=sys.stderr)
+        sys.exit(1)
+
     return html, all_log

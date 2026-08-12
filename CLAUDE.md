@@ -108,6 +108,22 @@ operational claims: prices, hours, delivery zones, menu items, policies.
 **To create for a new site:** Copy the GFP template, fill confirmed
 facts, mark unknowns as VERIFY, get team ratification before content gen.
 
+## Title determines content type (STANDING — conversion batches)
+
+**A post titled "Best Neighborhoods in X" is roundup intent** regardless
+of its current markup. Converting its flat template to nh-rank format is
+correct.
+
+**A post titled "X: Neighborhood Guide" is single-guide intent** and must
+never be converted to a roundup. Single guides carry local knowledge
+(named builders, tax math, soil conditions, feeder chains, employer
+proximity, flood/fire hazard context) that the roundup generator cannot
+produce. Overwriting them is a downgrade.
+
+**Classify by title before any conversion batch.** If a batch mixes both
+types, split it. Creating a NEW roundup post alongside an existing guide
+is acceptable; overwriting the guide is not.
+
 ## Prompt engineering rules (STANDING — all LLM prompt work)
 
 **POSITIVE CONSTRAINTS OVER NEGATIVE BANS.** "Use specific numbers ONLY
