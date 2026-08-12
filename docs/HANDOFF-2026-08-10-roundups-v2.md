@@ -174,7 +174,14 @@ via the city roundup pipeline.
 3. **7 deferred (too small):** Fischer, Bergheim, Garden Ridge, Selma,
    Poteet, Castroville, Salado.
 
-4. **Post 1733 slug typo:** "best-neighborhoods-in-borne-tx" should be
+4. **Unsourced-number gate is HARD by design.** Flags require human
+   review, not automatic rejection. Rush-hour qualifiers on a sourced
+   off-peak value ("can push past 50 minutes at rush hour" where 35-40
+   off-peak is sourced) are correct content — approve them. Bare
+   unsourced figures are fabrication — reject. Roughly 1 flag per city
+   expected; a spike means something changed.
+
+5. **Post 1733 slug typo:** "best-neighborhoods-in-borne-tx" should be
    "best-neighborhoods-in-boerne-tx". Requires 301 redirect. Decision
    from Randall.
 
