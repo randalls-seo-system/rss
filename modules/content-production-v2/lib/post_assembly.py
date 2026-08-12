@@ -332,7 +332,7 @@ def check_geography(html: str, target_city: str, districts: list[str],
     # Check for "multiple ISDs/districts" when data has only one
     if len(set(districts)) == 1:
         for pattern in [r'multiple ISDs', r'multiple districts', r'several districts',
-                        r'across.*ISDs', r'vary by.*district']:
+                        r'across\s+(?:multiple|several|different)\s+ISDs']:
             for m in re.finditer(pattern, text, re.IGNORECASE):
                 ctx_start = max(0, m.start() - 20)
                 ctx_end = min(len(text), m.end() + 40)
