@@ -231,7 +231,14 @@ via the city roundup pipeline.
    does NOT have the "numbers signal expertise" directive. TLN content
    owner should audit for fabricated rates, limits, and timelines.
 
-8. **9-page remediation completed (2026-08-10).** Posts 9554, 9555,
+8. **Price data pull decision pending.** Positive sourcing constraint
+   eliminated all fabricated dollar amounts (15 → 0). Scorecard renders
+   2-row (district + walkability) and price bars are off. Pulling real
+   prices for all 10 cities would restore 4-row scorecards and the
+   price comparison chart. Decision: whether the 4-row scorecard and
+   price bars justify the data-pull effort (~10 min/city from listings).
+
+9. **9-page remediation completed (2026-08-10).** Posts 9554, 9555,
    9556, 9562, 9563, 9605, 9607, 9609, 9611: replaced fabricated
    Census/FEMA sources with honest methodology disclosure, fixed 32
    FH phrases (semantic, not regex), fixed doubled school names
