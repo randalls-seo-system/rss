@@ -214,6 +214,8 @@ Do NOT produce any of the following:
 - Markdown code fences in the output
 - Any links (`<a>` tags) — internal or external
 
+Use specific numbers ONLY when they appear in the evidence store or the provided data above. When no sourced number is available, use qualitative language.
+
 Return ONLY the HTML. No markdown fences. No preamble.
 
 <!-- Implements docs/article-spec.md Section 9 -->

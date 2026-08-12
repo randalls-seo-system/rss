@@ -218,7 +218,20 @@ via the city roundup pipeline.
    flagged" figure from the July batch therefore understates the
    problem — those 30 need the same full semantic read.
 
-7. **9-page remediation completed (2026-08-10).** Posts 9554, 9555,
+7. **Unsourced-number fabrication is cross-site.** The LLM invents
+   dollar amounts and drive times from training data even when the prompt
+   contains no price/commute field. Sources of pressure: brand voice
+   "Numbers when possible / numbers signal expertise" (LRG), vertical
+   rules examples with $XXX and "X min" (all sites), and SERP context
+   with competitor prices. Addressed on LRG via conditional prompt strip
+   + positive constraint ("Use specific numbers ONLY when they appear in
+   the evidence store") + hard-fail gate. **TLN has the same class of
+   problem from a different source:** adversarial review caught
+   unsourced numbers on a TLN FHA article using va-lending.md, which
+   does NOT have the "numbers signal expertise" directive. TLN content
+   owner should audit for fabricated rates, limits, and timelines.
+
+8. **9-page remediation completed (2026-08-10).** Posts 9554, 9555,
    9556, 9562, 9563, 9605, 9607, 9609, 9611: replaced fabricated
    Census/FEMA sources with honest methodology disclosure, fixed 32
    FH phrases (semantic, not regex), fixed doubled school names

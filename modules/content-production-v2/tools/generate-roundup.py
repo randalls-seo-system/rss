@@ -372,6 +372,8 @@ SERP research context:
 
 Write 60-80 words of expert, practical prose. Lead with the key differentiator. Balance pros and cons. No em dashes. No unsupported superlatives. Capitalize Veteran and Military. District-level school references only — do NOT name specific campuses.
 
+Use specific numbers ONLY when they appear in the data fields above. When no sourced number is available, use qualitative language.
+
 {brand_voice}
 
 Return ONLY the HTML paragraph using <p> tags. No headings, no wrappers."""
@@ -394,6 +396,7 @@ Each bullet: bold lead phrase, then 8-15 word explanation. No em dashes.
 Format: plain text, one per line, no HTML, no bullet markers.
 
 DISTRICT-LEVEL school references only. Do NOT name specific campuses — use the district name ({nb['district']}).
+Use specific numbers ONLY when they appear in the data above. When no sourced number is available, use qualitative language.
 
 Return exactly 4 lines."""
 
@@ -417,6 +420,8 @@ Neighborhoods covered: {nb_list}
 {vertical_rules}
 
 Write 60-120 words of practical prose. No em dashes. No unsupported superlatives. Capitalize Veteran and Military. DISTRICT-LEVEL school references only — no specific campus names.
+
+Use specific numbers ONLY when they appear in the context above. When no sourced number is available, use qualitative language.
 
 {brand_voice}
 
@@ -446,6 +451,7 @@ Top neighborhoods: {nb_summary}
 Total ranked: {len(neighborhoods)}
 
 Lead with the count. Mention 3-4 specific neighborhoods by name with their key differentiator.{' Include the overall price range spread.' if has_prices else ''} No em dashes.
+Use specific numbers ONLY when they appear in the data above. When no sourced number is available, use qualitative language.
 
 Return ONLY the paragraph text, no HTML tags."""
 
@@ -466,6 +472,7 @@ Neighborhoods covered: {nb_list}
 {vertical_rules}
 
 Each FAQ: a question homebuyers actually ask about {metro} neighborhoods, and a 2-3 sentence answer. DISTRICT-LEVEL school references only. No em dashes. No "safest neighborhood" claims.
+Use specific numbers ONLY when they appear in the data above. When no sourced number is available, use qualitative language.
 
 Return as JSON array: [{{"q": "...", "a": "..."}}, ...]"""
 
@@ -504,6 +511,8 @@ Do NOT use "safest neighborhood" framing. No em dashes. Feature-based language o
 
 {vertical_rules}
 {brand_voice}
+
+Use specific numbers ONLY when they appear in the data above. When no sourced number is available, use qualitative language.
 
 Return as JSON array: [{{"kicker": "...", "h2": "...", "prose": "<p>...</p>"}}]"""
 

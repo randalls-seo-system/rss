@@ -583,6 +583,8 @@ NAMING RULE (mandatory, zero exceptions):
 {f"Prior sections covered: {prior_summary}" if prior_summary else ""}
 {f"Brand voice: {brand_voice}" if brand_voice else ""}
 
+Use specific numbers ONLY when they appear in the AUTHORITATIVE DATA or SERP RESEARCH CONTEXT above. When no sourced number is available, use qualitative language.
+
 Return ONLY the prose HTML using <p> tags (and any inline <a> links if instructed). No headings, no wrapper divs."""
 
     h = hashlib.md5(f"{nb}|{h2_title}|v4|{section_context[:80]}|{verified_facts[:40]}".encode()).hexdigest()[:12]
@@ -608,6 +610,8 @@ NAMING RULE: The Army post in Killeen is "Fort Hood." Never write "Fort Cavazos.
 
 Return ONLY a JSON array of 4 strings. Example:
 ["Price range sits between $350K and $600K for most resale inventory", "NEISD schools rated A by TEA across the feeder pattern", "Rush-hour commute to downtown averages 25 minutes via US-281", "HOA dues range from $50 to $200 monthly depending on subdivision"]
+
+Use specific numbers ONLY when they appear in the data above. When no sourced number is available, use qualitative language.
 
 Return ONLY the JSON array. No markdown fences."""
 
