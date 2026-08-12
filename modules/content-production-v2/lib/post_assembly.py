@@ -50,14 +50,24 @@ _FH_REPLACEMENTS = [
     ("Budget-conscious", "Value-focused"),
     # ── Age-based targeting ──
     ("attract retirees", "attract long-term owners"),
-    # ── Safety claims (unsourced, disparate-impact risk) ──
-    ("safest neighborhood", "well-maintained neighborhood"),
-    ("safest community", "well-maintained community"),
-    ("low crime rates", "well-maintained streets and active HOA presence"),
-    ("low crime rate", "well-maintained streets and active HOA presence"),
-    ("low-crime", "well-maintained"),
-    ("crime-free", "well-maintained"),
 ]
+
+# Safety claims: DELETE, don't substitute. Replacing fabricates a
+# different unsourced claim. Strip the phrase and surrounding connectors.
+_SAFETY_DELETE_PATTERNS = [
+    # "X and low crime rates" → "X"
+    # "low crime rates and X" → "X"
+    # "X, low crime rates, and Y" → "X and Y"
+    # Standalone "low crime rates" → flag for human review
+    re.compile(r',?\s*and\s+(?:low[- ]crime\s+rates?|safest\s+\w+|crime[- ]free)', re.IGNORECASE),
+    re.compile(r'(?:low[- ]crime\s+rates?|safest\s+\w+|crime[- ]free)\s*(?:,\s*and|and)\s+', re.IGNORECASE),
+    re.compile(r',\s*(?:low[- ]crime\s+rates?|safest\s+\w+|crime[- ]free)\s*,', re.IGNORECASE),
+    re.compile(r';\s*(?:low[- ]crime\s+rates?|safest\s+\w+|crime[- ]free)\s*', re.IGNORECASE),
+]
+# Standalone pattern — if the phrase is the whole clause, flag instead of silently deleting
+_SAFETY_STANDALONE = re.compile(
+    r'\b(?:low[- ]crime\s+rates?|safest\s+\w+|crime[- ]free|low[- ]crime)\b', re.IGNORECASE
+)
 
 
 def fh_scan(html: str) -> tuple[str, list[str]]:
@@ -75,6 +85,25 @@ def fh_scan(html: str) -> tuple[str, list[str]]:
             html = html.replace(old, new)
             total += c
     log.append(f"FH scan: {total} replacements")
+
+    # Safety claims: delete (not substitute) with connector cleanup
+    safety_deletes = 0
+    safety_flags = []
+    # First pass: delete safety phrases with surrounding connectors
+    for pattern in _SAFETY_DELETE_PATTERNS:
+        html, n = pattern.subn(' ', html)
+        safety_deletes += n
+    # Second pass: flag any remaining standalone safety phrases
+    remaining = _SAFETY_STANDALONE.findall(html)
+    if remaining:
+        for phrase in remaining:
+            safety_flags.append(f"SAFETY FLAG (needs human review): '{phrase}' remains after connector cleanup")
+    # Clean up double spaces from deletions
+    if safety_deletes:
+        html = re.sub(r'  +', ' ', html)
+    log.append(f"Safety deletions: {safety_deletes} stripped, {len(safety_flags)} flagged for review")
+    log.extend(safety_flags)
+
     return html, log
 
 

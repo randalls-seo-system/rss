@@ -169,6 +169,16 @@ via the city roundup pipeline.
 4. **Killeen roundup (2797):** Protected flagship, excluded from all
    batches.
 
+4b. **AUTHOR_LANE_MAP is broken in the config loader.** `load_site_config`
+   cannot parse multi-line values from `.conf` files — `AUTHOR_LANE_MAP`
+   returns empty string. `resolve_author()` in `lib/post_assembly.py`
+   falls through to the fallback (user 27, Karishma) for every call.
+   The roundup generator hardcodes `override_id=28` (Jason Szakel) as a
+   workaround. Any other generator using `resolve_author()` without an
+   explicit override will silently mis-assign to the fallback. Fix
+   requires updating `lib/site_config.py` to handle multi-line quoted
+   values, or moving the lane map to a separate JSON file.
+
 5. **Single-guide pipeline: PARKED — scaffold-only, not production.**
    generate-neighborhood-guide.py + batch-neighborhood-rebuild.py + all
    guards committed on lrg-guides. Settled decision (2026-08-10):
