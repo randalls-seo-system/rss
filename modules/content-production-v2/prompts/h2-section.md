@@ -148,6 +148,10 @@ Use prose. A table is OPTIONAL if the content benefits from one; otherwise just 
 - If {{STRUCTURAL_ELEMENT_PREFERENCE}} is "callout", use {{CALLOUT_KEY}} for the CSS class modifier and {{CALLOUT_LABEL}} for the visible heading text.
 - **Cross-section continuity:** If PRIOR_SECTIONS_SUMMARY is non-empty, do NOT re-state facts already covered. Pick up where prior sections left off.
 
+## NUMBER SOURCING — EVIDENCE-ONLY
+
+Use specific numbers ONLY when they appear in the evidence store or the provided data JSON. When no sourced number is available, use qualitative language. A number that does not trace to an item in the EVIDENCE_BLOCK or TOPIC_CONTEXT above is an unsourced assertion and will be rejected.
+
 ## NUMBER PRECISION — VOLATILE vs FIXED
 
 Numbers in content fall into two categories. Treat them differently:
