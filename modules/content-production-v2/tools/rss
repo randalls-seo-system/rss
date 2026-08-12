@@ -241,6 +241,20 @@ def cmd_new_article(args):
 
     if review_enabled and content_type in review_types and not stage_done(job, "adversarial_review"):
         log("Stage E2: ADVERSARIAL REVIEW")
+
+        # Validate post_id before review — no deploy artifact needed at E2
+        import importlib.util as _ar_ilu
+        _ar_res_spec = _ar_ilu.spec_from_file_location(
+            "artifact_resolver", REPO_ROOT / "lib" / "artifact_resolver.py")
+        _ar_res_mod = _ar_ilu.module_from_spec(_ar_res_spec)
+        _ar_res_spec.loader.exec_module(_ar_res_mod)
+        try:
+            post_id = _ar_res_mod.validate_post_id(job)
+        except _ar_res_mod.ArtifactResolutionError as e:
+            log(f"  BLOCKED: {e}")
+            mark_stage(job, "adversarial_review", "failed", error=str(e))
+            sys.exit(1)
+
         linked_path = Path(job["artifacts"].get("article_linked", job["artifacts"]["article_html"]))
         review_html = linked_path.read_text()
 
@@ -269,7 +283,7 @@ def cmd_new_article(args):
                 model=review_config.get("model", "gpt-5.6"),
                 config=config,
                 job_dir=jd,
-                post_id=job.get("post_id", 0),
+                post_id=post_id,
             )
 
             log(f"  Review: {review_result.review_calls} calls, cost=${review_result.total_cost:.4f}")
@@ -277,7 +291,7 @@ def cmd_new_article(args):
             log(f"  Advisory: {len(review_result.advisory_additions)} items")
 
             if review_result.revised_html and review_result.revised_html != review_html:
-                reviewed_path = jd / f"{job.get('post_id', 0)}-reviewed.html"
+                reviewed_path = jd / f"{post_id}-reviewed.html"
                 reviewed_path.write_text(review_result.revised_html)
                 job["artifacts"]["article_reviewed"] = str(reviewed_path)
                 save_job(job)

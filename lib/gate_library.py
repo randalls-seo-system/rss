@@ -464,6 +464,54 @@ def run_universal_gates(
 
 
 # ---------------------------------------------------------------------------
+# Deploy artifact class-migration gate (refresh path only, not universal)
+# ---------------------------------------------------------------------------
+
+_RL_CLASS_RE = re.compile(r'\brl-[a-zA-Z][\w-]*')
+
+
+def assert_deploy_class_migration(
+    html: str,
+    source_html: str,
+    css_prefix: str,
+) -> GateResult:
+    """Deploy artifact for a non-rl- site must have migrated CSS classes.
+
+    Fails when css_prefix is not "rl-" AND either:
+    - html contains rl-* classes (migration incomplete), OR
+    - html is byte-identical to source_html (postprocessor passed through)
+
+    Passes unconditionally when css_prefix is "rl-" (no migration expected).
+
+    css_prefix must be a normalized string (first element of the config list),
+    not the raw list. Raises TypeError if a list/tuple is passed.
+    """
+    if isinstance(css_prefix, (list, tuple)):
+        raise TypeError(
+            "css_prefix must be a normalized string, not the raw config list"
+        )
+
+    if css_prefix == "rl-":
+        return GateResult("deploy_class_migration", True,
+                          "css_prefix is rl- — no migration expected")
+
+    rl_classes = _RL_CLASS_RE.findall(html)
+    if rl_classes:
+        unique = sorted(set(rl_classes))[:10]
+        return GateResult("deploy_class_migration", False,
+                          f"Deploy artifact contains rl-* classes for a "
+                          f"{css_prefix!r} site: {', '.join(unique)}")
+
+    if html == source_html:
+        return GateResult("deploy_class_migration", False,
+                          f"Deploy artifact is byte-identical to source article "
+                          f"— postprocessor did not convert classes for "
+                          f"{css_prefix!r} site")
+
+    return GateResult("deploy_class_migration", True)
+
+
+# ---------------------------------------------------------------------------
 # CLI: rss gate
 # ---------------------------------------------------------------------------
 

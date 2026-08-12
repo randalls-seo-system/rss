@@ -23,6 +23,18 @@ refresher, batch-inject-links, style-pass, and all LRG generators.
 | 2026-08-10 | Articles with 2 H2 sections passed as complete | `min_sections` | all write paths |
 | 2026-08-10 | Wrong-but-plausible domain claims passing all gates | adversarial review stage | pipeline Stage E2 (bounded, evidence-verified) |
 
+## Deploy Artifact Resolution (lib/artifact_resolver.py)
+
+These gates enforce that every deploy path resolves the certified artifact
+by exact post_id and filename — no candidate lists, no globs, no fallbacks.
+
+| Date | Incident | Assertion | Paths Protected |
+|------|----------|-----------|-----------------|
+| 2026-08-12 | Job 20260805-201409-d9dd5002 had `post_id: null`. `job.get("post_id", 0)` returned None (key exists with null value). cli_review fell through candidate list to glob and reviewed pre-postprocessor assembly (`1501-assembled-raw.html`) instead of certified `1501-deploy.html`. | `resolve_deploy_artifact` — requires `{post_id}-deploy.html` to exist; no candidate list, no glob, no fallback | adversarial_review cli_review (site #1), approve_refresh deploy gate (site #7) |
+| 2026-08-12 | Same incident. `job.get("post_id", 0)` returns None for null keys. Bool (`isinstance(True, int)` is True), float (`int(3.7)` silently truncates), zero, and negative values all pass `int()`. | `validate_post_id` — rejects None, bool, float, empty string, zero, negative. Returns validated int. | rss Stage E2 post_id + reviewed-artifact name (sites #2, #3), adversarial_review post_id + reviewed-artifact name (sites #4, #5) |
+| 2026-08-12 | approve_refresh had no deploy-artifact gate. Readiness check uses `refresh.original_post_id`; top-level `post_id` (used by resolver) was unchecked. Null post_id slipped to SSH call. | `resolve_deploy_artifact` + `run_universal_gates` on deploy artifact in approve_refresh | approve_refresh (site #7, additive alongside existing raw-article gate) |
+| 2026-08-12 | Posts 1501/383/1740 received unstyled content (Aug 10). `run_postprocess` passthrough branch copied source to deploy unchanged when css_prefix was `rl-`. For non-rl- sites, postprocessor could pass through without converting classes and no gate caught it. | `assert_deploy_class_migration` — deploy artifact for non-rl- site must contain zero rl-* classes AND must not be byte-identical to source article | create_pending_draft (refresh path only, not universal) |
+
 ## Article-Pipeline Gates (spec_assertions.py)
 
 These run inside the article pipeline (Stage D: Emit Gates) and refresher
