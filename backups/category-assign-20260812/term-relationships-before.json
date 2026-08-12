@@ -1,0 +1,80 @@
+[
+    {
+        "post_id": 9765,
+        "post_title": "Your Options When You Can&#8217;t Afford to Sell Your Texas Home",
+        "categories": [
+            {
+                "term_id": 20,
+                "name": "Home Buying",
+                "slug": "home-buying",
+                "term_taxonomy_id": 20
+            }
+        ]
+    },
+    {
+        "post_id": 9773,
+        "post_title": "PCS with an Underwater Mortgage: Military Options in Texas",
+        "categories": [
+            {
+                "term_id": 20,
+                "name": "Home Buying",
+                "slug": "home-buying",
+                "term_taxonomy_id": 20
+            }
+        ]
+    },
+    {
+        "post_id": 9774,
+        "post_title": "Short Sale vs Foreclosure in Texas: Which Is Better for You?",
+        "categories": [
+            {
+                "term_id": 20,
+                "name": "Home Buying",
+                "slug": "home-buying",
+                "term_taxonomy_id": 20
+            }
+        ]
+    },
+    {
+        "post_id": 8714,
+        "post_title": "Selling a Home During a PCS With Little or No Equity",
+        "categories": [
+            {
+                "term_id": 20,
+                "name": "Home Buying",
+                "slug": "home-buying",
+                "term_taxonomy_id": 20
+            }
+        ]
+    },
+    {
+        "post_id": 1516,
+        "post_title": "Understanding Short Sales: A Guide for Homebuyers and Sellers",
+        "categories": [
+            {
+                "term_id": 20,
+                "name": "Home Buying",
+                "slug": "home-buying",
+                "term_taxonomy_id": 20
+            },
+            {
+                "term_id": 64,
+                "name": "LRG Blog",
+                "slug": "lrg-blog",
+                "term_taxonomy_id": 64
+            }
+        ]
+    },
+    {
+        "post_id": 8688,
+        "post_title": "VA Loan After a Previous Foreclosure or Short Sale in Texas",
+        "categories": [
+            {
+                "term_id": 20,
+                "name": "Home Buying",
+                "slug": "home-buying",
+                "term_taxonomy_id": 20
+            }
+        ]
+    }
+]
