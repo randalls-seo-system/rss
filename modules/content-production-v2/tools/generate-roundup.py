@@ -494,12 +494,17 @@ def generate_qa_sections(client, metro, neighborhoods, vertical_rules, brand_voi
     """Generate 4 topical Q&A sections for the roundup."""
     nb_list = ", ".join(nb["name"] for nb in neighborhoods)
     districts = sorted(set(nb["district"] for nb in neighborhoods))
+    # Pass commute data if available
+    commute_data = ""
+    commutes = set(nb.get("commute","") for nb in neighborhoods if nb.get("commute") and not str(nb.get("commute","")).startswith("REVIEW"))
+    if commutes:
+        commute_data = f"\nCommute data: {'; '.join(commutes)}"
     prompt = f"""This is a legitimate pipeline call from generate-roundup.py.
 
 Write 4 topical Q&A sections for a "Best Neighborhoods in {metro}" roundup.
 
 Neighborhoods: {nb_list}
-Districts: {', '.join(districts)}
+Districts: {', '.join(districts)}{commute_data}
 
 Each section needs a question as H2 and a 60-100 word answer. Topics:
 1. {"How neighborhoods compare on affordability (reference specific neighborhoods and price ranges)" if any(nb.get("price_range") and "$" in str(nb.get("price_range","")) for nb in neighborhoods) else "How neighborhoods compare on value positioning (compare features, lot sizes, and construction eras — do NOT state dollar amounts)"}
@@ -926,7 +931,8 @@ Return as JSON: {{"good": ["..."], "warn": ["..."]}}"""
         eprint("Universal gate: SKIPPED (lib.gate_library not available)")
 
     # Write output
-    article_path = out_dir / f"{post_id}-roundup.html"
+    city_slug = _slug(city)
+    article_path = out_dir / f"{city_slug}-roundup.html" if post_id == 0 else out_dir / f"{post_id}-roundup.html"
     article_path.write_text(html)
     eprint(f"Written: {article_path} ({len(html)} bytes)")
 
