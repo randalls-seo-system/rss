@@ -44,8 +44,10 @@ no priority array, no filter hook.
 slugs that get sorted to the front, remaining categories follow in count
 order. Minimal risk, but it is a mu-plugin edit on prod.
 
-**Decision:** Pending Levi review. A 6-post category will stay buried
-until it grows organically or gets pinned.
+**Decision:** Not urgent. Do not revisit until the category has enough
+posts to place organically. Pinning a 6-post category above 24 larger
+ones is a mu-plugin edit on prod to solve a problem that solves itself
+if the article queue ships. Revisit at 15+ posts, or never.
 
 ## 3. Post 1516 vs 9765 Cannibalization (UNRESOLVED)
 
@@ -54,7 +56,11 @@ until it grows organically or gets pinned.
 Post 1516 ("Understanding Short Sales: A Guide for Homebuyers and
 Sellers") and 9765 ("Your Options When You Can't Afford to Sell Your
 Texas Home") both now sit in the Short Sales category. They compete for
-short-sale explainer intent. 1516 has 46 internal links pointing to it
-but only 15 GSC impressions over 90 days. Options: redirect 1516 to
-9765 (transfers link equity), rewrite 1516 to narrow its scope to
-buyer-side only, or leave both. Requires backlink audit before deciding.
+short-sale explainer intent. 1516 was reported as having 46 internal
+links pointing to it in the recon pass (SECONDARY -- single-source LIKE
+query, not verified against a second method). The 46-link count must be
+confirmed before it drives a redirect decision. GSC shows only 15
+impressions over 90 days. Options: redirect 1516 to 9765 (transfers
+link equity if the count holds), rewrite 1516 to narrow its scope to
+buyer-side only, or leave both. Requires backlink audit + link count
+verification before deciding.
