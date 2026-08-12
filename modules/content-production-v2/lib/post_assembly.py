@@ -50,6 +50,13 @@ _FH_REPLACEMENTS = [
     ("Budget-conscious", "Value-focused"),
     # ── Age-based targeting ──
     ("attract retirees", "attract long-term owners"),
+    # ── Safety claims (unsourced, disparate-impact risk) ──
+    ("safest neighborhood", "well-maintained neighborhood"),
+    ("safest community", "well-maintained community"),
+    ("low crime rates", "well-maintained streets and active HOA presence"),
+    ("low crime rate", "well-maintained streets and active HOA presence"),
+    ("low-crime", "well-maintained"),
+    ("crime-free", "well-maintained"),
 ]
 
 

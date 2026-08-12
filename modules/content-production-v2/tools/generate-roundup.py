@@ -891,8 +891,10 @@ Return as JSON: {{"good": ["..."], "warn": ["..."]}}"""
     eprint(f"Written: {article_path} ({len(html)} bytes)")
 
     # 6. Author assignment
+    # Default 28 (Jason Szakel) per lrg.conf AUTHOR_LANE_MAP "neighborhood" lane.
+    # Config loader can't parse multi-line lane map, so default is hardcoded here.
     from lib.post_assembly import resolve_author
-    override = args.author if hasattr(args, 'author') and args.author else None
+    override = args.author if hasattr(args, 'author') and args.author else 28
     author_id, author_reason = resolve_author(config, target_keyword=args.title, override_id=override)
     eprint(f"  Author: user {author_id} ({author_reason})")
 
