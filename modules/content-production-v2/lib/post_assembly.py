@@ -238,21 +238,43 @@ def flag_unsourced_numbers(html: str, verified_numbers: set[str] | None = None,
     output are necessarily fabricated.
     """
     verified = verified_numbers or set()
+    # Build a flat set of all numbers that appear inside any verified value,
+    # so "25-30 min to downtown Austin" suppresses "30 min", "25 min", etc.
+    verified_nums = set()
+    for v in verified:
+        for d in _DOLLAR_PATTERN.findall(str(v)):
+            verified_nums.add(d)
+        for t in _MINUTE_PATTERN.findall(str(v)):
+            verified_nums.add(t)
+        # Also extract bare integers from ranges like "25-30"
+        for n in re.findall(r'\b(\d{1,3})\b', str(v)):
+            verified_nums.add(n)
+
     # Strip HTML tags for text-only scan
     text = re.sub(r'<[^>]+>', ' ', html)
     text = re.sub(r'\s+', ' ', text)
 
+    def _is_verified(val):
+        """Check if a matched number appears in any verified value."""
+        if val in verified:
+            return True
+        # Extract the bare number and check
+        num = re.search(r'\d+', val)
+        if num and num.group(0) in verified_nums:
+            return True
+        return False
+
     flags = []
     for m in _DOLLAR_PATTERN.finditer(text):
         val = m.group(0)
-        if val not in verified:
+        if not _is_verified(val):
             ctx_start = max(0, m.start() - 30)
             ctx_end = min(len(text), m.end() + 30)
             flags.append(f"UNSOURCED $: {val} in: ...{text[ctx_start:ctx_end].strip()}...")
 
     for m in _MINUTE_PATTERN.finditer(text):
         val = m.group(0)
-        if val not in verified:
+        if not _is_verified(val):
             ctx_start = max(0, m.start() - 30)
             ctx_end = min(len(text), m.end() + 30)
             flags.append(f"UNSOURCED TIME: {val} in: ...{text[ctx_start:ctx_end].strip()}...")
