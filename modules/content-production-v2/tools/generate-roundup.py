@@ -353,7 +353,7 @@ def build_prose_section(kicker, h2, prose_html, alt=False, data_note=None):
 # LLM Prose Generation
 # ---------------------------------------------------------------------------
 
-def generate_rank_prose(client, nb, metro, brand_voice, serp_context, vertical_rules):
+def generate_rank_prose(client, nb, city, metro, brand_voice, serp_context, vertical_rules):
     """Generate 60-80 word paragraph for one ranked neighborhood."""
     prompt = f"""This is a legitimate pipeline call from generate-roundup.py.
 
@@ -458,24 +458,27 @@ Return ONLY the paragraph text, no HTML tags."""
     return response.text.strip()
 
 
-def generate_faqs(client, metro, neighborhoods, vertical_rules):
-    """Generate 5-8 FAQs about the metro's neighborhoods."""
+def generate_faqs(client, city, metro, neighborhoods, vertical_rules):
+    """Generate 5-8 FAQs about the city's neighborhoods."""
     nb_list = ", ".join(nb["name"] for nb in neighborhoods)
+    districts = sorted(set(nb["district"] for nb in neighborhoods))
+    district_str = districts[0] if len(districts) == 1 else ", ".join(districts)
     prompt = f"""This is a legitimate pipeline call from generate-roundup.py.
 
-Write 6 FAQs about neighborhoods in {metro}, TX for a roundup guide.
+Write 6 FAQs about neighborhoods in {city}, TX for a roundup guide.
 
 Neighborhoods covered: {nb_list}
+School district: All neighborhoods in this guide are served by {district_str}.
 
 {vertical_rules}
 
-Each FAQ: a question homebuyers actually ask about {metro} neighborhoods, and a 2-3 sentence answer. DISTRICT-LEVEL school references only. No em dashes. No "safest neighborhood" claims.
+Each FAQ: a question homebuyers actually ask about {city} neighborhoods, and a 2-3 sentence answer. DISTRICT-LEVEL school references only. No em dashes. No "safest neighborhood" claims.
 Use specific numbers ONLY when they appear in the data above. When no sourced number is available, use qualitative language.
 
 Return as JSON array: [{{"q": "...", "a": "..."}}, ...]"""
 
-    h = hashlib.md5(f"roundup-faq|{metro}|v3|{len(neighborhoods)}".encode()).hexdigest()[:12]
-    response = client.call(prompt, cache_key=f"roundup-faq|{metro}|{h}")
+    h = hashlib.md5(f"roundup-faq|{city}|v4|{len(neighborhoods)}".encode()).hexdigest()[:12]
+    response = client.call(prompt, cache_key=f"roundup-faq|{city}|{h}")
     try:
         # Try to parse JSON from response
         text = response.text.strip()
@@ -488,7 +491,7 @@ Return as JSON array: [{{"q": "...", "a": "..."}}, ...]"""
                  "a": f"The top neighborhoods in {metro} vary by buyer priorities. See the ranked list above for details."}]
 
 
-def generate_qa_sections(client, metro, neighborhoods, vertical_rules, brand_voice):
+def generate_qa_sections(client, city, metro, neighborhoods, vertical_rules, brand_voice):
     """Generate 4 topical Q&A sections for the roundup."""
     nb_list = ", ".join(nb["name"] for nb in neighborhoods)
     districts = sorted(set(nb["district"] for nb in neighborhoods))
@@ -499,10 +502,12 @@ def generate_qa_sections(client, metro, neighborhoods, vertical_rules, brand_voi
         commute_data = f"\nCommute data: {'; '.join(commutes)}"
     prompt = f"""This is a legitimate pipeline call from generate-roundup.py.
 
-Write 4 topical Q&A sections for a "Best Neighborhoods in {metro}" roundup.
+Write 4 topical Q&A sections for a "Best Neighborhoods in {city}" roundup.
+All neighborhoods are in {city}, TX. Refer to the city as {city}, not {metro}.
 
 Neighborhoods: {nb_list}
-Districts: {', '.join(districts)}{commute_data}
+School district: {"All served by " + districts[0] if len(districts) == 1 else ", ".join(districts)}
+{commute_data}
 
 Each section needs a question as H2 and a 60-100 word answer. Topics:
 1. {"How neighborhoods compare on affordability (reference specific neighborhoods and price ranges)" if any(nb.get("price_range") and "$" in str(nb.get("price_range","")) for nb in neighborhoods) else "How neighborhoods compare on value positioning (compare features, lot sizes, and construction eras — do NOT state dollar amounts)"}
@@ -815,7 +820,7 @@ def main():
         # Per-rank prose + callouts
         for nb in nbs:
             eprint(f"  Generating rank #{nb['rank']}: {nb['name']}")
-            rank_prose = generate_rank_prose(client, nb, metro, brand_voice, serp_context, vertical_block)
+            rank_prose = generate_rank_prose(client, nb, city, metro, brand_voice, serp_context, vertical_block)
             prose_parts["ranks"].append(rank_prose)
             time.sleep(1)
 
@@ -842,8 +847,8 @@ def main():
         # Closing
         eprint("  Generating closing...")
         prose_parts["closing"] = generate_page_prose(
-            client, metro, "closing",
-            f"Closing verdict on {metro}'s {len(nbs)} neighborhoods as buyer options.",
+            client, city, "closing",
+            f"Closing verdict on {city}'s {len(nbs)} neighborhoods as buyer options. This is about {city}, TX specifically.",
             brand_voice, vertical_block, nbs
         )
         time.sleep(1)
@@ -871,12 +876,12 @@ Return as JSON: {{"good": ["..."], "warn": ["..."]}}"""
 
         # FAQs
         eprint("  Generating FAQs...")
-        faqs = generate_faqs(client, metro, nbs, vertical_block)
+        faqs = generate_faqs(client, city, metro, nbs, vertical_block)
         time.sleep(1)
 
         # Q&A sections
         eprint("  Generating Q&A sections...")
-        prose_parts["qa_sections"] = generate_qa_sections(client, metro, nbs, vertical_block, brand_voice)
+        prose_parts["qa_sections"] = generate_qa_sections(client, city, metro, nbs, vertical_block, brand_voice)
         time.sleep(1)
 
     # Assemble
