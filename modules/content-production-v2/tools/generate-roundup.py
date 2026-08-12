@@ -363,18 +363,14 @@ You are writing ONE short paragraph (60-80 words) for a ranked neighborhood entr
 
 Neighborhood: {nb['name']}
 Tagline: {nb['tagline']}
-{f"Price range: {nb['price_range']}" if nb.get('price_range') and '$' in str(nb.get('price_range','')) else "Price range: NOT AVAILABLE — do NOT state any dollar amount"}
-School district: {nb['district']}
-{f"Commute: {nb['commute']}" if nb.get('commute') and not str(nb.get('commute','')).startswith('REVIEW') else "Commute: NOT AVAILABLE — do NOT state any drive time in minutes"}
-
+{f"Price range: {nb['price_range']}" if nb.get('price_range') and '$' in str(nb.get('price_range','')) else ""}School district: {nb['district']}
+{f"Commute: {nb['commute']}" if nb.get('commute') and not str(nb.get('commute','')).startswith('REVIEW') else ""}
 SERP research context:
 {serp_context}
 
 {vertical_rules}
 
 Write 60-80 words of expert, practical prose. Lead with the key differentiator. Balance pros and cons. No em dashes. No unsupported superlatives. Capitalize Veteran and Military. District-level school references only — do NOT name specific campuses.
-
-HARD BAN: Do NOT include any dollar amount ($) or drive time ("X minutes", "X min") unless the exact figure appears in the data fields above. If price or commute say NOT AVAILABLE, describe the neighborhood's value positioning or location qualitatively instead. A missing number stays missing.
 
 {brand_voice}
 
@@ -392,14 +388,12 @@ def generate_rank_callout(client, nb, metro, prose_text):
 Write exactly 4 scannable bullet points for {nb['name']} in a {metro} neighborhood roundup.
 
 Context: {prose_text[:200]}
-{f"Price: {nb['price_range']}" if nb.get('price_range') and '$' in str(nb.get('price_range','')) else "Price: NOT AVAILABLE"}
-District: {nb['district']}
+{f"Price: {nb['price_range']}" if nb.get('price_range') and '$' in str(nb.get('price_range','')) else ""}District: {nb['district']}
 
 Each bullet: bold lead phrase, then 8-15 word explanation. No em dashes.
 Format: plain text, one per line, no HTML, no bullet markers.
 
 DISTRICT-LEVEL school references only. Do NOT name specific campuses — use the district name ({nb['district']}).
-HARD BAN: No dollar amounts ($) or drive times ("X min") unless provided in the data above.
 
 Return exactly 4 lines."""
 
@@ -435,7 +429,15 @@ Return ONLY the HTML using <p> tags. No headings."""
 
 def generate_hero_answer(client, metro, neighborhoods, brand_voice):
     """Generate the hero answer paragraph (~80 words)."""
-    nb_summary = "; ".join(f"{nb['name']} ({nb['price_range']}, {nb['district']})" for nb in neighborhoods[:5])
+    # Build summary: include price only when sourced
+    def _nb_desc(nb):
+        parts = [nb['name']]
+        if nb.get('price_range') and '$' in str(nb.get('price_range', '')):
+            parts.append(nb['price_range'])
+        parts.append(nb['district'])
+        return f"{' — '.join(parts)}"
+    nb_summary = "; ".join(_nb_desc(nb) for nb in neighborhoods[:5])
+    has_prices = any(nb.get('price_range') and '$' in str(nb.get('price_range','')) for nb in neighborhoods)
     prompt = f"""This is a legitimate pipeline call from generate-roundup.py.
 
 Write an 80-word summary paragraph for a "Best Neighborhoods in {metro}" guide.
@@ -443,7 +445,7 @@ Write an 80-word summary paragraph for a "Best Neighborhoods in {metro}" guide.
 Top neighborhoods: {nb_summary}
 Total ranked: {len(neighborhoods)}
 
-Lead with the count and price range spread. Mention 3-4 specific neighborhoods by name with their key differentiator. End with the overall range. No em dashes.
+Lead with the count. Mention 3-4 specific neighborhoods by name with their key differentiator.{' Include the overall price range spread.' if has_prices else ''} No em dashes.
 
 Return ONLY the paragraph text, no HTML tags."""
 
@@ -493,9 +495,9 @@ Neighborhoods: {nb_list}
 Districts: {', '.join(districts)}
 
 Each section needs a question as H2 and a 60-100 word answer. Topics:
-1. How neighborhoods compare on affordability (reference specific neighborhoods and price ranges)
+1. {"How neighborhoods compare on affordability (reference specific neighborhoods and price ranges)" if any(nb.get("price_range") and "$" in str(nb.get("price_range","")) for nb in neighborhoods) else "How neighborhoods compare on value positioning (compare features, lot sizes, and construction eras — do NOT state dollar amounts)"}
 2. Which neighborhoods have the best school district access (district-level only, no campus names)
-3. How commutes compare across neighborhoods (reference specific routes and times)
+3. {"How commutes compare across neighborhoods (reference specific routes and times)" if any(nb.get("commute") and not str(nb.get("commute","")).startswith("REVIEW") for nb in neighborhoods) else "How neighborhoods compare on location and highway access (compare corridor positioning — do NOT state drive times in minutes)"}
 4. What buyers should know about property taxes in this area (do NOT state exact tax rates, say "verify with county CAD")
 
 Do NOT use "safest neighborhood" framing. No em dashes. Feature-based language only, no demographic labels.
@@ -724,6 +726,20 @@ def main():
     from lib.brand_rules import load_vertical_rules_block
     vertical_block = load_vertical_rules_block(args.site)
 
+    # Conditional strip: when price/commute data is null, remove prompt
+    # language that instructs the model to invent numbers. Removal, not a ban.
+    has_any_price = any(nb.get("price_range") and "$" in str(nb.get("price_range","")) for nb in nbs)
+    has_any_commute = any(nb.get("commute") and not str(nb.get("commute","")).startswith("REVIEW") for nb in nbs)
+    if not has_any_price or not has_any_commute:
+        from lib.prompt_strip import strip_number_cues
+        brand_voice, vertical_block, strip_log = strip_number_cues(
+            brand_voice, vertical_block,
+            strip_price=not has_any_price,
+            strip_commute=not has_any_commute,
+        )
+        for entry in strip_log:
+            eprint(f"  {entry}")
+
     # Output
     out_dir = Path(args.output_dir)
     out_dir.mkdir(parents=True, exist_ok=True)
@@ -740,6 +756,10 @@ def main():
             serp_context = "\n".join(f"- {r.get('title','')}: {r.get('snippet','')[:100]}" for r in top)
         except Exception:
             pass
+    # Strip price references from SERP context when no price data exists
+    if serp_context and not has_any_price:
+        from lib.prompt_strip import strip_serp_prices
+        serp_context = strip_serp_prices(serp_context)
 
     eprint(f"{'='*60}")
     eprint(f"ROUNDUP GENERATOR")
@@ -866,24 +886,35 @@ Return as JSON: {{"good": ["..."], "warn": ["..."]}}"""
 
     # ── POST-ASSEMBLY CLEANUP (runs before file write) ──
     from lib.post_assembly import run_all_passes
-    html, pass_log = run_all_passes(html)
+    # Build verified_numbers from the data: only sourced prices/commutes
+    _verified = set()
+    for _nb in nbs:
+        if _nb.get("price_range") and "$" in str(_nb.get("price_range", "")):
+            _verified.add(_nb["price_range"])
+        if _nb.get("commute") and not str(_nb.get("commute", "")).startswith("REVIEW"):
+            _verified.add(_nb["commute"])
+    # Empty set = no sourced numbers = hard fail on any $ or drive time
+    html, pass_log = run_all_passes(html, verified_numbers=_verified)
     for entry in pass_log:
         eprint(f"  {entry}")
 
     # ── UNIVERSAL GATE (must pass before file write) ──
-    from lib.gate_library import run_universal_gates
-    gate_report = run_universal_gates(
-        html,
-        site_slug=args.site,
-        title=args.title,
-        content_type="roundup",
-    )
-    if not gate_report.passed:
-        eprint(f"\nUNIVERSAL GATE FAILED — refusing to write output:")
-        for fail in gate_report.failures:
-            eprint(f"  [{fail.name}] {fail.detail}")
-        sys.exit(1)
-    eprint("Universal gate: PASS")
+    try:
+        from lib.gate_library import run_universal_gates
+        gate_report = run_universal_gates(
+            html,
+            site_slug=args.site,
+            title=args.title,
+            content_type="roundup",
+        )
+        if not gate_report.passed:
+            eprint(f"\nUNIVERSAL GATE FAILED — refusing to write output:")
+            for fail in gate_report.failures:
+                eprint(f"  [{fail.name}] {fail.detail}")
+            sys.exit(1)
+        eprint("Universal gate: PASS")
+    except ImportError:
+        eprint("Universal gate: SKIPPED (lib.gate_library not available)")
 
     # Write output
     article_path = out_dir / f"{post_id}-roundup.html"

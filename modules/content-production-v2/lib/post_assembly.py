@@ -223,7 +223,8 @@ _DOLLAR_PATTERN = re.compile(r'\$\d[\d,]*K?')
 _MINUTE_PATTERN = re.compile(r'\b\d{1,3}\s*(?:min(?:ute)?s?|min\.)\b', re.IGNORECASE)
 
 
-def flag_unsourced_numbers(html: str, verified_numbers: set[str] | None = None
+def flag_unsourced_numbers(html: str, verified_numbers: set[str] | None = None,
+                           hard_fail: bool = False
                            ) -> tuple[str, list[str]]:
     """Flag dollar amounts and drive times in prose that aren't in verified data.
 
@@ -231,6 +232,10 @@ def flag_unsourced_numbers(html: str, verified_numbers: set[str] | None = None
     warnings for human review. Pass verified_numbers as a set of strings
     that ARE sourced (e.g. {"$350K", "$600K", "25 min"}) to suppress
     false positives on those values.
+
+    When hard_fail=True, raises SystemExit if any unsourced numbers are
+    found. Use this when price/commute data is null and numbers in the
+    output are necessarily fabricated.
     """
     verified = verified_numbers or set()
     # Strip HTML tags for text-only scan
@@ -253,6 +258,14 @@ def flag_unsourced_numbers(html: str, verified_numbers: set[str] | None = None
             flags.append(f"UNSOURCED TIME: {val} in: ...{text[ctx_start:ctx_end].strip()}...")
 
     summary = f"Unsourced number check: {len(flags)} flags"
+    if hard_fail and flags:
+        import sys
+        print(f"\nHARD FAIL: {len(flags)} unsourced numbers in output.", file=sys.stderr)
+        for f in flags:
+            print(f"  {f}", file=sys.stderr)
+        print("\nThe LLM fabricated dollar amounts or drive times despite", file=sys.stderr)
+        print("no price/commute data in the input. Output not written.", file=sys.stderr)
+        sys.exit(1)
     return html, [summary] + flags
 
 
@@ -316,7 +329,11 @@ def run_all_passes(html: str, site_config: dict | None = None,
     html, log = validate_links(html, slug_cache_paths)
     all_log.extend(log)
 
-    html, log = flag_unsourced_numbers(html, verified_numbers)
+    # Hard-fail on unsourced numbers when no verified data exists
+    # (meaning price/commute are null — any numbers are fabricated)
+    numbers_hard_fail = verified_numbers is not None and len(verified_numbers) == 0
+    html, log = flag_unsourced_numbers(html, verified_numbers,
+                                       hard_fail=numbers_hard_fail)
     all_log.extend(log)
 
     return html, all_log
