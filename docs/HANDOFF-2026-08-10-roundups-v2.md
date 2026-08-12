@@ -154,16 +154,45 @@ Fort Hood, NAS CC), and audience pages (Austin families, SA families,
 Fort Sam) are separate content types. They may get refreshed but not
 via the city roundup pipeline.
 
+## Deployed (2026-08-12)
+
+**5 roundup conversions deployed (Group A — roundup-intent titles):**
+
+| Post | City | Bytes | URL |
+|------|------|-------|-----|
+| 1791 | Canyon Lake | 29,229 | /lrg-blog/best-neighborhoods-to-live-in-canyon-lake-tx/ |
+| 1800 | Lakeway | 26,982 | /lrg-blog/best-neighborhoods-to-live-in-lakeway-tx/ |
+| 1750 | Live Oak | 25,677 | /lrg-blog/best-neighborhoods-in-live-oak-tx/ |
+| 1747 | Helotes | 28,542 | /lrg-blog/best-neighborhoods-in-helotes-tx/ |
+| 1820 | Leon Valley | 25,484 | /lrg-blog/best-places-to-live-in-leon-valley/ |
+
+Backups at `/nas/content/live/lrgrealtyblog/backups/pre-roundup-batch2-20260812/`.
+All byte-exact verified, cache purged (quadruple), _lrg_no_wpautop set.
+
+**Combined with Aug 9:** 23 + 5 = 28 roundup conversions total.
+
+## Skipped / deferred
+
+**4 Group B (guide-intent titles — do NOT convert):**
+- Harker Heights (5135) "Harker Heights: Neighborhood Guide (2026)"
+- Manor (9555) "Manor, TX: 2026 Neighborhood Guide"
+- Taylor (9563) "Taylor, TX: 2026 Neighborhood Guide"
+- Cedar Park (5133) "Cedar Park: Neighborhood Guide (2026)"
+Generated roundup files parked at `~/lrg-rewrite/roundup-output/`.
+These need NEW roundup posts if roundup coverage is wanted, not
+conversion of the existing guides.
+
+Manor and Taylor were briefly deployed as roundups and restored within
+the same session. No lasting damage.
+
+**2 content-richer pages (same class as Stone Oak):**
+- Bastrop (4929) — 40K with 10 neighborhoods, flood/wildfire section
+- Cedar Park (1734) — wrong slug ("cedar-creek"), consolidation pending
+
 ## Still open
 
-1. **10 roundup conversions ready** (editorial review in progress):
-   Cedar Park (7), Harker Heights (5), Taylor (6), Canyon Lake (5),
-   Lakeway (6), Live Oak (6), Manor (6), Helotes (5), Leon Valley (6),
-   Bastrop (6). Total: 59 neighborhoods. Builder output at
-   `~/lrg-rewrite/roundup-data/`. Editorial review file at
-   `~/lrg-rewrite/roundup-final-review.txt` (38 fields to edit).
-   Grey Forest Estates dropped from Helotes (separate incorporated city).
-   13 thin-SERP entries dropped across all cities.
+1. **Cedar Park consolidation:** Deploy roundup to 5133, 301 cedar-creek
+   URL. GSC shows 5133 has 4x impressions. Blocked on 301 implementation.
 
 2. **5 deferred (thin SERP):** Copperas Cove (1 substantive), Pleasanton
    (2), Spring Branch (3), Nolanville (3), Windcrest (2). SERP surfaced
