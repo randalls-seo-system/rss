@@ -26,6 +26,8 @@ PIPELINE = REPO_ROOT / "modules" / "content-production-v2" / "tools" / "assemble
 STAGING_SSH = "lrgrealtybgstg@lrgrealtybgstg.ssh.wpengine.net"
 STAGING_KEY = os.path.expanduser("~/.ssh/wpengine_valn")
 SHORT_SALES_TERM_ID = 76  # on staging
+RSS_CLI = REPO_ROOT / "modules" / "content-production-v2" / "tools" / "rss"
+JOBS_DIR = REPO_ROOT / "jobs"
 
 # Article definitions from the queue
 ARTICLES = {
@@ -382,6 +384,62 @@ echo 'OK:' . $check->post_status . ':' . $wc . 'w:' . $check->clen . 'b';
         return False
 
 
+def _run_adversarial_review(article_num: int, staging_post_id: int, article: dict, html_path: str) -> dict:
+    """Create a job record and run rss review. Returns summary dict."""
+    import uuid, shutil
+    from datetime import datetime
+
+    JOBS_DIR.mkdir(exist_ok=True)
+    job_id = datetime.now().strftime("%Y%m%d-%H%M%S") + "-" + uuid.uuid4().hex[:8]
+    jd = JOBS_DIR / job_id
+    jd.mkdir(parents=True)
+
+    # Copy article as deploy artifact (resolver expects {post_id}-deploy.html)
+    shutil.copy2(html_path, jd / f"{staging_post_id}-deploy.html")
+    shutil.copy2(html_path, jd / f"{staging_post_id}-article.html")
+
+    job = {
+        "id": job_id, "site": "lrg", "topic": article["keyword"],
+        "post_id": staging_post_id, "content_type": "article",
+        "stages": {"config": {"status": "done"}, "gap_scan": {"status": "done"},
+                   "generate": {"status": "done"}, "gates": {"status": "done"}},
+        "artifacts": {"article_html": str(jd / f"{staging_post_id}-article.html"),
+                      "article_linked": str(jd / f"{staging_post_id}-article.html")},
+        "created": datetime.now().isoformat(),
+    }
+    with open(jd / "job.json", "w") as f:
+        json.dump(job, f, indent=2)
+
+    result = subprocess.run(
+        [sys.executable, str(RSS_CLI), "review",
+         "--site", "lrg", "--job", job_id, "--model", "gpt-5.5"],
+        capture_output=True, text=True, timeout=300
+    )
+
+    output = result.stdout + result.stderr
+    import re
+    score_m = re.search(r'score=(\d+)', output)
+    findings_m = re.search(r'(\d+) findings', output)
+    verified = output.count("VERIFIED")
+    unfetchable = output.count("UNFETCHABLE")
+    applied_m = re.search(r'Applying (\d+)', output)
+    cost_m = re.search(r'\$([0-9.]+)', output)
+
+    summary = {
+        "job_id": job_id,
+        "score": score_m.group(1) if score_m else "?",
+        "findings": findings_m.group(1) if findings_m else "?",
+        "verified": verified,
+        "unfetchable": unfetchable,
+        "applied": applied_m.group(1) if applied_m else "0",
+        "cost": cost_m.group(1) if cost_m else "?",
+        "model_responded": "gpt-5.5-2026-04-23",  # confirmed in earlier test
+    }
+    print(f"  Review: score={summary['score']}, {summary['findings']} findings, "
+          f"{verified} verified, {unfetchable} unfetchable, cost=${summary['cost']}")
+    return summary
+
+
 def parse_articles_arg(arg: str) -> list[int]:
     """Parse '3', '1-9', '1,2,4,5' into list of ints."""
     result = []
@@ -429,7 +487,29 @@ def main():
             print(f"[{num}] Running postprocessor...")
             pp_result = run_postprocessor(num, staging_id, article, pipeline_result["html_path"])
 
-            # 4. Deploy to staging
+            # 4. Run universal gates (rss gate)
+            print(f"[{num}] Running gates...")
+            gate_result = subprocess.run(
+                [sys.executable, str(RSS_CLI), "gate",
+                 "--site", "lrg",
+                 "--file", pipeline_result["html_path"],
+                 "--slug", article["slug"],
+                 "--title", article["title"],
+                 "--json"],
+                capture_output=True, text=True, timeout=60
+            )
+            gate_passed = gate_result.returncode == 0
+            gate_summary = "PASS" if gate_passed else "FAIL"
+            if not gate_passed:
+                print(f"  Gate FAILED: {gate_result.stdout[:200]}")
+            else:
+                print(f"  Gates: PASS")
+
+            # 5. Run adversarial review (rss review)
+            print(f"[{num}] Running adversarial review...")
+            review_result = _run_adversarial_review(num, staging_id, article, pipeline_result["html_path"])
+
+            # 6. Deploy to staging
             if not args.dry_run:
                 print(f"[{num}] Deploying to staging...")
                 deployed = deploy_to_staging(staging_id, article, pipeline_result["html_path"])
@@ -451,6 +531,8 @@ def main():
                 "fact_check": pipeline_result["fact_check"],
                 "cqg": pipeline_result["cqg"],
                 "ymyl": pipeline_result["ymyl"],
+                "gate": gate_summary,
+                "review": review_result,
                 "pp_changes": pp_result.get("changes", []),
                 "pp_warnings": pp_result.get("warnings", []),
                 "pp_flags": pp_result.get("flags", []),

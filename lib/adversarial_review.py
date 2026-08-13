@@ -416,7 +416,28 @@ def verify_fix(finding: Finding) -> VerifiedFix:
             evidence_text="page_fetch module not available",
         )
 
-    html = fetch_page(finding.authority)
+    # Extract URL from authority string (may contain "Citation Name, https://...")
+    fetch_url = finding.authority
+    url_match = re.search(r'https?://\S+', fetch_url)
+    if url_match:
+        fetch_url = url_match.group().rstrip('.,;)')
+
+    # TLO Angular SPA fallback: rewrite to Wayback Machine snapshot
+    TLO_WAYBACK = {
+        "statutes.capitol.texas.gov/Docs/PR/htm/PR.51.htm":
+            "https://web.archive.org/web/20251211125606id_/https://statutes.capitol.texas.gov/Docs/PR/htm/PR.51.htm",
+        "statutes.capitol.texas.gov/Docs/CN/htm/CN.16.htm":
+            "https://web.archive.org/web/20180922113241id_/https://statutes.capitol.texas.gov/Docs/CN/htm/CN.16.htm",
+        "statutes.capitol.texas.gov/Docs/BC/htm/BC.26.htm":
+            "https://web.archive.org/web/20180922113241id_/https://statutes.capitol.texas.gov/Docs/BC/htm/BC.26.htm",
+    }
+    for tlo_pattern, wayback_url in TLO_WAYBACK.items():
+        if tlo_pattern in fetch_url:
+            eprint(f"  [verify] TLO->Wayback fallback: {tlo_pattern}")
+            fetch_url = wayback_url
+            break
+
+    html = fetch_page(fetch_url)
     if not html:
         return VerifiedFix(
             finding=finding,
