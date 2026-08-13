@@ -190,6 +190,24 @@ Do NOT generate historical narrative, heritage stories, cultural origin stories,
 
 FAQ questions must be about THIS specific neighborhood/city, not generic broad questions. Do NOT answer "What is the nicest neighborhood in Texas?" or "What makes the nicest neighborhood stand out?" in a Lockhart guide — those are Texas-wide questions, not Lockhart questions. If SERP gap analysis only surfaces broad queries, use FEWER neighborhood-specific FAQs rather than padding with generic ones. Three strong Lockhart-specific FAQs beat six generic Texas FAQs.
 
+## DEFICIENCY LIABILITY — NEVER IMPLY AUTOMATIC WAIVER
+
+A short sale, deed in lieu, or foreclosure does NOT automatically eliminate the borrower's deficiency liability. Whether the lender waives the remaining balance depends entirely on the written terms of the approval letter or settlement agreement.
+
+CORRECT framing:
+- "A short sale may include a written release of the remaining balance, but only if the lender's approval letter explicitly waives deficiency rights."
+- "Whether you owe a deficiency after a deed in lieu depends on the lender's written agreement."
+- "Request an explicit written release of liability before closing."
+
+NEVER write:
+- "The lender absorbs the shortfall" (without qualifying "if the approval letter releases you")
+- "A short sale eliminates your liability"
+- "Walk away clean" / "walk away free"
+- "The debt is gone after a short sale"
+- "Deficiency is forgiven" (without specifying it requires written release)
+
+This applies to ALL verticals that touch distressed sales, not just the short-sale cluster.
+
 ## NO UNSUPPORTED SUPERLATIVES
 
 "Highest-rated," "no other neighborhood matches," "best value," "strongest," "safest" as bald claims are prohibited. Either ATTRIBUTE ("in our agents' assessment") or make MEASURABLE with a cited source. No unsourced absolutes.
