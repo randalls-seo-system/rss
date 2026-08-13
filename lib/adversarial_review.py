@@ -114,6 +114,7 @@ def _call_openai(
     model: str = "gpt-5.6",
     max_tokens: int = 4096,
     temperature: float = 0.3,
+    json_mode: bool = False,
 ) -> tuple[str, int, int]:
     """Call OpenAI chat API. Returns (text, input_tokens, output_tokens)."""
     from openai import OpenAI
@@ -121,7 +122,7 @@ def _call_openai(
     client = OpenAI(api_key=_load_api_key())
 
     # Reasoning models (o3, gpt-5.x) don't support temperature
-    _no_temp_models = ("gpt-5.6", "gpt-5.4", "o3", "o3-mini", "o4-mini")
+    _no_temp_models = ("gpt-5.6", "gpt-5.5", "gpt-5.4", "gpt-5.3", "gpt-5.2", "gpt-5.1", "gpt-5", "o3", "o3-mini", "o4-mini")
     supports_temp = not any(model.startswith(p) for p in _no_temp_models)
 
     last_error: Exception | None = None
@@ -132,6 +133,8 @@ def _call_openai(
                 messages=messages,
                 max_completion_tokens=max_tokens,
             )
+            if json_mode:
+                create_kwargs["response_format"] = {"type": "json_object"}
             if supports_temp:
                 create_kwargs["temperature"] = temperature
             resp = client.chat.completions.create(**create_kwargs)
@@ -320,7 +323,7 @@ def run_review(
         raise RuntimeError(
             f"Review input estimate ({est_input_tokens} tokens) exceeds budget cap ({budget_cap})")
 
-    raw, inp, out = _call_openai(messages, model=model, max_tokens=4096)
+    raw, inp, out = _call_openai(messages, model=model, max_tokens=16384, json_mode=True)
     cost = _estimate_cost(model, inp, out)
 
     # Parse defensively
@@ -333,7 +336,7 @@ def run_review(
             "Your response was not valid JSON. Please return ONLY a JSON object "
             "matching the schema above. No markdown fences, no commentary."
         )})
-        raw2, inp2, out2 = _call_openai(messages, model=model, max_tokens=4096)
+        raw2, inp2, out2 = _call_openai(messages, model=model, max_tokens=16384, json_mode=True)
         cost += _estimate_cost(model, inp2, out2)
         inp += inp2
         out += out2
@@ -635,7 +638,7 @@ def run_review_cycle(
     eprint("Running confirmation review...")
     actionable_findings = [f.finding for f in applicable]
     conf_messages = _build_confirmation_prompt(actionable_findings, revised_html)
-    conf_raw, conf_inp, conf_out = _call_openai(conf_messages, model=model, max_tokens=2048)
+    conf_raw, conf_inp, conf_out = _call_openai(conf_messages, model=model, max_tokens=8192, json_mode=True)
     result.total_cost += _estimate_cost(model, conf_inp, conf_out)
     result.review_calls += 1
 
@@ -720,7 +723,12 @@ def cli_review(args: list[str] | None = None) -> int:
     jdir = get_job_dir(job)
 
     # Resolve deploy artifact — no candidate list, no glob, no fallback
-    from lib.artifact_resolver import resolve_deploy_artifact, ArtifactResolutionError
+    import importlib.util as _ar_ilu
+    _ar_spec = _ar_ilu.spec_from_file_location("artifact_resolver", REPO_ROOT / "lib" / "artifact_resolver.py")
+    _ar_mod = _ar_ilu.module_from_spec(_ar_spec)
+    _ar_spec.loader.exec_module(_ar_mod)
+    resolve_deploy_artifact = _ar_mod.resolve_deploy_artifact
+    ArtifactResolutionError = _ar_mod.ArtifactResolutionError
     try:
         resolved = resolve_deploy_artifact(job, jdir)
     except ArtifactResolutionError as e:

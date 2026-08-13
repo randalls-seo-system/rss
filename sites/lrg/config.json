@@ -31,7 +31,7 @@
     "vertical": "real_estate",
     "adversarial_review": {
       "enabled": true,
-      "model": "gpt-5.6",
+      "model": "gpt-5.5",
       "content_types": ["article", "guide", "pillar"],
       "budget_cap_tokens": 100000,
       "monthly_budget_usd": 50.0
