@@ -3,7 +3,7 @@
 
 **SERP cache:** 73 queries (61 prior + 12 new this session), all under 14 days old.
 **Provenance:** All SERP data is SERP OBSERVATION (Serper.dev, point-in-time). Search volume unavailable from Serper. No volume numbers estimated.
-**Existing category:** 6 posts in Short Sales: 9765 (pillar), 9773 (PCS underwater), 9774 (short sale vs foreclosure), 8714 (PCS no equity), 1516 (short sale explainer, UNRESOLVED -- see cannibalization note), 8688 (VA after short sale).
+**Existing category:** 6 posts in Short Sales: 9765 (pillar), 9773 (PCS underwater), 9774 (short sale vs foreclosure), 8714 (PCS no equity), 1516 (short sale process guide, rebuilding at slug short-sale-process-guide-texas), 8688 (VA after short sale).
 
 ---
 
@@ -157,7 +157,9 @@
 **Compliance note:** Highest YMYL risk in the cluster. Must source IRS.gov Topic 431 directly. CPA referral in every section.
 **MFDRA status VERIFIED:** The qualified principal residence exclusion applies to debt "discharged before January 1, 2026, or discharged subject to an arrangement that is entered into and evidenced in writing before January 1, 2026." As of August 2026, the exclusion has expired for new discharges. The insolvency exclusion and Title 11 bankruptcy exclusion remain permanent with no date limitation. [VERIFIED -- IRS.gov Topic 431, page last reviewed 2026-05-14, fetched 2026-08-12.] The "Post-MFDRA 2026" title and premise are correct.
 
-#### 9. Short Sale Process in Texas: Step by Step
+#### 9. Short Sale Process in Texas: Step by Step — RESOLVED BY 1516 REBUILD
+
+**Status:** RESOLVED. Post 1516 rebuilt via pipeline at slug `short-sale-process-guide-texas` (2026-08-13). The rebuilt page serves this intent with the same target queries, TX-specific framing, and h2-override structure mapped to 1516's ranking queries. No separate article needed.
 
 **Target queries:** "short sale process texas", "how does a short sale work", "short sale timeline texas"
 **Intent band:** TX-authority
@@ -167,7 +169,7 @@
 **Author:** Levi Rodgers | **Reviewer:** Mayra Torres
 **Links to:** 9765, 9774, Article #7 (deficiency), Article #8 (tax)
 **Links from:** 9765, 9774
-**Cannibalization check with 1516 (UNRESOLVED):** Post 1516 ("Understanding Short Sales") covers the short sale process from both buyer and seller perspective. This article would cover the seller process in depth, TX-specific. If 1516 is redirected to 9765, this article fills the process-explainer gap cleanly. If 1516 stays, there is moderate overlap on the "how it works" sections. **Decision on 1516 must precede this article's build.**
+**Cannibalization check with 1516 (RESOLVED):** Post 1516 rebuilt as Option A — clean slug, 301 from old URL, TX-specific content with both disclaimer blocks, correct MFDRA treatment. The rebuilt 1516 IS this article. Query overlap confirmed: 1516 ranks for "how does a short sale work" (pos 5.0) and "short sale timeline texas" (pos 6.0), which are this article's exact targets.
 
 ---
 
@@ -198,7 +200,7 @@
 | #6 Keep/Sell/Rent PCS | 9773 (underwater PCS), 8714 (low equity PCS) | Decision framework that bridges both. Different intent from either. |
 | #7 Deficiency Judgments TX | 9774 (mentions deficiency in table) | Standalone deep dive on a legal subtopic. |
 | #8 Tax on Forgiven Debt | 8891 (capital gains tax) | Different tax topic entirely. |
-| #9 Short Sale Process TX | **1516 (UNRESOLVED)** | Moderate overlap. 1516 decision must come first. |
+| #9 Short Sale Process TX | **1516 (RESOLVED)** | 1516 rebuilt at `short-sale-process-guide-texas`. This article is the rebuild. |
 
 ---
 
@@ -210,4 +212,4 @@
 4. **#4 Austin Underwater 2026** -- Timely, data-driven, local differentiation. Leverages existing Austin market content.
 5. **#6 Keep/Sell/Rent PCS** -- Directly contests veteranrealestatesa.com's strongest page with a better (underwater-aware, multi-base) version.
 
-Articles #5, #7, #8, #9 are strong but are either compliance-heavy (slower to build) or blocked by the 1516 decision.
+Articles #5, #7, #8 are strong but compliance-heavy (slower to build). #9 is resolved by the 1516 rebuild.
