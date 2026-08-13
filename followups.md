@@ -22,48 +22,55 @@ one.
    handles post-level meta extensively; it may not hook into taxonomy
    archives.
 
-**Impact:** Every category archive (28+ categories with posts) ships
+**Impact:** Every category archive (27 categories with posts) ships
 without a meta description. Google auto-generates snippets from page
 content. For most informational categories this is low-priority, but for
 Short Sales specifically the auto-generated snippet will pull from the
 first card's excerpt -- which is currently the Educational Notice
 disclaimer text (see Task 3).
 
+**Note (2026-08-13):** Category base changed from `/lrg-blog/category/`
+to `/lrg-blog/topics/`. Category archives now live at
+`/lrg-blog/topics/<slug>/`. Old `/category/` paths 301 via regex in
+`lrg-broken-link-redirects.php` v1.3.0. Category count is 27 non-empty
+(down from 29 after junk terms "30" and "64" were deleted).
+
 **Fix scope:** Site-wide Yoast config check + possible rss-meta-header.php
 extension for taxonomy archives. Separate session.
 
-## 2. Pill Bar Ordering -- Short Sales at Position 25 of 29
+## 2. Pill Bar Ordering -- Short Sales Sorts by Post Count
 
-**Status:** Report only. No change made.
+**Status:** Report only. No change made. Open against new `/topics/` base.
 
 **Mechanism:** `lrg_cat_hero_get_pills()` in `lrg-category-hero.php`
 calls `get_categories(orderby => count, order => DESC)`. No pinning,
-no priority array, no filter hook.
+no priority array, no filter hook. Short Sales position depends on its
+post count relative to other categories. Category base is now
+`/lrg-blog/topics/` (changed 2026-08-13). Pill bar links auto-updated
+via `get_term_link()`.
 
 **Cost to pin:** ~10 lines added to the function: a `$pinned` array of
 slugs that get sorted to the front, remaining categories follow in count
 order. Minimal risk, but it is a mu-plugin edit on prod.
 
 **Decision:** Not urgent. Do not revisit until the category has enough
-posts to place organically. Pinning a 6-post category above 24 larger
-ones is a mu-plugin edit on prod to solve a problem that solves itself
-if the article queue ships. Revisit at 15+ posts, or never.
+posts to place organically. Revisit at 15+ posts, or never.
 
-## 3. Post 1516 vs 9765 Cannibalization (UNRESOLVED)
+## 3. Post 1516 Rebuild — Resolved, Not Yet Deployed
 
-**Status:** Flagged in Task 4 article queue. Not settled.
+**Status:** RESOLVED. Rebuild complete on staging, NOT YET DEPLOYED.
 
-Post 1516 ("Understanding Short Sales: A Guide for Homebuyers and
-Sellers") and 9765 ("Your Options When You Can't Afford to Sell Your
-Texas Home") both now sit in the Short Sales category. They compete for
-short-sale explainer intent. 1516 was reported as having 46 internal
-links pointing to it in the recon pass (SECONDARY -- single-source LIKE
-query, not verified against a second method). The 46-link count must be
-confirmed before it drives a redirect decision. GSC shows only 15
-impressions over 90 days. Options: redirect 1516 to 9765 (transfers
-link equity if the count holds), rewrite 1516 to narrow its scope to
-buyer-side only, or leave both. Requires backlink audit + link count
-verification before deciding.
+Query analysis showed 1516 serves short-sale process intent and 9765
+serves options-overview intent — no cannibalization. Decision: Option A,
+rebuild 1516 at a clean slug.
+
+Draft 9671 (`short-sale-process-guide-texas`) exists on staging. Post
+1516 still live at the dated Squarespace slug
+`2024-8-14-understanding-short-sales-a-guide-for-homebuyers-and-sellers`.
+
+**Approach when resumed:** Update post 1516 in place with 9671's content
+and the new slug. Generate a featured image. Add CF Worker redirect
+entries for the old dated URL.
 
 ## 4. TREC Advertising Compliance (site-wide)
 
@@ -155,4 +162,36 @@ by backfilling with `get_gmt_from_date()`. The batch runner's
 `lrg-category-hero.php:541` double-encodes `wptexturize()` output via
 `esc_html()`. Affects all archive card titles with apostrophes,
 ampersands, or special characters. DB values are clean. Requires
-mu-plugin edit.
+mu-plugin edit. Open against new `/topics/` base.
+
+## 11. Cloudflare Worker REDIRECTS Map — Stale /category/ Targets
+
+**Status:** Open. Manual pass required.
+
+The CF Worker REDIRECTS map (deployed via Cloudflare, not in the repo)
+has entries whose targets point at `/lrg-blog/category/` paths. These
+now chain through the WordPress 301 handler (`lrg-broken-link-redirects.php`
+v1.3.0 regex: old `/category/*` → `/lrg-blog/topics/*`). The chains
+work but add a hop. A manual pass of the Worker source is needed to
+update targets to `/lrg-blog/topics/` directly.
+
+The linker config files also need updating:
+- `randalls-seo-system/sites/lrg/config.json` line 65: `excluded_destinations`
+  contains `/lrg-blog/category/` — update to `/lrg-blog/topics/`
+- `randalls-seo-system/sites/lrg-linker.json` line 36: same
+- `rss-shortsale/sites/lrg/config.json` line 65: same
+
+## 12. Post 1516 Rebuild — Pending Deploy
+
+**Status:** Open. Draft 9671 on staging, never deployed.
+
+Post 1516 ("Understanding Short Sales: A Guide for Homebuyers and
+Sellers") still has the dated Squarespace slug
+`2024-8-14-understanding-short-sales-a-guide-for-homebuyers-and-sellers`.
+The rebuild (draft 9671) was created on staging but never shipped.
+
+**Approach:** Update post 1516 in place with 9671's content and a new
+clean slug. Generate a featured image. Add CF Worker entries for the
+old dated URL. The `2024-8-31-understanding-san-antonio-home-price-trends`
+Worker entry that points at the dated 1516 URL also needs updating to
+the new slug once the rebuild deploys.
