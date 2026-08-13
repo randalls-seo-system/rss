@@ -425,4 +425,32 @@ def run_all_passes(html: str, site_config: dict | None = None,
             print(f"  {hit}", file=sys.stderr)
         sys.exit(1)
 
+    # HARD FAIL: scorecard placeholder values
+    placeholder_vals = re.findall(
+        r'<div class="sc-val">(See guide|See below|Varies|TBD|Verify)</div>',
+        html, re.IGNORECASE
+    )
+    if placeholder_vals:
+        import sys
+        print(f"\nHARD FAIL: {len(placeholder_vals)} scorecard placeholders in output.", file=sys.stderr)
+        for v in placeholder_vals:
+            print(f"  sc-val: '{v}'", file=sys.stderr)
+        sys.exit(1)
+
+    # HARD FAIL: unsourced school quality claims
+    _top_rated_near_school = re.compile(
+        r'(?:top-rated|highly rated|best-rated|top-ranked|top rated)'
+        r'(?:[^.]{0,30})'
+        r'(?:ISD|CISD|district|school|campus)',
+        re.IGNORECASE
+    )
+    unsourced_school = _top_rated_near_school.findall(html)
+    if unsourced_school:
+        import sys
+        print(f"\nHARD FAIL: {len(unsourced_school)} unsourced school quality claims.", file=sys.stderr)
+        for claim in unsourced_school:
+            print(f"  '{claim}'", file=sys.stderr)
+        print("Add TEA year+letter+score or cut the modifier.", file=sys.stderr)
+        sys.exit(1)
+
     return html, all_log

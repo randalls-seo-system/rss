@@ -267,7 +267,30 @@ the same session. No lasting damage.
    does NOT have the "numbers signal expertise" directive. TLN content
    owner should audit for fabricated rates, limits, and timelines.
 
-8. **Price data pull decision pending.** Positive sourcing constraint
+8. **"Top-rated" school claims remediated (2026-08-13).** 43 instances
+   of unsourced "top-rated" / "highly rated" / "top ranked" near district
+   names stripped across 14 posts. Pipeline does not have TEA
+   accountability ratings — it verifies district BOUNDARIES via ArcGIS
+   but never pulls accountability SCORES. Cut rather than guess per
+   sourcing rule. HARD FAIL gate added to post_assembly.py for future
+   runs. **Pipeline enhancement:** adding a TEA rating lookup to the
+   verified-data step would let every guide make a sourced quality claim
+   ("Boerne ISD, rated A (92) in the 2025 TEA system") instead of
+   cutting the modifier.
+
+9. **Scorecard placeholders removed (2026-08-13).** 18 instances of
+   "See guide" / "See below" / "Varies" stripped from 9 July single
+   guides (9554-9611). Rows omitted entirely rather than showing
+   placeholder values. HARD FAIL gate added.
+
+10. **Generic tagline debt: 52 instances across 37 pages.** Taglines
+    like "Best for newer construction with community amenities" and
+    "Established neighborhood near X" name no specific feature, era,
+    landmark, or road. Editorial rewriting needed, ~1 hour. Not a
+    compliance issue — quality debt. Full inventory at
+    `~/lrg-rewrite/filler-scan-report.txt`.
+
+11. **Price data pull decision pending.** Positive sourcing constraint
    eliminated all fabricated dollar amounts (15 → 0). Scorecard renders
    2-row (district + walkability) and price bars are off. Pulling real
    prices for all 10 cities would restore 4-row scorecards and the
