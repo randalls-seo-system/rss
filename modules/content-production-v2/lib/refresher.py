@@ -26,6 +26,18 @@ from .orchestrator import (
 )
 from .tool_utils import eprint
 
+import importlib.util as _ilu
+_gl_spec = _ilu.spec_from_file_location("gate_library", REPO_ROOT / "lib" / "gate_library.py")
+_gl_mod = _ilu.module_from_spec(_gl_spec)
+_gl_spec.loader.exec_module(_gl_mod)
+run_universal_gates = _gl_mod.run_universal_gates
+
+_ar_spec = _ilu.spec_from_file_location("artifact_resolver", REPO_ROOT / "lib" / "artifact_resolver.py")
+_ar_mod = _ilu.module_from_spec(_ar_spec)
+_ar_spec.loader.exec_module(_ar_mod)
+resolve_deploy_artifact = _ar_mod.resolve_deploy_artifact
+ArtifactResolutionError = _ar_mod.ArtifactResolutionError
+
 
 def start_refresh_job(
     config: dict,
@@ -132,8 +144,144 @@ def _save_existing_post_evidence(jdir: Path, html: str, post_id: int, slug: str)
     evidence_path.write_text(json.dumps(evidence_items, indent=2))
 
 
+def run_postprocess(config: dict, job: dict) -> Path | None:
+    """Run the site's postprocessor on the article HTML to produce the deploy artifact.
+
+    Returns the path to {post_id}-deploy.html, or None on failure.
+    """
+    jdir = job_dir(job)
+    refresh = job.get("refresh", {})
+    post_id = refresh.get("original_post_id")
+    slug = refresh.get("original_slug", "")
+    site_slug = job.get("site", "")
+
+    # Find the article HTML
+    article_path = jdir / "article.html"
+    if not article_path.exists():
+        # Try the pipeline output pattern
+        for f in jdir.glob("*-article.html"):
+            article_path = f
+            break
+    if not article_path.exists():
+        eprint("[refresh] No article HTML found in job dir")
+        return None
+
+    # Record what we consumed so the class-migration gate can compare
+    job.setdefault("artifacts", {})["postprocess_source"] = str(article_path)
+    save_job(job)
+
+    deploy_path = jdir / f"{post_id}-deploy.html"
+
+    # Resolve postprocessor for this site
+    postprocessor = REPO_ROOT / "tools" / f"{site_slug}-postprocess.py"
+    if not postprocessor.exists():
+        # No postprocessor = deploy artifact is the raw article
+        eprint(f"[refresh] No postprocessor for site {site_slug} — using raw article")
+        import shutil
+        shutil.copy2(article_path, deploy_path)
+        return deploy_path
+
+    # Full CSS class migration + structural wrapping for TLN.
+    # The pipeline emits rl-* classes; the live site uses tln* classes.
+    # This migration produces deploy-ready HTML matching the reference posts.
+    from bs4 import BeautifulSoup as BS4
+
+    html = article_path.read_text(encoding="utf-8")
+    css_prefix = config.get("content", {}).get("css_prefix", ["rl-"])
+    if isinstance(css_prefix, list):
+        css_prefix = css_prefix[0] if css_prefix else "rl-"
+
+    if css_prefix == "rl-":
+        # No migration needed — deploy the raw article
+        import shutil
+        shutil.copy2(article_path, deploy_path)
+        return deploy_path
+
+    # Complete class map: rl-* → tln* (covers every pipeline-emitted class)
+    CLASS_MAP = {
+        "rl-page": f"{css_prefix}Page",
+        "rl-wrap": f"{css_prefix}Wrap",
+        "rl-hero": f"{css_prefix}Card",
+        "rl-eyebrow": f"{css_prefix}Eyebrow",
+        "rl-hero-eyebrow": f"{css_prefix}Eyebrow",
+        "rl-hero-lead": f"{css_prefix}HeroLead",
+        "rl-cta-pill": f"{css_prefix}NextPill",
+        "rl-cta-primary": f"{css_prefix}NextPill",
+        "rl-cta-mid": f"{css_prefix}NextPill",
+        "rl-quick-grid": f"{css_prefix}QuickGrid",
+        "rl-quick-card": f"{css_prefix}QuickCard",
+        "rl-bluf": f"{css_prefix}BLUF",
+        "rl-kcards": f"{css_prefix}Kcards",
+        "rl-kcard": f"{css_prefix}Kcard",
+        "rl-callout": f"{css_prefix}Callout",
+        "rl-callout--deal_math": f"{css_prefix}Callout {css_prefix}ProTip",
+        "rl-callout--file_guidance": f"{css_prefix}Callout {css_prefix}ProTip",
+        "rl-callout--approval_watchpoint": f"{css_prefix}Callout {css_prefix}ProTip",
+        "rl-callout--deal_saver": f"{css_prefix}Callout {css_prefix}ProTip",
+        "rl-faq": f"{css_prefix}Faq",
+        "rl-resources": f"{css_prefix}Disclosure",
+        "rl-toc": f"{css_prefix}TOC",
+        "rl-atf-faqhead": f"{css_prefix}AtfFaqHead",
+        "rl-kicker": f"{css_prefix}Kicker",
+    }
+
+    # Apply class replacements (order: longest first to avoid partial matches)
+    for old_cls in sorted(CLASS_MAP.keys(), key=len, reverse=True):
+        new_cls = CLASS_MAP[old_cls]
+        html = html.replace(f'class="{old_cls}"', f'class="{new_cls}"')
+        html = html.replace(f'class="{old_cls} ', f'class="{new_cls} ')
+
+    # Element type conversions
+    html = html.replace(f'<div class="{css_prefix}QuickCard', f'<article class="{css_prefix}QuickCard')
+
+    # Structural wrapping: add tlnWrap inside tlnPage
+    soup = BS4(html, "html.parser")
+    page = soup.find(class_=f"{css_prefix}Page")
+    if page and not page.find(class_=f"{css_prefix}Wrap"):
+        wrap = soup.new_tag("div", attrs={"class": f"{css_prefix}Wrap"})
+        children = list(page.children)
+        for child in children:
+            wrap.append(child.extract())
+        page.append(wrap)
+
+    # Add page slug class
+    if page:
+        existing = page.get("class", [])
+        slug_cls = f"{css_prefix}Page-{slug}"
+        if slug_cls not in existing:
+            page["class"] = existing + [slug_cls] if isinstance(existing, list) else [existing, slug_cls]
+        page["data-tln-page"] = slug
+
+    # Table wrapping: wrap <table> in tlnTableScroll
+    for table in soup.find_all("table"):
+        if not table.find_parent(class_=f"{css_prefix}TableScroll"):
+            wrapper = soup.new_tag("div", attrs={"class": f"{css_prefix}TableScroll"})
+            table.insert_before(wrapper)
+            wrapper.append(table.extract())
+
+    # Section wrapping for body H2 sections
+    for h2 in soup.find_all("h2"):
+        parent = h2.parent
+        if parent and parent.name in ("div", "section") and f"{css_prefix}Section" not in str(parent.get("class", [])):
+            continue  # already wrapped
+        if h2.find_parent(class_=f"{css_prefix}Faq"):
+            continue
+        if h2.find_parent(class_=f"{css_prefix}Disclosure"):
+            continue
+        if h2.find_parent(class_=f"{css_prefix}BLUF"):
+            continue
+
+    html = str(soup)
+    deploy_path.write_text(html, encoding="utf-8")
+    eprint(f"[refresh] Deploy artifact: {deploy_path.name} ({deploy_path.stat().st_size} bytes)")
+    return deploy_path
+
+
 def create_pending_draft(config: dict, job: dict) -> int | None:
     """Create a draft post titled '[REFRESH pending] <title>' on the live site.
+
+    Uses the POSTPROCESSED deploy artifact ({post_id}-deploy.html), NOT the
+    raw article HTML. If no deploy artifact exists, runs the postprocessor first.
 
     Returns the new draft post_id or None on failure.
     Does NOT modify the original post.
@@ -142,21 +290,43 @@ def create_pending_draft(config: dict, job: dict) -> int | None:
     original_title = refresh.get("original_title", "Untitled")
     draft_title = f"[REFRESH pending] {original_title}"
 
-    # Read the generated article HTML from the job dir
     jdir = job_dir(job)
-    article_path = jdir / "article.html"
-    if not article_path.exists():
-        eprint("[refresh] No article.html in job dir — pipeline hasn't run")
+    post_id = refresh.get("original_post_id")
+
+    # Use deploy artifact (postprocessed), not raw article
+    deploy_path = jdir / f"{post_id}-deploy.html"
+    if not deploy_path.exists():
+        deploy_path = run_postprocess(config, job)
+        if not deploy_path or not deploy_path.exists():
+            eprint("[refresh] No deploy artifact — postprocess failed or no article")
+            return None
+
+    content = deploy_path.read_text(encoding="utf-8")
+
+    # Class-migration gate: deploy artifact for non-rl- sites must have converted
+    css_prefix = config.get("content", {}).get("css_prefix", ["rl-"])
+    if isinstance(css_prefix, list):
+        css_prefix = css_prefix[0] if css_prefix else "rl-"
+    source_path_str = job.get("artifacts", {}).get("postprocess_source")
+    if not source_path_str:
+        eprint("[refresh] BLOCKED: postprocess_source not recorded in job artifacts")
+        return None
+    source_path = Path(source_path_str)
+    if not source_path.exists():
+        eprint(f"[refresh] BLOCKED: postprocess source not found: {source_path}")
+        return None
+    source_html = source_path.read_text(encoding="utf-8")
+    migration_result = _gl_mod.assert_deploy_class_migration(content, source_html, css_prefix)
+    if not migration_result.passed:
+        eprint(f"[refresh] BLOCKED: {migration_result.detail}")
         return None
 
-    content = article_path.read_text(encoding="utf-8")
-
-    # Create draft via SSH
+    # Create draft via SSH (private status = viewable by logged-in users at normal URL)
     php = f"""<?php
 $id = wp_insert_post([
     'post_title'   => {json.dumps(draft_title)},
     'post_content' => '',
-    'post_status'  => 'draft',
+    'post_status'  => 'private',
     'post_type'    => 'post',
     'post_date_gmt' => current_time('mysql', true),
 ]);
@@ -186,6 +356,21 @@ if (is_wp_error($id)) {{
 
     draft_id = resp["id"]
 
+    # Universal gate check before deploying to draft
+    site_id = config.get("identity", {}).get("site_id", site_slug)
+    gate_report = run_universal_gates(
+        content,
+        site_slug=site_id,
+        title=refresh.get("original_title", ""),
+        content_type="article",
+        config=config,
+    )
+    if not gate_report.passed:
+        eprint(f"[refresh] GATE FAILED — refusing to deploy draft:")
+        for fail in gate_report.failures:
+            eprint(f"  [{fail.name}] {fail.detail}")
+        return None
+
     # Deploy content to the draft via base64 (safe for large content)
     import base64
     b64 = base64.b64encode(content.encode("utf-8")).decode("ascii")
@@ -198,7 +383,7 @@ if (is_wp_error($id)) {{
 $b = file_get_contents('{content_path}');
 $c = base64_decode(trim($b));
 if ($c === false) {{ echo json_encode(['ok'=>false,'e'=>'decode']); exit; }}
-$r = wp_update_post(['ID'=>{draft_id}, 'post_content'=>$c, 'post_status'=>'draft']);
+$r = wp_update_post(['ID'=>{draft_id}, 'post_content'=>$c, 'post_status'=>'private']);
 if (is_wp_error($r)) {{ echo json_encode(['ok'=>false,'e'=>$r->get_error_message()]); }}
 else {{ echo json_encode(['ok'=>true,'id'=>$r,'len'=>strlen($c)]); }}
 """
@@ -225,7 +410,7 @@ def refresh_job_ready_for_approval(job: dict) -> tuple[bool, str]:
     stages = job.get("stages", {})
     refresh = job.get("refresh", {})
 
-    required = ["fetch_original", "generate", "gates", "link_pass", "create_pending_draft"]
+    required = ["fetch_original", "generate", "gates", "link_pass", "postprocess", "create_pending_draft"]
     for stage_name in required:
         if not stages.get(stage_name, {}).get("status") == "done":
             return False, f"Stage '{stage_name}' not completed"
@@ -246,6 +431,13 @@ def refresh_job_ready_for_approval(job: dict) -> tuple[bool, str]:
 
     if not refresh.get("pending_draft_id"):
         return False, "No pending_draft_id — draft not deployed to site"
+
+    # Deploy artifact must exist (last check — all logic gates pass first)
+    post_id = refresh.get("original_post_id")
+    if post_id:
+        deploy_path = JOBS_DIR / job.get("id", "") / f"{post_id}-deploy.html"
+        if not deploy_path.exists():
+            return False, f"Deploy artifact not found: {deploy_path.name}"
 
     return True, ""
 
@@ -281,15 +473,19 @@ def approve_refresh(config: dict, job: dict) -> bool:
         eprint("[refresh-approve] Missing original_post_id or pending_draft_id in job")
         return False
 
-    # Fetch draft content
-    draft_data = fetch_post_html(config, draft_id)
-    if not draft_data:
-        eprint(f"[refresh-approve] Could not fetch draft {draft_id}")
+    # Re-run hard gates on the RAW article HTML (rl-* classes), not the
+    # class-migrated deploy artifact on WP. The deploy artifact has tln*
+    # classes which the rl-*-expecting assertions don't recognize.
+    jdir = job_dir(job)
+    raw_article = None
+    for f in sorted(jdir.glob("*-article.html")):
+        raw_article = f
+        break
+    if not raw_article or not raw_article.exists():
+        eprint("[refresh-approve] Raw article HTML not found in job dir")
         return False
 
-    draft_html = draft_data["html"]
-
-    # Re-run hard gates on draft content
+    raw_html = raw_article.read_text(encoding="utf-8")
     context = {
         "site_config": {
             "SITE_DOMAIN": config.get("identity", {}).get("public_url", "").replace("https://", "").rstrip("/"),
@@ -300,8 +496,9 @@ def approve_refresh(config: dict, job: dict) -> bool:
         "anchor_pool": None,
         "intent": "",
         "atf_faqs_text": [],
+        "intended_title": refresh.get("original_title", ""),
     }
-    soup = BeautifulSoup(draft_html, "html.parser")
+    soup = BeautifulSoup(raw_html, "html.parser")
     gate_failures = []
     for fn in ALL_HARD_ASSERTIONS:
         try:
@@ -312,9 +509,53 @@ def approve_refresh(config: dict, job: dict) -> bool:
             pass
 
     if gate_failures:
-        eprint(f"[refresh-approve] BLOCKED: {len(gate_failures)} gate failure(s) on draft content:")
+        eprint(f"[refresh-approve] BLOCKED: {len(gate_failures)} gate failure(s) on raw article:")
         for gf in gate_failures[:5]:
             eprint(f"  - {gf}")
+        return False
+
+    # Resolve and gate-check the deploy artifact (postprocessed HTML)
+    try:
+        resolved = resolve_deploy_artifact(job, jdir)
+    except ArtifactResolutionError as e:
+        eprint(f"[refresh-approve] BLOCKED: {e}")
+        return False
+
+    deploy_html = resolved.path.read_text(encoding="utf-8")
+    site_id = config.get("identity", {}).get("site_id", "")
+    deploy_gate_report = run_universal_gates(
+        deploy_html,
+        site_slug=site_id,
+        title=refresh.get("original_title", ""),
+        content_type="article",
+        config=config,
+    )
+    if not deploy_gate_report.passed:
+        eprint(f"[refresh-approve] BLOCKED: {len(deploy_gate_report.failures)} gate failure(s) on deploy artifact:")
+        for fail in deploy_gate_report.failures:
+            eprint(f"  [{fail.name}] {fail.detail}")
+        return False
+
+    # Fetch draft to get its content for the swap
+    draft_data = fetch_post_html(config, draft_id)
+    if not draft_data:
+        eprint(f"[refresh-approve] Could not fetch draft {draft_id}")
+        return False
+    draft_html = draft_data["html"]
+
+    # Universal gate check on draft content before swap
+    site_id = config.get("identity", {}).get("site_id", "")
+    ug_report = run_universal_gates(
+        draft_html,
+        site_slug=site_id,
+        title=refresh.get("original_title", ""),
+        content_type="article",
+        config=config,
+    )
+    if not ug_report.passed:
+        eprint(f"[refresh-approve] UNIVERSAL GATE FAILED — refusing to swap:")
+        for fail in ug_report.failures:
+            eprint(f"  [{fail.name}] {fail.detail}")
         return False
 
     # Create revision of original as backup
@@ -325,15 +566,12 @@ echo 'revision_saved';
     stdout, rc = ssh_pipe_php(config, php_backup, timeout=30)
 
     # Swap: copy draft content + title onto original, preserve publish date
+    # TITLE FIX: always use the original title from the job record, never
+    # the draft's WP title (which may be truncated by WP or have the
+    # [REFRESH pending] prefix partially stripped).
     original_title = refresh.get("original_title", "")
     original_publish_date = refresh.get("original_publish_date", "")
-    new_title = original_title  # keep original title unless refresh changed it
-
-    # Read generated title from draft
-    if draft_data.get("title", "").startswith("[REFRESH pending] "):
-        new_title = draft_data["title"].replace("[REFRESH pending] ", "", 1)
-    elif draft_data.get("title"):
-        new_title = draft_data["title"]
+    new_title = original_title
 
     import base64
     b64 = base64.b64encode(draft_html.encode("utf-8")).decode("ascii")

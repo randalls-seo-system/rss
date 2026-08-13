@@ -40,6 +40,9 @@ from ssh_session import SSHSession
 from php_template import generate_post_update_script
 from lib.deploy_lock import acquire_deploy_lock
 
+sys.path.insert(0, str(REPO_ROOT))
+from lib.gate_library import run_universal_gates
+
 
 REQUIRED_PHASES = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H']
 
@@ -125,7 +128,8 @@ def backup_post(ssh, post_id, backup_dir):
 
 def push_single_post(ssh, post_id, html_file, status, verify_greps,
                      forbid_greps, size_min_ratio, size_max_ratio,
-                     backup_dir, dry_run):
+                     backup_dir, dry_run, site_slug="",
+                     skip_gates=False):
     """Push content for a single post. Returns (success, details_dict)."""
     details = {'post_id': post_id, 'status': 'pending'}
 
@@ -139,6 +143,21 @@ def push_single_post(ssh, post_id, html_file, status, verify_greps,
         details['status'] = 'error'
         details['error'] = 'Empty content file'
         return False, details
+
+    # Universal gate check — runs before any write
+    if not skip_gates and site_slug:
+        gate_report = run_universal_gates(
+            new_content,
+            site_slug=site_slug,
+            content_type="article",
+        )
+        if not gate_report.passed:
+            details['status'] = 'gate_fail'
+            details['error'] = gate_report.summary()
+            details['gate_failures'] = [
+                {'name': f.name, 'detail': f.detail} for f in gate_report.failures
+            ]
+            return False, details
 
     # Backup current content
     if not dry_run:
@@ -268,6 +287,22 @@ def _create_post(ssh, args):
     author = args.author or 1
     status = args.status
     excerpt = args.excerpt or ''
+
+    # Universal gate check before create
+    with open(html_file) as f:
+        content_for_gate = f.read()
+    gate_report = run_universal_gates(
+        content_for_gate,
+        site_slug=args.site,
+        slug=slug,
+        title=title,
+        content_type="article",
+    )
+    if not gate_report.passed:
+        print(f"GATE FAILED — refusing to create post:", file=sys.stderr)
+        for fail in gate_report.failures:
+            print(f"  [{fail.name}] {fail.detail}", file=sys.stderr)
+        return None
 
     # Auto-extract excerpt from intro if not provided
     if not excerpt:
@@ -489,7 +524,8 @@ def main():
             ssh, post_id, html_path, args.status,
             verify_greps, forbid_greps,
             args.size_min_ratio, args.size_max_ratio,
-            backup_dir, args.dry_run)
+            backup_dir, args.dry_run,
+            site_slug=args.site)
 
         if ok:
             success_count += 1

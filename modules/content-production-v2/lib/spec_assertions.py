@@ -1550,6 +1550,129 @@ def assert_no_keyword_stuffed_headings(soup: BeautifulSoup, context: dict) -> As
 
 
 # ---------------------------------------------------------------------------
+# 18.4.12-14 Deploy-integrity assertions
+# ---------------------------------------------------------------------------
+
+def assert_no_fragment_list_items(soup: BeautifulSoup, context: dict) -> AssertionResult:
+    """18.4.12 Every <li> in main content has >=4 words and does not start with punctuation."""
+    fragments = []
+    for li in soup.find_all("li"):
+        # Skip items inside nav/breadcrumb/skip-link elements
+        if li.find_parent("nav"):
+            continue
+        text = _text_of(li).strip()
+        if not text:
+            fragments.append("(empty)")
+            continue
+        wc = _word_count(text)
+        if wc < 4:
+            fragments.append(f"{wc}w: \"{text[:40]}\"")
+        elif text[0] in ".,;:!?)>—":
+            fragments.append(f"starts with '{text[0]}': \"{text[:40]}\"")
+    if fragments:
+        return AssertionResult(False, "hard",
+            f"{len(fragments)} fragment <li>(s): {'; '.join(fragments[:3])}", "18.4.12")
+    return AssertionResult(True, "hard", None, "18.4.12")
+
+
+def assert_atf_document_order(soup: BeautifulSoup, context: dict) -> AssertionResult:
+    """18.4.13 ATF elements appear in correct document order.
+
+    Required sequence: eyebrow → BLUF → quick-cards/grid → ATF FAQs → first body H2.
+    Supports both rl-* (pre-postprocess) and tln* (post-postprocess) class prefixes.
+    """
+    # Map element markers to their first document position
+    markers = {
+        "eyebrow": None,
+        "bluf": None,
+        "cards": None,
+        "atf_faqs": None,
+        "first_body_h2": None,
+    }
+
+    soup_str = str(soup)
+
+    # Eyebrow
+    eb = soup.find(class_=re.compile(r"rl-eyebrow|rl-hero-eyebrow|tlnEyebrow"))
+    if eb:
+        markers["eyebrow"] = soup_str.find(str(eb))
+
+    # BLUF
+    bluf = soup.find(class_=re.compile(r"rl-bluf|tlnBLUF"))
+    if bluf:
+        markers["bluf"] = soup_str.find(str(bluf)[:100])
+
+    # Quick cards/grid
+    grid = soup.find(class_=re.compile(r"rl-quick-grid|tlnQuickGrid"))
+    if not grid:
+        first_card = soup.find(class_=re.compile(r"rl-quick-card|tlnQuickCard"))
+        if first_card:
+            grid = first_card
+    if grid:
+        markers["cards"] = soup_str.find(str(grid)[:100])
+
+    # ATF FAQs (details elements outside .rl-faq/.tlnFAQ)
+    btf_faq = soup.find(class_=re.compile(r"rl-faq|tlnFAQ"))
+    all_details = soup.find_all("details")
+    btf_set = set(btf_faq.find_all("details")) if btf_faq else set()
+    atf_details = [d for d in all_details if d not in btf_set]
+    if atf_details:
+        markers["atf_faqs"] = soup_str.find(str(atf_details[0])[:100])
+
+    # First body H2
+    body_h2s = _get_body_h2_sections(soup)
+    if body_h2s:
+        markers["first_body_h2"] = soup_str.find(str(body_h2s[0][0])[:100])
+
+    # Check order: each present element must come before the next present element
+    order = ["eyebrow", "bluf", "cards", "atf_faqs", "first_body_h2"]
+    positions = [(k, markers[k]) for k in order if markers[k] is not None]
+
+    for i in range(len(positions) - 1):
+        name_a, pos_a = positions[i]
+        name_b, pos_b = positions[i + 1]
+        if pos_a > pos_b:
+            return AssertionResult(False, "hard",
+                f"ATF order violation: {name_a} (pos {pos_a}) appears after "
+                f"{name_b} (pos {pos_b})", "18.4.13")
+
+    return AssertionResult(True, "hard", None, "18.4.13")
+
+
+def assert_title_integrity(soup: BeautifulSoup, context: dict) -> AssertionResult:
+    """18.4.14 Article title integrity: no trailing conjunction/comma, length >20 chars.
+
+    If context carries 'intended_title', asserts exact match.
+    """
+    intended = context.get("intended_title", "")
+    # Get title from H1 if present
+    h1 = soup.find("h1")
+    actual = _text_of(h1) if h1 else ""
+
+    if intended and actual:
+        if actual.strip() != intended.strip():
+            return AssertionResult(False, "hard",
+                f"Title mismatch: got \"{actual[:50]}\" expected \"{intended[:50]}\"",
+                "18.4.14")
+
+    title = actual or intended
+    if not title:
+        return AssertionResult(True, "hard", None, "18.4.14")
+
+    if len(title) < 20:
+        return AssertionResult(False, "hard",
+            f"Title too short ({len(title)} chars): \"{title}\"", "18.4.14")
+
+    # Trailing conjunction/comma/preposition
+    trailing = title.rstrip().rstrip(".")
+    if trailing and trailing[-1] in (",",) or trailing.endswith((" and", " or", " the", " a", " in", " of", " for")):
+        return AssertionResult(False, "hard",
+            f"Title has trailing conjunction/comma: \"{title[-20:]}\"", "18.4.14")
+
+    return AssertionResult(True, "hard", None, "18.4.14")
+
+
+# ---------------------------------------------------------------------------
 # Export lists
 # ---------------------------------------------------------------------------
 
@@ -1594,6 +1717,10 @@ ALL_HARD_ASSERTIONS: list[Callable] = [
     assert_no_ai_lexicon,
     assert_no_not_x_its_y,
     assert_no_symmetrical_construction,
+    # 18.4.12-14 Deploy integrity
+    assert_no_fragment_list_items,
+    assert_atf_document_order,
+    assert_title_integrity,
     # 18.CG Community-guide (intent-gated: vacuous pass for other intents)
     assert_cg_builder_comparison,
     assert_cg_cost_strip,

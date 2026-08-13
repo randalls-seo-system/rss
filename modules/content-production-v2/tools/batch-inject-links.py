@@ -29,6 +29,9 @@ from lib.deploy_lock import acquire_deploy_lock
 from lib.link_guards import assert_externals_unchanged, is_internal, same_language
 from lib.site_config import load_site_config
 
+sys.path.insert(0, str(REPO_ROOT))
+from lib.gate_library import run_universal_gates
+
 
 # ---------------------------------------------------------------------------
 # Section classification (same as inject-internal-links.py)
@@ -102,8 +105,20 @@ def _fetch_post_content(config: dict, post_id: int) -> str:
     return result.stdout
 
 
-def _push_post_content(config: dict, post_id: int, content: str, dry_run: bool) -> bool:
+def _push_post_content(config: dict, post_id: int, content: str, dry_run: bool,
+                       site_slug: str = "") -> bool:
     """Push content via SQL UNHEX (piped via stdin)."""
+    # Universal gate check before write (link_update = light profile)
+    if site_slug:
+        gate_report = run_universal_gates(
+            content,
+            site_slug=site_slug,
+            content_type="link_update",
+        )
+        if not gate_report.passed:
+            print(f"  GATE FAILED for post {post_id}: {gate_report.summary()}")
+            return False
+
     hex_content = content.encode("utf-8").hex()
     sql = f"UPDATE wp_posts SET post_content = UNHEX('{hex_content}') WHERE ID={post_id};"
 
@@ -574,7 +589,8 @@ def main():
             continue
 
         # Push
-        success = _push_post_content(config, pid, modified, args.dry_run)
+        success = _push_post_content(config, pid, modified, args.dry_run,
+                                     site_slug=args.site)
         if success:
             print(f"{progress} {pid} {slug}: {link_count} links injected")
             for d in details:
