@@ -1,0 +1,59 @@
+{
+  "article_01": {
+    "links_to": [
+      {"url": "https://lrgrealty.com/lrg-blog/options-cant-afford-sell-texas-home/", "anchor": "options when you cannot afford to sell", "match_text": "options"},
+      {"url": "https://lrgrealty.com/lrg-blog/short-sale-vs-foreclosure-texas/", "anchor": "short sale vs foreclosure", "match_text": "short sale"}
+    ]
+  },
+  "article_02": {
+    "links_to": [
+      {"url": "https://lrgrealty.com/lrg-blog/options-cant-afford-sell-texas-home/", "anchor": "options for distressed homeowners", "match_text": "options"},
+      {"url": "https://lrgrealty.com/lrg-blog/short-sale-vs-foreclosure-texas/", "anchor": "short sale vs foreclosure in Texas", "match_text": "short sale vs foreclosure"}
+    ]
+  },
+  "article_03": {
+    "links_to": [
+      {"url": "https://lrgrealty.com/lrg-blog/options-cant-afford-sell-texas-home/", "anchor": "your options in Texas", "match_text": "options"},
+      {"url": "https://lrgrealty.com/lrg-blog/short-sale-vs-foreclosure-texas/", "anchor": "short sale vs foreclosure", "match_text": "short sale vs foreclosure"},
+      {"url": "https://lrgrealty.com/lrg-blog/capital-gains-tax-selling-home-texas-2026/", "anchor": "capital gains tax", "match_text": "capital gains"}
+    ]
+  },
+  "article_04": {
+    "links_to": [
+      {"url": "https://lrgrealty.com/lrg-blog/options-cant-afford-sell-texas-home/", "anchor": "Texas homeowner options", "match_text": "options"},
+      {"url": "https://lrgrealty.com/lrg-blog/how-to-buy-foreclosure-austin/", "anchor": "buying a foreclosure in Austin", "match_text": "foreclosure"}
+    ]
+  },
+  "article_05": {
+    "links_to": [
+      {"url": "https://lrgrealty.com/lrg-blog/options-cant-afford-sell-texas-home/", "anchor": "alternatives to foreclosure", "match_text": "alternatives"},
+      {"url": "https://lrgrealty.com/lrg-blog/short-sale-vs-foreclosure-texas/", "anchor": "short sale vs foreclosure", "match_text": "short sale"}
+    ]
+  },
+  "article_06": {
+    "links_to": [
+      {"url": "https://lrgrealty.com/lrg-blog/pcs-underwater-mortgage-military-options-texas/", "anchor": "PCS with an underwater mortgage", "match_text": "underwater"},
+      {"url": "https://lrgrealty.com/lrg-blog/selling-home-pcs-no-equity-texas/", "anchor": "selling during PCS with low equity", "match_text": "pcs"},
+      {"url": "https://lrgrealty.com/lrg-blog/va-loan-assumption-sam-houston-texas/", "anchor": "VA loan assumption", "match_text": "assumption"}
+    ]
+  },
+  "article_07": {
+    "links_to": [
+      {"url": "https://lrgrealty.com/lrg-blog/options-cant-afford-sell-texas-home/", "anchor": "your options as a Texas homeowner", "match_text": "options"},
+      {"url": "https://lrgrealty.com/lrg-blog/short-sale-vs-foreclosure-texas/", "anchor": "short sale vs foreclosure", "match_text": "short sale vs foreclosure"}
+    ]
+  },
+  "article_08": {
+    "links_to": [
+      {"url": "https://lrgrealty.com/lrg-blog/options-cant-afford-sell-texas-home/", "anchor": "distressed homeowner options", "match_text": "options"},
+      {"url": "https://lrgrealty.com/lrg-blog/short-sale-vs-foreclosure-texas/", "anchor": "short sale vs foreclosure", "match_text": "short sale"},
+      {"url": "https://lrgrealty.com/lrg-blog/capital-gains-tax-selling-home-texas-2026/", "anchor": "capital gains tax in Texas", "match_text": "capital gains"}
+    ]
+  },
+  "article_09": {
+    "links_to": [
+      {"url": "https://lrgrealty.com/lrg-blog/options-cant-afford-sell-texas-home/", "anchor": "Texas homeowner options", "match_text": "options"},
+      {"url": "https://lrgrealty.com/lrg-blog/short-sale-vs-foreclosure-texas/", "anchor": "short sale vs foreclosure", "match_text": "short sale vs foreclosure"}
+    ]
+  }
+}

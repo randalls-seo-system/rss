@@ -1,0 +1,11 @@
+{
+  "h2_inventory": [
+    {"title": "What Happens to Your Credit When You Walk Away", "structural_element": "bullets", "h2_format": "question"},
+    {"title": "How Texas Foreclosure Works After You Stop Paying", "structural_element": "table", "h2_format": "statement"},
+    {"title": "Deficiency Judgments Under Texas Property Code 51.003", "structural_element": "bullets", "h2_format": "statement"},
+    {"title": "Tax Consequences of Mortgage Debt Forgiveness", "structural_element": "bullets", "h2_format": "statement"},
+    {"title": "Alternatives to Walking Away", "structural_element": "bullets", "h2_format": "statement"},
+    {"title": "When Walking Away Might Be the Least Harmful Path", "structural_element": "bullets", "h2_format": "statement"},
+    {"title": "How Walking Away Affects a Future VA Loan", "structural_element": "bullets", "h2_format": "statement"}
+  ]
+}

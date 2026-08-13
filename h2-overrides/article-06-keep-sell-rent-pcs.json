@@ -1,0 +1,11 @@
+{
+  "h2_inventory": [
+    {"title": "The Keep Sell or Rent Decision When Equity Is Thin", "structural_element": "table", "h2_format": "statement"},
+    {"title": "Selling During PCS When You Cannot Cover the Gap", "structural_element": "bullets", "h2_format": "statement"},
+    {"title": "Renting With a VA Loan and Using Second-Tier Entitlement", "structural_element": "bullets", "h2_format": "statement"},
+    {"title": "VA Compromise Sale for Underwater PCS Moves", "structural_element": "bullets", "h2_format": "statement"},
+    {"title": "VA Loan Assumption as a PCS Exit Strategy", "structural_element": "bullets", "h2_format": "statement"},
+    {"title": "JBSA Fort Hood and Killeen Market Factors", "structural_element": "table", "h2_format": "statement"},
+    {"title": "Tax and Credit Implications of Each Path", "structural_element": "table", "h2_format": "statement"}
+  ]
+}

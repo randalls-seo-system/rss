@@ -1,0 +1,12 @@
+{
+  "h2_inventory": [
+    {"title": "How Negative Equity Works and How to Calculate Yours", "structural_element": "table", "h2_format": "statement"},
+    {"title": "Bringing Cash to Closing to Cover the Gap", "structural_element": "bullets", "h2_format": "statement"},
+    {"title": "How a Short Sale Works When You Owe More Than the Home Is Worth", "structural_element": "bullets", "h2_format": "statement"},
+    {"title": "Deed in Lieu of Foreclosure as an Alternative", "structural_element": "bullets", "h2_format": "statement"},
+    {"title": "Loan Modification and Forbearance Options in Texas", "structural_element": "bullets", "h2_format": "statement"},
+    {"title": "Deficiency Risk and Texas Property Code 51.003", "structural_element": "bullets", "h2_format": "statement"},
+    {"title": "Tax Treatment of Forgiven Mortgage Debt After 2025", "structural_element": "bullets", "h2_format": "statement"},
+    {"title": "Renting the Property Until Equity Recovers", "structural_element": "bullets", "h2_format": "statement"}
+  ]
+}

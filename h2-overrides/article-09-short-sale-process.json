@@ -1,0 +1,11 @@
+{
+  "h2_inventory": [
+    {"title": "What Is a Short Sale and When Does It Apply", "structural_element": "bullets", "h2_format": "question"},
+    {"title": "Step by Step Short Sale Process in Texas", "structural_element": "table", "h2_format": "statement"},
+    {"title": "Documents Your Lender Will Require", "structural_element": "bullets", "h2_format": "statement"},
+    {"title": "How Long a Short Sale Takes in Texas", "structural_element": "table", "h2_format": "statement"},
+    {"title": "Choosing a Short Sale Agent vs a Cash Buyer", "structural_element": "bullets", "h2_format": "statement"},
+    {"title": "Common Deal Killers in Texas Short Sales", "structural_element": "bullets", "h2_format": "statement"},
+    {"title": "What Happens After the Short Sale Closes", "structural_element": "bullets", "h2_format": "statement"}
+  ]
+}

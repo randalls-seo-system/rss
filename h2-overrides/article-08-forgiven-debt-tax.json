@@ -1,0 +1,11 @@
+{
+  "h2_inventory": [
+    {"title": "What Happens When a Lender Forgives Mortgage Debt", "structural_element": "bullets", "h2_format": "question"},
+    {"title": "The Mortgage Forgiveness Debt Relief Act and Its Expiration", "structural_element": "bullets", "h2_format": "statement"},
+    {"title": "Insolvency and Bankruptcy Exclusions That Still Apply", "structural_element": "table", "h2_format": "statement"},
+    {"title": "How the 1099-C Process Works", "structural_element": "bullets", "h2_format": "statement"},
+    {"title": "Texas Has No State Income Tax on Forgiven Debt", "structural_element": "bullets", "h2_format": "statement"},
+    {"title": "Short Sale vs Foreclosure Tax Treatment", "structural_element": "table", "h2_format": "statement"},
+    {"title": "When to Involve a CPA or Tax Attorney", "structural_element": "bullets", "h2_format": "statement"}
+  ]
+}

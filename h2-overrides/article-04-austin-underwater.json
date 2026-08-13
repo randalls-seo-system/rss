@@ -1,0 +1,11 @@
+{
+  "h2_inventory": [
+    {"title": "How Austin Home Prices Have Changed Since the 2022 Peak", "structural_element": "table", "h2_format": "statement"},
+    {"title": "Which Austin ZIP Codes Have the Most Negative Equity", "structural_element": "table", "h2_format": "question"},
+    {"title": "Your Options as an Underwater Austin Homeowner", "structural_element": "bullets", "h2_format": "statement"},
+    {"title": "Selling at a Loss vs Waiting for Recovery", "structural_element": "table", "h2_format": "statement"},
+    {"title": "Short Sales and Foreclosure Alternatives in Travis County", "structural_element": "bullets", "h2_format": "statement"},
+    {"title": "Military Families at Fort Hood and Camp Mabry", "structural_element": "bullets", "h2_format": "statement"},
+    {"title": "How Austin Compares to San Antonio on Negative Equity", "structural_element": "table", "h2_format": "statement"}
+  ]
+}

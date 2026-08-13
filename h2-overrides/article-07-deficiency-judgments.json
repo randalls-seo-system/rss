@@ -1,0 +1,11 @@
+{
+  "h2_inventory": [
+    {"title": "What Is a Deficiency Judgment", "structural_element": "bullets", "h2_format": "question"},
+    {"title": "How Texas Property Code 51.003 Determines the Deficiency Amount", "structural_element": "bullets", "h2_format": "statement"},
+    {"title": "Fair Market Value vs Sale Price at Auction", "structural_element": "table", "h2_format": "statement"},
+    {"title": "Deficiency After a Short Sale vs After Foreclosure", "structural_element": "table", "h2_format": "statement"},
+    {"title": "How to Negotiate a Deficiency Waiver in a Short Sale Approval Letter", "structural_element": "bullets", "h2_format": "statement"},
+    {"title": "Statute of Limitations on Deficiency in Texas", "structural_element": "bullets", "h2_format": "statement"},
+    {"title": "VA Loans and Deficiency After Compromise Sale", "structural_element": "bullets", "h2_format": "statement"}
+  ]
+}

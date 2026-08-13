@@ -1,0 +1,11 @@
+{
+  "h2_inventory": [
+    {"title": "Can You Sell a House While Behind on Payments in Texas", "structural_element": "bullets", "h2_format": "question"},
+    {"title": "How Many Missed Payments Before Foreclosure in Texas", "structural_element": "table", "h2_format": "question"},
+    {"title": "Selling Before the Lender Files a Notice of Default", "structural_element": "bullets", "h2_format": "statement"},
+    {"title": "What If Your Sale Price Does Not Cover the Loan Balance", "structural_element": "bullets", "h2_format": "statement"},
+    {"title": "Short Sale vs Catching Up on Payments", "structural_element": "table", "h2_format": "statement"},
+    {"title": "Government and Nonprofit Resources for Texas Homeowners", "structural_element": "bullets", "h2_format": "statement"},
+    {"title": "How Delinquency Affects Your Next Home Purchase", "structural_element": "bullets", "h2_format": "statement"}
+  ]
+}

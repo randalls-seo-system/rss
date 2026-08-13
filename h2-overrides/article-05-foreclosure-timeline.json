@@ -1,0 +1,11 @@
+{
+  "h2_inventory": [
+    {"title": "Texas Uses Non-Judicial Foreclosure", "structural_element": "bullets", "h2_format": "statement"},
+    {"title": "Step by Step Timeline from Missed Payment to Auction", "structural_element": "table", "h2_format": "statement"},
+    {"title": "Notice of Default and the 20-Day Cure Period", "structural_element": "bullets", "h2_format": "statement"},
+    {"title": "Notice of Sale and the 21-Day Minimum", "structural_element": "bullets", "h2_format": "statement"},
+    {"title": "The Trustee Sale at the County Courthouse", "structural_element": "bullets", "h2_format": "statement"},
+    {"title": "How to Stop or Delay Foreclosure in Texas", "structural_element": "bullets", "h2_format": "statement"},
+    {"title": "What Happens After the Sale and Eviction Timeline", "structural_element": "bullets", "h2_format": "statement"}
+  ]
+}
