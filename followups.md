@@ -64,6 +64,13 @@ Query analysis showed 1516 serves short-sale process intent and 9765
 serves options-overview intent — no cannibalization. Decision: Option A,
 rebuild 1516 at a clean slug.
 
+Evidence driving Option A (rebuild in place, not redirect):
+- 46 internal links confirmed by two independent methods (SQL LIKE and
+  PHP DOM parser)
+- 614 GSC impressions over 12 months at avg position 8.1, all accrued
+  in the last 90 days. An earlier report of 15 impressions was a
+  query-level sum mistaken for the page total.
+
 Draft 9671 (`short-sale-process-guide-texas`) exists on staging. Post
 1516 still live at the dated Squarespace slug
 `2024-8-14-understanding-short-sales-a-guide-for-homebuyers-and-sellers`.
@@ -164,24 +171,49 @@ by backfilling with `get_gmt_from_date()`. The batch runner's
 ampersands, or special characters. DB values are clean. Requires
 mu-plugin edit. Open against new `/topics/` base.
 
-## 11. Cloudflare Worker REDIRECTS Map — Stale /category/ Targets
+## 11. Stale Config References After Category Base Change
 
-**Status:** Open. Manual pass required.
+**Status:** Open.
 
-The CF Worker REDIRECTS map (deployed via Cloudflare, not in the repo)
-has entries whose targets point at `/lrg-blog/category/` paths. These
-now chain through the WordPress 301 handler (`lrg-broken-link-redirects.php`
-v1.3.0 regex: old `/category/*` → `/lrg-blog/topics/*`). The chains
-work but add a hop. A manual pass of the Worker source is needed to
-update targets to `/lrg-blog/topics/` directly.
+**CF Worker:** Scanned — ZERO `/lrg-blog/category/` entries in the
+REDIRECTS map. The category base change created no redirect chains in
+the Worker.
 
-The linker config files also need updating:
-- `randalls-seo-system/sites/lrg/config.json` line 65: `excluded_destinations`
-  contains `/lrg-blog/category/` — update to `/lrg-blog/topics/`
-- `randalls-seo-system/sites/lrg-linker.json` line 36: same
-- `rss-shortsale/sites/lrg/config.json` line 65: same
+One unrelated redirect chain exists in the Worker:
+`/lrg-blog/horse-property-san-antonio` → `/homes-for-sale-in-san-antonio-tx/`
+→ `/listings/homes-for-sale-san-antonio/` (two hops, same map). Manual
+Worker fix for Randall.
 
-## 12. Post 1516 Rebuild — Pending Deploy
+**Linker config files** still reference `/lrg-blog/category/` in
+`excluded_destinations` and need updating to `/lrg-blog/topics/`:
+- `randalls-seo-system/sites/lrg/config.json` line 65
+- `randalls-seo-system/sites/lrg-linker.json` line 36
+- `rss-shortsale/sites/lrg/config.json` line 65
+
+## 12. rss-blog-home.php Is Not the Active Blog Home Template
+
+**Status:** Report only.
+
+`rss-blog-home.php` hooks `template_redirect` at priority 1 and is
+enabled (`rss_blog_home_settings.enabled = 1`). However,
+`lrg-homepage-v3.php` hooks at priority 2 and the production blog home
+renders `lrg-v3-*` classes, not `rbh-*` classes. The `rss-blog-home.php`
+intercept returns early (likely `is_home()` returns false after
+homepage-v3's earlier hooks modify the query), and homepage-v3 renders
+the page.
+
+The primary-category fix and Short Sales additions were applied to BOTH
+files, but only `lrg-homepage-v3.php` changes are live. The
+`rss-blog-home.php` changes are inert. The file is not dead code (it
+registers admin settings at lines 482-485 and its `template_redirect`
+hook fires), but its blog-home rendering path does not execute.
+
+**Do not edit `rss-blog-home.php` for front-end changes.** Edit
+`lrg-homepage-v3.php` instead. If `rss-blog-home.php` is ever
+re-enabled as the active template, the Short Sales and primary-category
+changes are already in place.
+
+## 13. Post 1516 Rebuild — Pending Deploy
 
 **Status:** Open. Draft 9671 on staging, never deployed.
 
