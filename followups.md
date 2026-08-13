@@ -78,11 +78,13 @@ on the site. Separate session.
 ## 5. Adversarial Review Open Items (staging articles)
 
 **Article #4 (Austin Underwater):**
-- ZIP code rankings hedged (removed specific ZIPs from underwater claims)
-- 9.2% stat hedged as "roughly 9% per industry estimates"
-- VA 9.6% and FHA 5.7% rates hedged as "per industry estimates/data"
-- Austin DPA eligibility hedged with "verify at austintexas.gov"
-- Austin price decline: Cotality 15% is verified; MLS-median range retained as hedged
+- ZIP code underwater rankings CUT (no primary source)
+- 9.2% negative equity stat CUT
+- VA 9.6% and FHA 5.7% rates CUT
+- Austin DPA eligibility details CUT
+- MLS-median price decline range CUT
+- KEPT: Cotality 15% decline figure (verified, cited inline)
+- Word count after cuts: 2920 (viable)
 
 **Article #8 (Forgiven Debt Tax, DRAFT):**
 - Held for Mayra with review-for-mayra-article-8.md

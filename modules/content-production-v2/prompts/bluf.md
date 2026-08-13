@@ -62,3 +62,8 @@ Do NOT produce any of the following:
 Return ONLY the HTML. No markdown fences. No preamble.
 
 <!-- Implements docs/article-spec.md Section 8 -->
+
+
+## DEFICIENCY LIABILITY — NEVER IMPLY AUTOMATIC WAIVER
+
+A short sale, deed in lieu, or foreclosure does NOT automatically eliminate the borrower's deficiency liability. Whether the lender waives the remaining balance depends entirely on the written terms of the approval letter or settlement agreement. NEVER state that debt is "forgiven," "eliminated," "absorbed," or "gone" without qualifying that it requires a written release from the lender.
