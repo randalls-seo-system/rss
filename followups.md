@@ -213,7 +213,38 @@ hook fires), but its blog-home rendering path does not execute.
 re-enabled as the active template, the Short Sales and primary-category
 changes are already in place.
 
-## 13. Post 1516 Rebuild — Pending Deploy
+## 14. Divi Tool Pages — 5 H1s Each from Slide Modules
+
+**Status:** Open. Separate session.
+
+10 old Divi-built pages under `/tools/` have 5 `<h1>` tags each:
+1 entry-title (always visible on these — they lack the
+`neighborhood-guide` body class) + 4 `.slide-title` H1s from Divi
+slide modules.
+
+**Affected pages (all children of page 6242):**
+1098 (Texas Escrow Shock Test), 1622 (Appraisal Gap + Inspection),
+2007 (Commute Stress Test), 2168 (HOA/MUD/PID Costs),
+2264 (Insurance Lower Quote), 2376 (Lower Cash to Close),
+2441 (Mortgage Payment Breakdown), 2444 (Mortgage Payment Rate Tips),
+2559 (Real Mortgage Payment), 2758 (New Build Taxes/HOA)
+
+**Pattern:** Each page is a multi-slide Divi builder layout. Each
+slide has `<h1 class="slide-title">` or `<h1 class="success-title">`.
+These are Divi module-generated, not post_content H1 tags.
+
+**Fix:** Change `.slide-title` and `.success-title` H1s to H2s in the
+Divi builder layouts. Or add CSS: `h1.slide-title, h1.success-title
+{ font-size: inherit; }` and change the tag in the builder. Requires
+editing each Divi layout individually — no single-file fix covers all
+10.
+
+**Note:** The 2026-08-13 entry-title un-hide (v4.2.0 of
+`lrg-neighborhood-styles.php`) does NOT affect these pages. They lack
+the `neighborhood-guide` body class, so the hide rule never applied
+and the un-hide rule is a no-op.
+
+## 15. Post 1516 Rebuild — Pending Deploy
 
 **Status:** Open. Draft 9671 on staging, never deployed.
 
@@ -223,7 +254,30 @@ Sellers") still has the dated Squarespace slug
 The rebuild (draft 9671) was created on staging but never shipped.
 
 **Approach:** Update post 1516 in place with 9671's content and a new
-clean slug. Generate a featured image. Add CF Worker entries for the
-old dated URL. The `2024-8-31-understanding-san-antonio-home-price-trends`
+clean slug. Generate a featured image. Add CF Worker entries for the old
+dated URL. The `2024-8-31-understanding-san-antonio-home-price-trends`
 Worker entry that points at the dated 1516 URL also needs updating to
 the new slug once the rebuild deploys.
+
+## 16. Calculator Embed Duplicated JS Block (site-wide, all embed variants)
+
+**Status:** Open. Live bug on existing tools. Separate session.
+
+`escrow-shock.embed.html` has two copies of the entire JS block: lines
+1104-1314 run at the script's top level, and lines 1315-1571 run inside
+an IIFE that appends the `resizeContainer` monkey-patch. Both copies
+attach event listeners via `querySelectorAll`, so every click fires
+twice. The `showSlide` monkey-patch only affects the IIFE copy's
+binding; the first copy's listeners call the unpatched original.
+
+**Check:** Whether the other 9 `.embed.html` files in
+`/wp-content/uploads/lrg-calculators/` have the same duplication.
+
+**Fix:** Remove the outer (non-IIFE) copy entirely. Move
+`resizeContainer()` into the `showSlide` function body instead of
+monkey-patching. Scope DOM lookups to the wrapper ID to prevent
+collisions when multiple calculators appear on one page.
+
+**Impact:** Double-firing inflates click events and may cause subtle
+race conditions in slide transitions. The resize works only by accident
+(the IIFE copy's listeners happen to fire after the outer copy).
