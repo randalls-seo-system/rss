@@ -89,16 +89,7 @@
 
 #### 4. Austin Homeowners Underwater in 2026: What You Need to Know
 
-**Target queries:** "underwater mortgage austin texas", "austin housing market negative equity 2026", "bought at peak austin what to do"
-**Intent band:** Austin local
-**SERP difficulty:** LOW. Reddit #1, Texas Standard (news) #2, WSJ #3 (national). Zero local Austin broker content. [SERP OBSERVATION]
-**What currently ranks:** Reddit, news outlets, national publishers. No local voice.
-**Scope:** Austin-local
-**Author:** Levi Rodgers | **Reviewer:** Mayra Torres (YMYL -- equity/value data)
-**Links to:** 9765 (pillar), Article #3 (negative equity), 2226 (buy foreclosure Austin, buyer cross-link)
-**Links from:** 9765, 7412 (Austin housing market)
-**Cannibalization check:** No existing Austin-specific distressed page. 9765 is TX-statewide. Clean.
-**Data sourcing note:** Austin price decline figures must be sourced from Cotality/ICE. The 15% Cotality figure and ~18% vintage-borrower figure from the strategy doc were labeled VERIFIED and UNVERIFIED respectively. Re-source before build.
+**STATUS: PARKED.** Built and deployed to staging (post 9665), then pulled. After cutting all unsourced stats (ZIP rankings, 9.2% underwater rate, VA 9.6%, FHA 5.7%, DPA eligibility, MLS-median decline), the article dropped to 2,735 words at 28% Austin-specific content. It became a generic negative-equity article with an Austin headline, duplicating Article #3 at TX-authority level. Parked as draft on staging pending fetchable Austin-specific data from ICE Mortgage Monitor or Cotality metro-level HPI. Article #3 covers the intent in the meantime.
 
 ### TIER 2 -- Strong value, publish second wave
 

@@ -123,7 +123,34 @@ Proven by: the deficiency auto-waiver rule was added to `h2-section.md`
 only. Post 9671's BLUF generated the exact violation the rule was
 designed to prevent. Fixed by propagating to all 7 files.
 
-## 7. Archive Card Apostrophe Bug (template-level)
+## 7. Sidebar CTA Reads "Connect with LRG" (template-level)
+
+The sidebar sticky CTA is rendered by `rss-sticky-cta.php` mu-plugin,
+not from post_content. The in-article CTAs were swapped to "Get My Free
+Home Equity Analysis" but the sidebar CTA is template-driven. Fixing it
+requires editing the mu-plugin or its config. Affects all articles
+site-wide, not just the short-sale batch. Same session scope as TREC
+advertising (#4 above).
+
+## 8. Duplicate FAQ H2 in Jump Nav (pipeline bug)
+
+The pipeline generates both ATF FAQs and BTF FAQs with identical H2
+text ("Frequently Asked Questions"). The sidebar jump nav picks up both,
+showing a duplicate entry. Fixed in this batch by renaming the BTF H2
+to "More Questions". Affected 5 of 9 articles. The fix should be in
+the BTF FAQ builder (`build-faqs.py --mode btf`) to use a distinct H2
+by default.
+
+## 9. Zeroed post_date_gmt on Pipeline-Created Posts
+
+Posts created by `run-shortsale-batch.py`'s `create_staging_post()`
+had `post_date_gmt = 0000-00-00 00:00:00`, causing the template to
+render "Updated on January 1, 1970." Root cause: `wp_insert_post()`
+via SSH/eval-file leaves GMT fields zeroed when creating drafts. Fixed
+by backfilling with `get_gmt_from_date()`. The batch runner's
+`create_staging_post()` should pass `post_date_gmt` explicitly.
+
+## 10. Archive Card Apostrophe Bug (template-level)
 
 `lrg-category-hero.php:541` double-encodes `wptexturize()` output via
 `esc_html()`. Affects all archive card titles with apostrophes,
