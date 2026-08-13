@@ -64,3 +64,43 @@ impressions over 90 days. Options: redirect 1516 to 9765 (transfers
 link equity if the count holds), rewrite 1516 to narrow its scope to
 buyer-side only, or leave both. Requires backlink audit + link count
 verification before deciding.
+
+## 4. TREC Advertising Compliance (site-wide)
+
+**Status:** Report only. No change made.
+
+CTA block generated at `assemble-article.py:2094-2095` from `CTA_TEXT`
+config. No broker licensed name displayed near the CTA. 22 Tex. Admin.
+Code §535.155(b)(1) requires the broker's name to be "readily
+noticeable" in advertising. Fix is template-level, affects every article
+on the site. Separate session.
+
+## 5. Adversarial Review Open Items (staging articles)
+
+**Article #4 (Austin Underwater):**
+- ZIP code rankings hedged (removed specific ZIPs from underwater claims)
+- 9.2% stat hedged as "roughly 9% per industry estimates"
+- VA 9.6% and FHA 5.7% rates hedged as "per industry estimates/data"
+- Austin DPA eligibility hedged with "verify at austintexas.gov"
+- Austin price decline: Cotality 15% is verified; MLS-median range retained as hedged
+
+**Article #8 (Forgiven Debt Tax, DRAFT):**
+- Held for Mayra with review-for-mayra-article-8.md
+- Texas recourse misstatement is the critical finding
+- 1099-C/deficiency distinction needs clarification
+- DO NOT fix before Mayra reviews
+
+**Article #9 (Short Sale Process):**
+- TREC Form 45-2 hedged with "verify current form at trec.texas.gov"
+
+**Remaining UNFETCHABLE (not actionable without primary sources):**
+- Article #7 guarantor waiver rules (Moayedi case law) -- article does
+  not cite the case, no fix needed
+- Article #5 reinstatement right -- checked, no overstated claim found
+
+## 6. Archive Card Apostrophe Bug (template-level)
+
+`lrg-category-hero.php:541` double-encodes `wptexturize()` output via
+`esc_html()`. Affects all archive card titles with apostrophes,
+ampersands, or special characters. DB values are clean. Requires
+mu-plugin edit.
