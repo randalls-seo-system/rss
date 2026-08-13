@@ -100,7 +100,30 @@ on the site. Separate session.
   not cite the case, no fix needed
 - Article #5 reinstatement right -- checked, no overstated claim found
 
-## 6. Archive Card Apostrophe Bug (template-level)
+## 6. Durable-Phrasing Rules Must Go in ALL 7 Prompt Files
+
+**Status:** STANDING RULE for the pipeline.
+
+Any durable-phrasing rule added to the pipeline must be placed in ALL
+7 prompt files, not one:
+- `h2-section.md` (body sections)
+- `bluf.md` (Bottom Line Up Front)
+- `atf-lede.md` (ATF lede paragraph)
+- `atf-card.md` (ATF comparison/option cards)
+- `atf-faq.md` (ATF FAQ block)
+- `btf-faq.md` (BTF FAQ block)
+- `closing-bottom-line.md` (closing paragraph)
+
+Single-file rules are silently partial. Each section type is built by a
+separate tool (`build-h2-section.py`, `build-bluf.py`, `build-card.py`,
+`build-faqs.py`) that loads its own prompt. A rule in `h2-section.md`
+does not reach BLUF, lede, cards, or FAQs.
+
+Proven by: the deficiency auto-waiver rule was added to `h2-section.md`
+only. Post 9671's BLUF generated the exact violation the rule was
+designed to prevent. Fixed by propagating to all 7 files.
+
+## 7. Archive Card Apostrophe Bug (template-level)
 
 `lrg-category-hero.php:541` double-encodes `wptexturize()` output via
 `esc_html()`. Affects all archive card titles with apostrophes,
