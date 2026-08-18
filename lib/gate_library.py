@@ -56,12 +56,16 @@ def _load_site_json_config(site_slug: str) -> dict:
 
 
 def _load_site_conf(site_slug: str) -> dict:
-    """Load sites/<slug>.conf (shell-style KEY=value)."""
-    import sys
-    sys.path.insert(0, str(REPO_ROOT / "modules" / "content-production-v2"))
+    """Load site config (migrated → config.json, else → .conf)."""
     try:
-        from lib.site_config import load_site_config
-        return load_site_config(site_slug)
+        import importlib.util as _ilu
+        _sc_spec = _ilu.spec_from_file_location(
+            "site_config",
+            REPO_ROOT / "modules" / "content-production-v2" / "lib" / "site_config.py",
+        )
+        _sc_mod = _ilu.module_from_spec(_sc_spec)
+        _sc_spec.loader.exec_module(_sc_mod)
+        return _sc_mod.load_site_config(site_slug)
     except (ImportError, FileNotFoundError):
         return {}
 

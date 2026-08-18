@@ -36,11 +36,33 @@ def load_archetype(name):
 def load_site_config(path):
     """Load [branding] section from site config.
 
-    Site configs are hybrid: shell-style KEY=VALUE at the top (no section
-    header) plus INI [sections] at the bottom. ConfigParser chokes on the
-    headerless top, so we prepend a dummy [_shell] header before parsing.
+    Migrated sites (config.json has "_migrated": true) serve branding
+    from config.json. Unmigrated sites parse the .conf file.
     """
-    raw = Path(path).read_text()
+    # Detect migrated site: if path looks like sites/<slug>.conf, check json
+    p = Path(path)
+    if p.suffix == '.conf' and p.parent.name == 'sites':
+        slug = p.stem  # e.g. "ahn" from "ahn.conf"
+        repo_root = p.parent.parent
+        import importlib.util as _ilu
+        _sc_spec = _ilu.spec_from_file_location(
+            "site_config",
+            str(repo_root / 'modules' / 'content-production-v2' / 'lib' / 'site_config.py'),
+        )
+        _sc_mod = _ilu.module_from_spec(_sc_spec)
+        _sc_spec.loader.exec_module(_sc_mod)
+        _is_migrated = _sc_mod._is_migrated
+        if _is_migrated(slug):
+            import json
+            json_path = repo_root / 'sites' / slug / 'config.json'
+            raw = json.loads(json_path.read_text())
+            branding = raw.get("branding", {})
+            if not branding:
+                # Synthesize from content section
+                branding = {"archetype": raw.get("content", {}).get("brand_voice_archetype", "")}
+            return branding
+
+    raw = p.read_text()
     # Prepend a dummy section so configparser can parse the shell vars
     config = configparser.ConfigParser()
     config.read_string('[_shell]\n' + raw)

@@ -1,7 +1,10 @@
 {
+  "_migrated": true,
+
   "identity": {
     "site_id": "ahn",
     "name": "Afghan Home Network",
+    "domain": "afghanhomenetw.wpenginepowered.com",
     "public_url": "https://afghanhomenetw.wpenginepowered.com",
     "platform": "wpe",
     "platform_notes": "Standard WP Engine hosting. Custom domain not yet mapped. Dashboard at /dashboard/ is a standalone PHP app (not a WP plugin)."
@@ -26,6 +29,15 @@
     "cta_text": "TODO-verify",
     "form_page_slug": "TODO-verify",
     "claims_policy": "~/randalls-seo-system/docs/ahn-claims-policy.md",
+    "geo_focus": "Nationwide",
+    "ai_provider": "claude_cli",
+    "ai_model": "opus",
+    "ai_api_key_env_var": "OPENAI_API_KEY",
+    "ai_max_retries": "3",
+    "ai_request_timeout": "30",
+    "primary_audience": "Muslim homebuyers seeking Shariah-compliant, riba-free home financing",
+    "specialty": "Islamic home financing, riba-free mortgages, halal homeownership",
+    "config_urls_file": "sites/ahn-llms-urls.php",
     "article_min_words": 1800,
     "article_max_words": 3500,
     "default_post_status": "draft",
@@ -62,6 +74,9 @@
     "skip_slugs": ["home", "privacy-policy"],
     "protected_slugs": [],
     "excluded_destinations": [],
+    "linking_v2_enabled": false,
+    "anchor_pool_size_min": "18",
+    "anchor_pool_size_max": "25",
     "pool_path": "",
     "inbound_min": 3,
     "per_run_dest_cap": 10,
@@ -91,8 +106,15 @@
     ]
   },
 
+  "toggles": {
+    "technical_seo": true,
+    "qa_gates": true,
+    "llm_infrastructure": true
+  },
+
   "integrations": {
     "gsc_property": "TODO-verify",
+    "gsc_service_account": "~/randalls-seo-system/.gsc-credentials.json",
     "ga4_property_id": "TODO-verify",
     "cdn_notes": "WP Engine Varnish. Dashboard served directly from webroot, not through WP — standard WPE cache applies."
   },
