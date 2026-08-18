@@ -85,6 +85,10 @@ def test_ahn_is_migrated():
     assert "ahn" in _migrated_slugs()
 
 
+def test_canopy_is_migrated():
+    assert "canopy" in _migrated_slugs()
+
+
 # ---------------------------------------------------------------------------
 # Structural test: no .conf reads for migrated sites
 # ---------------------------------------------------------------------------
@@ -213,6 +217,50 @@ class TestMigratedConfigTypes:
                 assert isinstance(val, list), (
                     f"{slug}: zone_suffixes should be list, got {type(val).__name__}: {val!r}"
                 )
+
+    def test_skip_slugs_is_list_in_json(self):
+        """config.json skip_slugs must be a list, not a string."""
+        for slug in _migrated_slugs():
+            path = SITES_DIR / slug / "config.json"
+            data = json.loads(path.read_text())
+            val = data.get("linking", {}).get("skip_slugs")
+            if val is not None:
+                assert isinstance(val, list), (
+                    f"{slug}: skip_slugs should be list, got {type(val).__name__}: {val!r}"
+                )
+
+    def test_do_not_touch_pages_is_list_in_json(self):
+        """config.json do_not_touch_pages must be a list, not a string."""
+        for slug in _migrated_slugs():
+            path = SITES_DIR / slug / "config.json"
+            data = json.loads(path.read_text())
+            val = data.get("protected", {}).get("do_not_touch_pages")
+            if val is not None:
+                assert isinstance(val, list), (
+                    f"{slug}: do_not_touch_pages should be list, got {type(val).__name__}: {val!r}"
+                )
+
+    def test_article_max_words_is_int_in_json(self):
+        """config.json article_max_words must be an int if present."""
+        for slug in _migrated_slugs():
+            path = SITES_DIR / slug / "config.json"
+            data = json.loads(path.read_text())
+            val = data.get("content", {}).get("article_max_words")
+            if val is not None:
+                assert isinstance(val, int), (
+                    f"{slug}: article_max_words should be int, got {type(val).__name__}: {val!r}"
+                )
+
+    def test_prefix_is_explicit_field(self):
+        """SITE_PREFIX must come from an explicit 'prefix' field, not inferred from site_id."""
+        for slug in _migrated_slugs():
+            path = SITES_DIR / slug / "config.json"
+            data = json.loads(path.read_text())
+            ident = data.get("identity", {})
+            assert "prefix" in ident, (
+                f"{slug}: identity must have explicit 'prefix' field — "
+                f"SITE_PREFIX cannot be inferred from site_id"
+            )
 
 
 # ---------------------------------------------------------------------------
