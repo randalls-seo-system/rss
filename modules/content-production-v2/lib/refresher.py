@@ -87,6 +87,7 @@ def start_refresh_job(
 
     # Create job
     job = create_job(site_slug, keyword)
+    job["post_id"] = post_id
     job["mode"] = "refresh"
     job["refresh"] = {
         "original_post_id": post_id,
@@ -357,7 +358,7 @@ if (is_wp_error($id)) {{
     draft_id = resp["id"]
 
     # Universal gate check before deploying to draft
-    site_id = config.get("identity", {}).get("site_id", site_slug)
+    site_id = config.get("identity", {}).get("site_id", job.get("site", ""))
     gate_report = run_universal_gates(
         content,
         site_slug=site_id,

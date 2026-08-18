@@ -37,6 +37,15 @@ by exact post_id and filename — no candidate lists, no globs, no fallbacks.
 | 2026-08-12 | approve_refresh had no deploy-artifact gate. Readiness check uses `refresh.original_post_id`; top-level `post_id` (used by resolver) was unchecked. Null post_id slipped to SSH call. | `resolve_deploy_artifact` + `run_universal_gates` on deploy artifact in approve_refresh | approve_refresh (site #7, additive alongside existing raw-article gate) |
 | 2026-08-12 | Posts 1501/383/1740 received unstyled content (Aug 10). `run_postprocess` passthrough branch copied source to deploy unchanged when css_prefix was `rl-`. For non-rl- sites, postprocessor could pass through without converting classes and no gate caught it. | `assert_deploy_class_migration` — deploy artifact for non-rl- site must contain zero rl-* classes AND must not be byte-identical to source article | create_pending_draft (refresh path only, not universal) |
 
+## Refresh Lifecycle Gates
+
+| Date | Incident | Assertion | Paths Protected |
+|------|----------|-----------|-----------------|
+| 2026-08-18 | `start_refresh_job()` created jobs with `post_id: null`. `create_job()` defaults to None; refresh never overwrote it. All three August TLN refresh jobs (1501, 383, 1740) carry null. `approve_refresh` calls `resolve_deploy_artifact(job, jdir)` which calls `validate_post_id(job)` — raises on null, blocking every refresh approval after the resolver landed (2026-08-12). | `TestRefreshJobCarriesPostId` — `start_refresh_job` must set `job["post_id"]` to a valid positive integer, same value as `refresh.original_post_id`. | start_refresh_job (producer), approve_refresh + adversarial review + run_assemble (consumers via resolver/guard) |
+| 2026-08-18 | `create_pending_draft()` line 360 references `site_slug` — never defined in function scope. Every call would `NameError` before reaching the universal gate check. Latent since initial implementation, never hit because `create_pending_draft` was only called in manual sessions that apparently never reached the gate path. | Fix: `site_slug` → `job.get("site", "")`. Test: `create_pending_draft` function is called through `rss refresh-draft` CLI. | create_pending_draft (refresh path) |
+| 2026-08-18 | `run_assemble()` passed `str(None)` as `--post-id` to `assemble-article.py` when `job["post_id"]` was null. `argparse int()` raised `invalid int value: 'None'` — a subprocess `RuntimeError` with no mention of `post_id`, masking the root cause. | `TestRunAssembleRejectsNullPostId` — guard raises `ValueError` naming `post_id` before subprocess launch. | run_assemble (consumer-side guard) |
+| 2026-08-18 | `create_pending_draft` had no CLI command. The refresh lifecycle required manual Python calls between `rss refresh` and `rss refresh-approve`. | `TestRefreshDraftCliRegistered` — `cmd_refresh_draft` function, `"refresh-draft"` subcommand, and dispatcher entry must all exist in `rss` CLI. | rss CLI dispatcher |
+
 ## Article-Pipeline Gates (spec_assertions.py)
 
 These run inside the article pipeline (Stage D: Emit Gates) and refresher

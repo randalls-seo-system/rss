@@ -653,5 +653,115 @@ class TestApproveRefreshDeployArtifactGate(unittest.TestCase):
             shutil.rmtree(jdir, ignore_errors=True)
 
 
+# ─── Mutation (a): start_refresh_job sets job["post_id"] ──────────────────
+
+class TestRefreshJobCarriesPostId(unittest.TestCase):
+    """start_refresh_job must set job["post_id"] to the target post's ID."""
+
+    @patch("lib.refresher.fetch_post_html")
+    @patch("lib.refresher.fetch_gsc_top_pages", return_value=[])
+    def test_refresh_job_has_valid_post_id(self, mock_gsc, mock_fetch):
+        from lib.refresher import start_refresh_job
+        mock_fetch.return_value = {
+            "post_id": 1501, "slug": "fha-closing-costs",
+            "title": "FHA Closing Costs", "html": "<p>content</p>",
+            "status": "publish", "post_date": "2026-01-01 00:00:00",
+        }
+        job = start_refresh_job(SITE_CONFIG, "tln", 1501)
+        self.assertIsNotNone(job)
+        self.assertEqual(job["post_id"], 1501)
+        self.assertIsInstance(job["post_id"], int)
+        self.assertGreater(job["post_id"], 0)
+        # Same value as refresh.original_post_id
+        self.assertEqual(job["post_id"], job["refresh"]["original_post_id"])
+
+
+# ─── Mutation (b) positive: approve passes with valid post_id ─────────────
+
+class TestApproveRefreshWithValidPostId(unittest.TestCase):
+    """approve_refresh readiness check passes when job["post_id"] is set."""
+
+    def test_readiness_passes_with_post_id_set(self):
+        import shutil
+        from lib.refresher import refresh_job_ready_for_approval, JOBS_DIR
+
+        job_id = "test-job-valid-postid"
+        jdir = JOBS_DIR / job_id
+        jdir.mkdir(parents=True, exist_ok=True)
+        try:
+            (jdir / "999-deploy.html").write_text("<html>deploy</html>")
+            job = {
+                "id": job_id,
+                "post_id": 999,
+                "site": "tln",
+                "stages": {
+                    "fetch_original": {"status": "done"},
+                    "generate": {"status": "done"},
+                    "gates": {
+                        "status": "done",
+                        "validation": {"ran": True, "hard_passed": 30, "hard_total": 30},
+                        "d2": {"ran": True},
+                    },
+                    "link_pass": {"status": "done"},
+                    "postprocess": {"status": "done"},
+                    "create_pending_draft": {"status": "done"},
+                },
+                "refresh": {
+                    "original_post_id": 999,
+                    "pending_draft_id": 2531,
+                },
+            }
+            ready, reason = refresh_job_ready_for_approval(job)
+            self.assertTrue(ready, f"Should pass but got: {reason}")
+        finally:
+            shutil.rmtree(jdir, ignore_errors=True)
+
+
+# ─── Mutation (c): rss refresh-draft in CLI dispatcher ───────────────────
+
+class TestRefreshDraftCliRegistered(unittest.TestCase):
+    """refresh-draft must be a registered CLI command."""
+
+    def test_refresh_draft_in_dispatcher(self):
+        rss_path = Path(__file__).resolve().parent.parent / "rss"
+        source = rss_path.read_text()
+        self.assertIn("cmd_refresh_draft", source,
+                       "cmd_refresh_draft function missing from rss CLI")
+        self.assertIn('"refresh-draft"', source,
+                       "refresh-draft subcommand missing from argparse")
+        self.assertIn('args.command == "refresh-draft"', source,
+                       "refresh-draft missing from CLI dispatcher")
+
+
+# ─── Mutation (d): run_assemble rejects null post_id ─────────────────────
+
+class TestRunAssembleRejectsNullPostId(unittest.TestCase):
+    """run_assemble must raise ValueError when post_id is None, not produce 'None'."""
+
+    def test_null_post_id_raises_valueerror(self):
+        from lib.orchestrator import run_assemble
+        job = {
+            "id": "test-null-postid",
+            "site": "tln",
+            "topic": "test topic",
+            "post_id": None,
+        }
+        with self.assertRaises(ValueError) as ctx:
+            run_assemble(job, SITE_CONFIG)
+        self.assertIn("post_id", str(ctx.exception))
+
+    def test_zero_post_id_raises_valueerror(self):
+        from lib.orchestrator import run_assemble
+        job = {
+            "id": "test-zero-postid",
+            "site": "tln",
+            "topic": "test topic",
+            "post_id": 0,
+        }
+        with self.assertRaises(ValueError) as ctx:
+            run_assemble(job, SITE_CONFIG)
+        self.assertIn("post_id", str(ctx.exception))
+
+
 if __name__ == "__main__":
     unittest.main()
