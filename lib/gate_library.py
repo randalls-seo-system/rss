@@ -92,8 +92,8 @@ def _get_css_allowlist(config: dict) -> set[str]:
         "main-content", "ans", "sep", "badge", "bluf",
         "rss-il",  # injected internal link class
     }
-    # Framework prefixes (Divi, WP core)
-    framework = ("et_", "wp-", "dsm-")
+    # Framework prefixes (Divi, WP core, pipeline structural wrappers)
+    framework = ("et_", "wp-", "dsm-", "bullet-section-")
     return builtin | explicit, prefixes, framework
 
 
