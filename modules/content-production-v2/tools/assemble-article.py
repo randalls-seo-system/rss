@@ -533,6 +533,7 @@ class PipelineState:
     config: dict = field(default_factory=dict)
     archetype: str = ""
     brand_voice: str = ""
+    vertical_rules: str = ""
     overlay: object = None
     site_structure: dict = field(default_factory=dict)
     provider: str = "claude_cli"
@@ -677,6 +678,14 @@ def phase_a(state: PipelineState) -> None:
         eprint(f"  [A.2c] Brand rules loaded ({len(brand_rules)} chars)")
     else:
         eprint(f"  [A.2c] No brand rules configured for '{state.site_slug}'")
+
+    # Step 2d: Load vertical rules (real_estate, mortgage, etc.)
+    from lib.brand_rules import load_vertical_rules_block
+    state.vertical_rules = load_vertical_rules_block(state.site_slug)
+    if state.vertical_rules:
+        eprint(f"  [A.2d] Vertical rules loaded ({len(state.vertical_rules)} chars)")
+    else:
+        eprint(f"  [A.2d] No vertical declared for '{state.site_slug}'")
 
     # Step 3: Detect intent if not provided
     if not state.intent:
@@ -1940,6 +1949,7 @@ def _build_atf_lede(state: PipelineState, client: LLMClient) -> str:
         "TOPIC_NOUN": state.target_keyword,
         "SERP_TOP_RESULT_LEDES": serp_ledes or "(unavailable)",
         "AI_OVERVIEW_TEXT": ai_overview or "(unavailable)",
+        "VERTICAL_RULES": state.vertical_rules,
         "INJECT_BRAND_VOICE": entity_preamble + state.brand_voice,
     })
 
@@ -2324,6 +2334,7 @@ def _build_closing(state: PipelineState, client: LLMClient) -> str:
     prompt = render_prompt(template, {
         "TARGET_KEYWORD": state.target_keyword,
         "ARTICLE_SUMMARY": "\n".join(summary_lines),
+        "VERTICAL_RULES": state.vertical_rules,
         "INJECT_BRAND_VOICE": state.brand_voice,
     })
 
