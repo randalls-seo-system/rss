@@ -727,6 +727,25 @@ def cmd_refresh_rollback(args):
         sys.exit(1)
 
 
+def cmd_refresh_draft(args):
+    """Create pending draft for a refresh job."""
+    from lib.refresher import create_pending_draft
+    from lib.orchestrator import load_job
+    config_path = MODULE_DIR.parent.parent / "sites" / args.site / "config.json"
+    if not config_path.exists():
+        print(f"Config not found: {config_path}", file=sys.stderr)
+        sys.exit(1)
+    config = json.loads(config_path.read_text())
+    job = load_job(args.job)
+    draft_id = create_pending_draft(config, job)
+    if draft_id:
+        print(f"Pending draft created: post {draft_id}")
+        print(f"Next: 'rss refresh-approve --site {args.site} --job {args.job}'")
+    else:
+        print("FAILED: create_pending_draft refused (see errors above).", file=sys.stderr)
+        sys.exit(1)
+
+
 def cmd_queue(args):
     """Queue management subcommands."""
     from lib.queue import (
@@ -936,6 +955,12 @@ def main():
     rb = sub.add_parser("refresh-rollback", help="Rollback a refresh — restore original HTML")
     rb.add_argument("--site", required=True, help="Site ID")
     rb.add_argument("--job", required=True, help="Job ID to rollback")
+
+    # refresh-draft
+    rd = sub.add_parser("refresh-draft", help="Create pending draft for a refresh job")
+    rd.add_argument("--site", required=True, help="Site ID")
+    rd.add_argument("--job", required=True, help="Job ID")
+
     # topic-graph
     tg = sub.add_parser("topic-graph", help="Show topic graph summary (pending links, spokes, backfills)")
     tg.add_argument("--site", required=True, help="Site ID")
@@ -979,6 +1004,8 @@ def main():
         cmd_refresh_approve(args)
     elif args.command == "refresh-rollback":
         cmd_refresh_rollback(args)
+    elif args.command == "refresh-draft":
+        cmd_refresh_draft(args)
     elif args.command == "topic-graph":
         from lib.topic_graph import build_topic_graph_summary
         summary = build_topic_graph_summary(args.site)

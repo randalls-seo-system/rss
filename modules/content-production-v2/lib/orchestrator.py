@@ -315,6 +315,11 @@ def run_assemble(job: dict, config: dict, skip_gap: bool = False) -> Path:
     """Run assemble-article.py. Returns path to the article HTML."""
     jd = job_dir(job)
     post_id = job["post_id"]
+    if not isinstance(post_id, int) or post_id <= 0:
+        raise ValueError(
+            f"run_assemble requires a valid positive integer post_id, "
+            f"got {post_id!r} (job {job.get('id', '?')})"
+        )
     topic = job["topic"]
     site = job["site"]
 
