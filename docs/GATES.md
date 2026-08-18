@@ -88,3 +88,12 @@ Known gaps:
 | 2026-08-03 | School section with placeholder text | `assert_cg_schools_section` | 18.CG.4 |
 | 2026-08-03 | Restaurant/venue lexicon in residential guide | `assert_cg_no_venue_lexicon` | 18.CG.5 |
 | 2026-08-03 | Wrong geography for named community | `assert_cg_no_wrong_geography` | 18.CG.6 |
+
+## Config Migration Gates (tests/test_config_migration.py)
+
+Structural tests ensuring the .conf → config.json migration does not silently
+drop configuration. Two layers:
+
+| Date | Incident | Assertion | Paths Protected |
+|------|----------|-----------|-----------------|
+| 2026-08-18 | GFP brand guardrails (PRICE_POLICY, FORBIDDEN_TERMS, etc.) exist only in .conf — invisible to every gate (which reads config.json). A generated article could name competitors and pass all gates. Canopy config.json has `article_min_words: "TODO-verify"` (string), crashing orchestrator.py on `int >= str`. TLN SSH_KEY_PATH and WP_PATH disagree between files. | `TestNoConfReadsForMigratedSites` — monkeypatches `builtins.open` to block any `.conf` read for migrated sites. Catches all 4 existing parsers + any future parser structurally. `TestFlattenParity` — for each migrated site, parses `.conf` directly and compares every non-empty key against `_flatten_json_config()` output. Missing or mismatched keys fail naming the key. | site_config.py, ssh_session.py, render-prompt.py, build-css-bundle.py, verify-css-rendered.py, gate_library._load_site_conf() |

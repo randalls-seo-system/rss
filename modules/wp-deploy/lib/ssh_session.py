@@ -23,7 +23,20 @@ LOG_DIR = Path('/tmp')
 
 
 def load_site_ssh_config(site_slug):
-    """Load SSH config from sites/<slug>.conf."""
+    """Load SSH config from sites/<slug>/config.json (migrated) or .conf."""
+    # Check for migrated site first
+    import importlib.util as _ilu
+    _sc_spec = _ilu.spec_from_file_location(
+        "site_config",
+        str(REPO_ROOT / 'modules' / 'content-production-v2' / 'lib' / 'site_config.py'),
+    )
+    _sc_mod = _ilu.module_from_spec(_sc_spec)
+    _sc_spec.loader.exec_module(_sc_mod)
+    _is_migrated = _sc_mod._is_migrated
+    _flatten_json_config = _sc_mod._flatten_json_config
+    if _is_migrated(site_slug):
+        return _flatten_json_config(site_slug)
+
     conf_path = REPO_ROOT / 'sites' / f'{site_slug}.conf'
     if not conf_path.exists():
         raise FileNotFoundError(f"Site config not found: {conf_path}")

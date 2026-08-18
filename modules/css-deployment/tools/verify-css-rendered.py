@@ -18,8 +18,20 @@ import sys
 
 
 def read_site_config(site_slug: str) -> dict:
-    """Read site config."""
+    """Read site config from config.json (migrated) or .conf."""
     root = os.path.expanduser("~/randalls-seo-system")
+    import importlib.util as _ilu
+    _sc_spec = _ilu.spec_from_file_location(
+        "site_config",
+        os.path.join(root, "modules", "content-production-v2", "lib", "site_config.py"),
+    )
+    _sc_mod = _ilu.module_from_spec(_sc_spec)
+    _sc_spec.loader.exec_module(_sc_mod)
+    _is_migrated = _sc_mod._is_migrated
+    _flatten_json_config = _sc_mod._flatten_json_config
+    if _is_migrated(site_slug):
+        return _flatten_json_config(site_slug)
+
     conf = os.path.join(root, "sites", f"{site_slug}.conf")
     config = {}
     if os.path.exists(conf):
