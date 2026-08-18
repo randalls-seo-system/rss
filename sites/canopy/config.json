@@ -1,7 +1,11 @@
 {
+  "_migrated": true,
+
   "identity": {
     "site_id": "canopy",
+    "prefix": "cnp",
     "name": "Canopy Insurance Texas",
+    "domain": "canopyinsurancetexas.com",
     "public_url": "https://canopyinsurancetexas.com",
     "platform": "wpe",
     "platform_notes": "Standard WP Engine hosting."
@@ -25,8 +29,11 @@
     "cta_url": "/get-a-quote/",
     "cta_text": "Get a Quote",
     "form_page_slug": "get-a-quote",
-    "article_min_words": "TODO-verify",
-    "article_max_words": "TODO-verify",
+    "ai_api_key_env_var": "OPENAI_API_KEY",
+    "ai_max_retries": "3",
+    "ai_request_timeout": "30",
+    "article_min_words": 1200,
+    "article_max_words": 2500,
     "default_post_status": "draft"
   },
 
@@ -43,11 +50,13 @@
   },
 
   "linking": {
-    "zone_suffixes": "TODO-verify",
+    "zone_suffixes": ["hero", "callout", "faq", "bluf", "disclosure"],
     "extra_zone_classes": [],
-    "skip_slugs": "TODO-verify",
+    "skip_slugs": ["home", "privacy-policy", "get-a-quote"],
     "protected_slugs": [],
     "excluded_destinations": [],
+    "anchor_pool_size_min": "18",
+    "anchor_pool_size_max": "25",
     "pool_path": "sites/canopy-anchor-pools.json",
     "inbound_min": 3,
     "per_run_dest_cap": 10,
@@ -59,7 +68,7 @@
   },
 
   "protected": {
-    "do_not_touch_pages": "TODO-verify",
+    "do_not_touch_pages": [],
     "frozen_subsystems": [],
     "known_traps": []
   },

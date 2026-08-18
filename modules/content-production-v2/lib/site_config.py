@@ -44,7 +44,7 @@ def _flatten_json_config(site_slug: str) -> dict:
     config["SITE_NAME"] = ident.get("name", "")
     config["SITE_DOMAIN"] = ident.get("domain", "")
     config["SITE_URL"] = ident.get("public_url", "")
-    config["SITE_PREFIX"] = ident.get("site_id", "")
+    config["SITE_PREFIX"] = ident.get("prefix", ident.get("site_id", ""))
     config["SITE_SLUG"] = ident.get("site_id", "")
 
     # access

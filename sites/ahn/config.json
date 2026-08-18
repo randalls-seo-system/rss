@@ -3,6 +3,7 @@
 
   "identity": {
     "site_id": "ahn",
+    "prefix": "ahn",
     "name": "Afghan Home Network",
     "domain": "afghanhomenetw.wpenginepowered.com",
     "public_url": "https://afghanhomenetw.wpenginepowered.com",
