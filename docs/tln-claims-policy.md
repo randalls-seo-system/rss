@@ -74,7 +74,7 @@ A claim that includes a specific number, rate, percentage, or dollar amount is N
 definitional — it requires a SOURCE citation even if the concept is standard.
 
 Exceptions: the following program-rule figures are POLICY (established by issuing agencies, not market-variable):
-- "Alimony/child support income must continue for at least 3 years after closing" (Fannie Mae B3-3.1-09)
+- "Alimony/child support income must be expected to continue for at least 3 years from the note date" (Fannie Mae B3-3.4-02)
 - "FHA seller concessions are limited to 6% of the purchase price" (HUD 4000.1 II.A.3.b)
 - "Conventional 97 caps first-lien LTV at 97%; CLTV may reach 105% only with an eligible Community Seconds subordinate lien" (Fannie Mae B5-6-01)
 - "FHA upfront MIP is 1.75% of the base loan amount" (HUD Mortgagee Letter 2023-05)
