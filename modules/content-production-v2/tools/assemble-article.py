@@ -77,6 +77,33 @@ from lib.tool_utils import (
     write_output,
 )
 
+# Repo-root lib/ imports via importlib (avoids namespace collision with module lib/)
+import importlib.util as _ilu
+_gl_spec = _ilu.spec_from_file_location("gate_library", REPO_ROOT / "lib" / "gate_library.py")
+_gl_mod = _ilu.module_from_spec(_gl_spec)
+_gl_spec.loader.exec_module(_gl_mod)
+_run_universal_gates = _gl_mod.run_universal_gates
+_GateReport = _gl_mod.GateReport
+
+_const_spec = _ilu.spec_from_file_location("constants", REPO_ROOT / "lib" / "constants.py")
+_const_mod = _ilu.module_from_spec(_const_spec)
+_const_spec.loader.exec_module(_const_mod)
+GENERATION_CSS_PREFIX = _const_mod.GENERATION_CSS_PREFIX
+
+# Gate config for generation-time CSS prefix check.
+# Deploy-time gates check the site's config.json prefix (post-conversion).
+# Generation-time gates check the pipeline's emission prefix (pre-conversion).
+_GENERATION_GATE_CONFIG = {
+    "content": {
+        "css_prefix": [GENERATION_CSS_PREFIX],
+    }
+}
+
+# Intent → gate content_type mapping. Explicit "article" default.
+_INTENT_TO_CONTENT_TYPE = {
+    "community-guide": "guide",
+}
+
 
 # ---------------------------------------------------------------------------
 # Constants
@@ -3121,6 +3148,27 @@ def main():
         phase_g(state)
         phase_h(state)
         phase_polish(state, skip=args.skip_polish)
+
+        # Universal generation gate — no article produced without passing.
+        eprint("  [GATE] Running universal generation gates")
+        _content_type = _INTENT_TO_CONTENT_TYPE.get(state.intent, "article")
+        _gate_report = _run_universal_gates(
+            state.assembled_html,
+            site_slug=state.site_slug,
+            title="",  # extract from H1 in the assembled HTML
+            content_type=_content_type,
+            config=_GENERATION_GATE_CONFIG,
+        )
+        if not _gate_report.passed:
+            eprint(f"  [GATE] GENERATION GATE FAILED — refusing to produce article:")
+            for _gf in _gate_report.failures:
+                eprint(f"    [{_gf.name}] {_gf.detail}")
+            raise RuntimeError(
+                f"Generation gate failed ({len(_gate_report.failures)} "
+                f"failure(s)): {_gate_report.summary()}"
+            )
+        eprint(f"  [GATE] {_gate_report.summary()}")
+
         # Schema removed: FAQPage now handled by lrg-faq-schema.php mu-plugin
         # at render time; Article/Breadcrumb handled by Yoast in <head>.
         phase_i(state, skip_deploy=args.skip_deploy)

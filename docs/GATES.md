@@ -22,6 +22,8 @@ refresher, batch-inject-links, style-pass, and all LRG generators.
 | 2026-08-10 | Content with no headline structure deployed | `headline_present` | all write paths |
 | 2026-08-10 | Articles with 2 H2 sections passed as complete | `min_sections` | all write paths |
 | 2026-08-10 | Wrong-but-plausible domain claims passing all gates | adversarial review stage | pipeline Stage E2 (bounded, evidence-verified) |
+| 2026-08-18 | assemble-article.py never called run_universal_gates(). 65 GFP articles generated ungated — every manifest records `validation.ran: false`. Any editorial marker, foreign class, banned phrase, or stub article passed generation unchecked. | `run_universal_gates` wired into assemble-article.py between phase_polish and phase_i as hard failure. Generation-time config uses GENERATION_CSS_PREFIX ("rl-") instead of site deploy prefix. | assemble-article.py main() — all article generation |
+| 2026-08-18 | `bullet-section-*` classes (emitted by html_sanitizer.py, added by VALN/LRG postprocessors) are foreign to no_undefined_classes at both generation and deploy lifecycle stages for all sites. Latent deploy blocker for any article with bare `<ul>` in body sections. | `bullet-section-` added to framework prefix tuple in `_get_css_allowlist` | all write paths (generation + deploy) |
 
 ## Deploy Artifact Resolution (lib/artifact_resolver.py)
 
