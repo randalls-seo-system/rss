@@ -144,6 +144,10 @@ def main():
     if brand_rules:
         brand_voice += f"\n\n{brand_rules}"
 
+    # Load vertical rules (real_estate, etc.)
+    from lib.brand_rules import load_vertical_rules_block
+    vertical_rules = load_vertical_rules_block(args.site)
+
     # Parse prior card synthesis bullets for diversity
     prior_synthesis = ""
     if args.prior_cards_synthesis:
@@ -164,6 +168,7 @@ def main():
         "BULLET_LABEL_HINTS": ", ".join(slot.bullet_label_hints),
         "TOPIC_CONTEXT": topic_context,
         "PRIOR_CARDS_SYNTHESIS": prior_synthesis or "(none — this is the first card)",
+        "VERTICAL_RULES": vertical_rules,
         "INJECT_BRAND_VOICE": brand_voice,
     })
 

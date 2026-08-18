@@ -39,6 +39,8 @@ Produce exactly this HTML structure:
 - ZERO inline links. No `<a>` tags anywhere in the output.
 - Prefer concrete numbers over vague language. "$14,450 on a $400,000 loan" beats "a significant amount."
 
+{{VERTICAL_RULES}}
+
 ## Anti-patterns
 
 Do NOT produce any of the following:

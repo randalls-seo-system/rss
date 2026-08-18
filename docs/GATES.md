@@ -65,6 +65,19 @@ content types.
 | 2026-06-22 | Publish without featured image | LRG publish gate | d53e138 |
 | 2026-06-17 | Business claims without facts file | claims gate | f807139 |
 
+## Vertical Rules Coverage (test_vertical_rules_coverage.py)
+
+Structural tests ensuring every prose-generating builder injects vertical
+rules when the site declares a vertical.
+
+| Date | Incident | Assertion | Paths Protected |
+|------|----------|-----------|-----------------|
+| 2026-08-18 | A durable-phrasing rule was added to h2-section.md forbidding short-sale deficiency language. The next generation produced the exact forbidden text — because the lede, cards, and closing never saw vertical rules. build-card.py (4 calls/article), `_build_atf_lede`, and `_build_closing` constructed prompts without `{{VERTICAL_RULES}}`. | `test_template_gate` — every prompt template with `{{INJECT_BRAND_VOICE}}` must also have `{{VERTICAL_RULES}}`. `test_builder_code_gate` — every `render_prompt()` call whose template has `{{VERTICAL_RULES}}` must pass the value (per-call granularity). `test_orchestrator_loads_vertical_rules` — `assemble-article.py` must assign `state.vertical_rules` from `load_vertical_rules_block()`. | build-card.py, `_build_atf_lede`, `_build_closing`, and any future builder using `render_prompt` with a prose template |
+
+Known gaps:
+- **build-hub-box.py**: Inline LLM prompts, no template, no render_prompt. Needs condensed vertical block (backlog L12).
+- **generate-neighborhood-guide.py**: Loads vertical rules and injects via f-string, but uses no template/render_prompt pattern. The builder gate does not cover it; regression would not fire the test.
+
 ## Community-Guide Gates (spec_assertions.py 18.CG.*)
 
 | Date | Incident | Assertion | Spec Ref |

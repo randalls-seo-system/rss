@@ -35,6 +35,8 @@ Produce exactly this HTML structure:
 - Do not start with "In conclusion" or "To summarize."
 - The closing should leave the reader with a clear, actionable takeaway synthesized from the article's body sections.
 
+{{VERTICAL_RULES}}
+
 ## Anti-patterns
 
 Do NOT produce any of the following:

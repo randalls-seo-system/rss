@@ -32,6 +32,8 @@ Produce a single `<p>` element (preferred). Two `<p>` elements are acceptable on
 - Do not repeat the H1 verbatim as the first sentence.
 - Use information from the SERP top results and AI Overview to ground the lede in current facts.
 
+{{VERTICAL_RULES}}
+
 ## Anti-patterns
 
 Do NOT produce any of the following:
