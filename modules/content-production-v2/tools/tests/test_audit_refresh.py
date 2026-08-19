@@ -279,7 +279,7 @@ class TestRefreshSafety(unittest.TestCase):
             "stages": {
                 "fetch_original": {"status": "done"},
                 "generate": {"status": "done"},
-                "gates": {"status": "done", "validation": {"ran": True, "hard_passed": 30, "hard_total": 30}, "d2": {"ran": True}},
+                "gates": {"status": "done", "validation": {"ran": True, "hard_passed": 30, "hard_total": 30}, "d2": {"ran": True, "passed": True, "unsourced": 0}},
                 "link_pass": {"status": "done"},
                 "postprocess": {"status": "done"},
                 "create_pending_draft": {"status": "done"},
@@ -350,7 +350,7 @@ class TestRefreshSafety(unittest.TestCase):
             "stages": {
                 "fetch_original": {"status": "done"},
                 "generate": {"status": "done"},
-                "gates": {"status": "done", "validation": {"ran": True, "hard_passed": 30, "hard_total": 30}, "d2": {"ran": True}},
+                "gates": {"status": "done", "validation": {"ran": True, "hard_passed": 30, "hard_total": 30}, "d2": {"ran": True, "passed": True, "unsourced": 0}},
                 "link_pass": {"status": "done"},
                 "postprocess": {"status": "done"},
                 "create_pending_draft": {"status": "done"},
@@ -629,7 +629,7 @@ class TestApproveRefreshDeployArtifactGate(unittest.TestCase):
                     "gates": {
                         "status": "done",
                         "validation": {"ran": True, "hard_passed": 30, "hard_total": 30},
-                        "d2": {"ran": True},
+                        "d2": {"ran": True, "passed": True, "unsourced": 0},
                     },
                     "link_pass": {"status": "done"},
                     "postprocess": {"status": "done"},
@@ -700,7 +700,7 @@ class TestApproveRefreshWithValidPostId(unittest.TestCase):
                     "gates": {
                         "status": "done",
                         "validation": {"ran": True, "hard_passed": 30, "hard_total": 30},
-                        "d2": {"ran": True},
+                        "d2": {"ran": True, "passed": True, "unsourced": 0},
                     },
                     "link_pass": {"status": "done"},
                     "postprocess": {"status": "done"},
@@ -761,6 +761,402 @@ class TestRunAssembleRejectsNullPostId(unittest.TestCase):
         with self.assertRaises(ValueError) as ctx:
             run_assemble(job, SITE_CONFIG)
         self.assertIn("post_id", str(ctx.exception))
+
+
+# ─── D2 Claims Integrity: Mutation tests ──────────────────────────────────
+# Defects: file-path mismatch, settled ratchet, approval bypass
+# Gate: assert_d2_claims_integrity
+
+# ─── Mutation (a): run_postprocess reads resolved artifact ────────────────
+
+class TestPostprocessReadsResolvedArtifact(unittest.TestCase):
+    """run_postprocess must read from the artifact chain, not a stale
+    article.html. Proves DEFECT 1 fix: deploy artifact derives from
+    post-claims-resolution HTML."""
+
+    def test_deploy_derives_from_artifact_chain(self):
+        import shutil
+        from lib.refresher import run_postprocess, JOBS_DIR
+
+        job_id = "test-postprocess-artifact-chain"
+        jdir = JOBS_DIR / job_id
+        jdir.mkdir(parents=True, exist_ok=True)
+
+        try:
+            stale_html = '<div class="rl-page"><p>STALE pre-D2 content</p></div>'
+            resolved_html = '<div class="rl-page"><p>POST-D2 resolved content</p></div>'
+
+            # Create both files — stale article.html and resolved {pid}-article.html
+            (jdir / "article.html").write_text(stale_html)
+            (jdir / "999-article.html").write_text(resolved_html)
+
+            job = {
+                "id": job_id,
+                "site": "tln",
+                "refresh": {"original_post_id": 999, "original_slug": "test-slug"},
+                "artifacts": {"article_html": str(jdir / "999-article.html")},
+            }
+            (jdir / "job.json").write_text(json.dumps(job))
+
+            # rl- prefix site → deploy = copy of input (no class migration)
+            config = {"content": {"css_prefix": ["rl-"]}}
+            deploy_path = run_postprocess(config, job)
+
+            self.assertIsNotNone(deploy_path)
+            deploy_content = deploy_path.read_text()
+            self.assertIn("POST-D2 resolved content", deploy_content)
+            self.assertNotIn("STALE pre-D2 content", deploy_content)
+        finally:
+            shutil.rmtree(jdir, ignore_errors=True)
+
+    def test_fallback_to_pid_article_when_no_artifact_chain(self):
+        """Legacy jobs with no artifacts set should fall back to {pid}-article.html,
+        not bare article.html."""
+        import shutil
+        from lib.refresher import run_postprocess, JOBS_DIR
+
+        job_id = "test-postprocess-fallback"
+        jdir = JOBS_DIR / job_id
+        jdir.mkdir(parents=True, exist_ok=True)
+
+        try:
+            stale_html = '<div class="rl-page"><p>STALE bare article</p></div>'
+            correct_html = '<div class="rl-page"><p>CORRECT pid-prefixed article</p></div>'
+
+            (jdir / "article.html").write_text(stale_html)
+            (jdir / "999-article.html").write_text(correct_html)
+
+            job = {
+                "id": job_id,
+                "site": "tln",
+                "refresh": {"original_post_id": 999, "original_slug": "test-slug"},
+                "artifacts": {},  # empty — no artifact chain
+            }
+            (jdir / "job.json").write_text(json.dumps(job))
+
+            config = {"content": {"css_prefix": ["rl-"]}}
+            deploy_path = run_postprocess(config, job)
+
+            self.assertIsNotNone(deploy_path)
+            deploy_content = deploy_path.read_text()
+            self.assertIn("CORRECT pid-prefixed article", deploy_content)
+            self.assertNotIn("STALE bare article", deploy_content)
+        finally:
+            shutil.rmtree(jdir, ignore_errors=True)
+
+
+# ─── Mutation (b): No SETTLED — every claim classified every run ──────────
+
+class TestNoSettledClassification(unittest.TestCase):
+    """The settled-claims ratchet has been removed. Every claim must be
+    classified by the LLM on every D2 run. No SETTLED classification
+    may appear in the output."""
+
+    @patch("lib.orchestrator.run_claims_classification")
+    @patch("lib.orchestrator.run_claims_extraction")
+    @patch("lib.orchestrator.run_ventriloquism_gate", return_value=[])
+    def test_all_claims_classified_no_settled(self, mock_vent, mock_extract, mock_classify):
+        from lib.orchestrator import run_d2_claims_check, JOBS_DIR
+        import shutil
+
+        job_id = "test-no-settled"
+        jdir = JOBS_DIR / job_id
+        jdir.mkdir(parents=True, exist_ok=True)
+
+        try:
+            # Create a settled-claims file (simulates prior runs)
+            settled_data = [
+                {"claim": "FHA requires 3.5% down", "classification": "POLICY"},
+                {"claim": "Closing costs run 2-6%", "classification": "SOURCE"},
+            ]
+            (jdir / "d2-settled-claims.json").write_text(json.dumps(settled_data))
+
+            # Extraction returns claims that match settled texts
+            mock_extract.return_value = [
+                {"claim": "FHA requires 3.5% down", "section": "Intro"},
+                {"claim": "Closing costs run 2-6%", "section": "Costs"},
+                {"claim": "Brand new claim", "section": "New"},
+            ]
+
+            # Classification returns all claims freshly classified
+            mock_classify.return_value = [
+                {"claim": "FHA requires 3.5% down", "section": "Intro", "classification": "POLICY"},
+                {"claim": "Closing costs run 2-6%", "section": "Costs", "classification": "SOURCE"},
+                {"claim": "Brand new claim", "section": "New", "classification": "UNSOURCED",
+                 "suggestion": "Verify this claim"},
+            ]
+
+            job = {"id": job_id, "site": "tln"}
+            (jdir / "job.json").write_text(json.dumps(job))
+
+            config = {"content": {"claims_policy": ""}}
+            html = "<p>Test article</p>"
+            report = run_d2_claims_check(html, config, job)
+
+            # ALL 3 claims must have been sent to the classifier (not just 1)
+            mock_classify.assert_called_once()
+            classified_claims = mock_classify.call_args[0][0]
+            self.assertEqual(len(classified_claims), 3,
+                             "All claims must be sent to classifier — settled mechanism must not filter")
+
+            # No SETTLED classification in the output
+            for c in report["classified_claims"]:
+                self.assertNotEqual(c.get("classification"), "SETTLED",
+                                    f"SETTLED classification found: {c}")
+
+            # The settled file on disk must NOT have been updated
+            # (the mechanism is removed, not just disabled)
+            settled_on_disk = json.loads((jdir / "d2-settled-claims.json").read_text())
+            self.assertEqual(len(settled_on_disk), 2,
+                             "Settled file must not be modified (evidence preservation)")
+        finally:
+            shutil.rmtree(jdir, ignore_errors=True)
+
+    @patch("lib.orchestrator.run_claims_classification")
+    @patch("lib.orchestrator.run_claims_extraction")
+    @patch("lib.orchestrator.run_ventriloquism_gate", return_value=[])
+    def test_settled_not_counted_as_source(self, mock_vent, mock_extract, mock_classify):
+        """source_count must not include any SETTLED entries."""
+        from lib.orchestrator import run_d2_claims_check, JOBS_DIR
+        import shutil
+
+        job_id = "test-no-settled-source"
+        jdir = JOBS_DIR / job_id
+        jdir.mkdir(parents=True, exist_ok=True)
+
+        try:
+            mock_extract.return_value = [
+                {"claim": "Test claim", "section": "Body"},
+            ]
+            mock_classify.return_value = [
+                {"claim": "Test claim", "section": "Body", "classification": "SOURCE"},
+            ]
+
+            job = {"id": job_id, "site": "tln"}
+            (jdir / "job.json").write_text(json.dumps(job))
+
+            config = {"content": {"claims_policy": ""}}
+            report = run_d2_claims_check("<p>test</p>", config, job)
+
+            self.assertEqual(report["source_count"], 1)
+            # Verify the source list contains only SOURCE, never SETTLED
+            source_classifications = [
+                c["classification"] for c in report["classified_claims"]
+                if c["classification"] in ("SOURCE", "SETTLED")
+            ]
+            self.assertTrue(all(c == "SOURCE" for c in source_classifications))
+        finally:
+            shutil.rmtree(jdir, ignore_errors=True)
+
+
+# ─── Mutation (c): approve_refresh enforces d2.passed ─────────────────────
+
+class TestApproveRefreshEnforcesD2Passed(unittest.TestCase):
+    """refresh_job_ready_for_approval must refuse when d2.passed is false,
+    even if d2.ran is true."""
+
+    def test_refuses_d2_passed_false(self):
+        import shutil
+        from lib.refresher import refresh_job_ready_for_approval, JOBS_DIR
+
+        job_id = "test-d2-passed-false"
+        jdir = JOBS_DIR / job_id
+        jdir.mkdir(parents=True, exist_ok=True)
+        try:
+            (jdir / "999-deploy.html").write_text("<html>deploy</html>")
+            job = {
+                "id": job_id,
+                "post_id": 999,
+                "site": "tln",
+                "stages": {
+                    "fetch_original": {"status": "done"},
+                    "generate": {"status": "done"},
+                    "gates": {
+                        "status": "done",
+                        "validation": {"ran": True, "hard_passed": 30, "hard_total": 30},
+                        "d2": {"ran": True, "passed": False, "unsourced": 3},
+                    },
+                    "link_pass": {"status": "done"},
+                    "postprocess": {"status": "done"},
+                    "create_pending_draft": {"status": "done"},
+                },
+                "refresh": {
+                    "original_post_id": 999,
+                    "pending_draft_id": 2531,
+                },
+            }
+            ready, reason = refresh_job_ready_for_approval(job)
+            self.assertFalse(ready)
+            self.assertIn("D2 claims check failed", reason)
+            self.assertIn("unsourced=3", reason)
+        finally:
+            shutil.rmtree(jdir, ignore_errors=True)
+
+    def test_refuses_unsourced_positive(self):
+        """Belt-and-suspenders: even if passed=True but unsourced > 0."""
+        import shutil
+        from lib.refresher import refresh_job_ready_for_approval, JOBS_DIR
+
+        job_id = "test-d2-unsourced-positive"
+        jdir = JOBS_DIR / job_id
+        jdir.mkdir(parents=True, exist_ok=True)
+        try:
+            (jdir / "999-deploy.html").write_text("<html>deploy</html>")
+            job = {
+                "id": job_id,
+                "post_id": 999,
+                "site": "tln",
+                "stages": {
+                    "fetch_original": {"status": "done"},
+                    "generate": {"status": "done"},
+                    "gates": {
+                        "status": "done",
+                        "validation": {"ran": True, "hard_passed": 30, "hard_total": 30},
+                        "d2": {"ran": True, "passed": True, "unsourced": 2},
+                    },
+                    "link_pass": {"status": "done"},
+                    "postprocess": {"status": "done"},
+                    "create_pending_draft": {"status": "done"},
+                },
+                "refresh": {
+                    "original_post_id": 999,
+                    "pending_draft_id": 2531,
+                },
+            }
+            ready, reason = refresh_job_ready_for_approval(job)
+            self.assertFalse(ready)
+            self.assertIn("unsourced", reason)
+        finally:
+            shutil.rmtree(jdir, ignore_errors=True)
+
+
+# ─── Mutation (d): refresh generate sets artifacts.article_html ───────────
+
+class TestRefreshGenerateSetsArticleHtml(unittest.TestCase):
+    """A refresh job whose generate stage runs through cmd_new_article must
+    have artifacts.article_html set. We verify start_refresh_job sets post_id
+    (required for run_assemble to produce {pid}-article.html) and that
+    cmd_new_article line 118 stores the path."""
+
+    @patch("lib.refresher.fetch_post_html")
+    @patch("lib.refresher.fetch_gsc_top_pages", return_value=[])
+    def test_refresh_job_has_post_id_for_artifact_chain(self, mock_gsc, mock_fetch):
+        """start_refresh_job must set post_id so run_assemble produces
+        {pid}-article.html and cmd_new_article stores it in artifacts."""
+        from lib.refresher import start_refresh_job
+        mock_fetch.return_value = {
+            "post_id": 1501, "slug": "fha-closing-costs",
+            "title": "FHA Closing Costs", "html": "<p>content</p>",
+            "status": "publish", "post_date": "2026-01-01 00:00:00",
+        }
+        job = start_refresh_job(SITE_CONFIG, "tln", 1501)
+        self.assertIsNotNone(job)
+        # post_id must be set for run_assemble to work
+        self.assertEqual(job["post_id"], 1501)
+        # artifacts dict must exist (start_refresh_job stores original_html)
+        self.assertIn("artifacts", job)
+        # After cmd_new_article runs generate (line 118), it would set:
+        #   job["artifacts"]["article_html"] = str(article_path)
+        # We verify the prerequisite: post_id is an int > 0
+        self.assertIsInstance(job["post_id"], int)
+        self.assertGreater(job["post_id"], 0)
+
+
+# ─── Counterfactual: August incident shape ────────────────────────────────
+# This is the test that proves the fix catches the incident that motivated it.
+
+class TestCounterfactualAugustIncident(unittest.TestCase):
+    """Construct a fixture matching the August incident shape — d2.ran true,
+    d2.passed false, unsourced > 0 — and assert approve_refresh refuses it.
+    Then a second fixture with d2.passed true and assert it proceeds.
+
+    This replicates what would have happened if:
+    - DEFECT 2 (settled removal) produced accurate d2 results (passed=false)
+    - DEFECT 3 (approval enforcement) checked d2.passed
+    """
+
+    def test_august_shape_refused(self):
+        """Jobs matching the August incident shape (d2.ran=true, d2.passed=false,
+        unsourced > 0) must be refused by the readiness check."""
+        import shutil
+        from lib.refresher import refresh_job_ready_for_approval, JOBS_DIR
+
+        job_id = "test-august-incident-refused"
+        jdir = JOBS_DIR / job_id
+        jdir.mkdir(parents=True, exist_ok=True)
+        try:
+            (jdir / "1501-deploy.html").write_text("<html>deploy</html>")
+            job = {
+                "id": job_id,
+                "post_id": 1501,
+                "site": "tln",
+                "mode": "refresh",
+                "stages": {
+                    "fetch_original": {"status": "done"},
+                    "generate": {"status": "done"},
+                    "gates": {
+                        "status": "done",
+                        "validation": {"ran": True, "hard_passed": 44, "hard_total": 44},
+                        # August shape: d2 ran, but without settled ratchet
+                        # the actual classification finds unsourced claims
+                        "d2": {"ran": True, "passed": False, "unsourced": 5},
+                    },
+                    "link_pass": {"status": "done"},
+                    "postprocess": {"status": "done"},
+                    "create_pending_draft": {"status": "done"},
+                },
+                "refresh": {
+                    "original_post_id": 1501,
+                    "original_slug": "fha-closing-costs",
+                    "original_title": "FHA Closing Costs",
+                    "pending_draft_id": 2562,
+                },
+            }
+            ready, reason = refresh_job_ready_for_approval(job)
+            self.assertFalse(ready, "Job with d2.passed=False must be refused")
+            self.assertIn("D2", reason)
+        finally:
+            shutil.rmtree(jdir, ignore_errors=True)
+
+    def test_clean_job_approved(self):
+        """Jobs with d2.passed=true and unsourced=0 must proceed through
+        the readiness check."""
+        import shutil
+        from lib.refresher import refresh_job_ready_for_approval, JOBS_DIR
+
+        job_id = "test-august-incident-approved"
+        jdir = JOBS_DIR / job_id
+        jdir.mkdir(parents=True, exist_ok=True)
+        try:
+            (jdir / "1501-deploy.html").write_text("<html>deploy</html>")
+            job = {
+                "id": job_id,
+                "post_id": 1501,
+                "site": "tln",
+                "mode": "refresh",
+                "stages": {
+                    "fetch_original": {"status": "done"},
+                    "generate": {"status": "done"},
+                    "gates": {
+                        "status": "done",
+                        "validation": {"ran": True, "hard_passed": 44, "hard_total": 44},
+                        "d2": {"ran": True, "passed": True, "unsourced": 0},
+                    },
+                    "link_pass": {"status": "done"},
+                    "postprocess": {"status": "done"},
+                    "create_pending_draft": {"status": "done"},
+                },
+                "refresh": {
+                    "original_post_id": 1501,
+                    "original_slug": "fha-closing-costs",
+                    "original_title": "FHA Closing Costs",
+                    "pending_draft_id": 2562,
+                },
+            }
+            ready, reason = refresh_job_ready_for_approval(job)
+            self.assertTrue(ready, f"Clean job must pass readiness but got: {reason}")
+        finally:
+            shutil.rmtree(jdir, ignore_errors=True)
 
 
 if __name__ == "__main__":

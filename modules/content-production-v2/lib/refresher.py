@@ -156,15 +156,24 @@ def run_postprocess(config: dict, job: dict) -> Path | None:
     slug = refresh.get("original_slug", "")
     site_slug = job.get("site", "")
 
-    # Find the article HTML
-    article_path = jdir / "article.html"
-    if not article_path.exists():
-        # Try the pipeline output pattern
-        for f in jdir.glob("*-article.html"):
-            article_path = f
-            break
-    if not article_path.exists():
-        eprint("[refresh] No article HTML found in job dir")
+    # Resolve input from artifact chain (same priority as cmd_new_article)
+    article_path = None
+    for key in ("article_reviewed", "article_linked", "article_html"):
+        path_str = job.get("artifacts", {}).get(key)
+        if path_str:
+            p = Path(path_str)
+            if p.exists():
+                article_path = p
+                break
+
+    # Fallback for legacy jobs: prefer {post_id}-article.html
+    if article_path is None and post_id:
+        candidate = jdir / f"{post_id}-article.html"
+        if candidate.exists():
+            article_path = candidate
+
+    if article_path is None:
+        eprint("[refresh] No article HTML found via artifact chain or naming convention")
         return None
 
     # Record what we consumed so the class-migration gate can compare
@@ -425,10 +434,14 @@ def refresh_job_ready_for_approval(job: dict) -> tuple[bool, str]:
         failed = validation.get("hard_total", 0) - validation.get("hard_passed", 0)
         return False, f"Validator: {failed} hard assertion(s) failed"
 
-    # D2 claims check must have run
+    # D2 claims check must have run AND passed
     d2 = gates_data.get("d2", {})
     if not d2.get("ran"):
         return False, "D2 claims check did not run"
+    if not d2.get("passed"):
+        return False, f"D2 claims check failed (unsourced={d2.get('unsourced', '?')})"
+    if d2.get("unsourced", -1) > 0:
+        return False, f"D2: {d2['unsourced']} unsourced claim(s) remain"
 
     if not refresh.get("pending_draft_id"):
         return False, "No pending_draft_id — draft not deployed to site"
