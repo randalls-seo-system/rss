@@ -21,6 +21,7 @@ COMMIT_DATE=$(git log -1 --date=short --format='%cd')
 COMMIT_SUBJECT=$(git log -1 --format='%s')
 COMMIT_BODY=$(git log -1 --format='%b')
 COMMIT_HASH=$(git log -1 --format='%h')
+COMMIT_HASH_FULL=$(git log -1 --format='%H')
 
 # --- Infer category from subject prefix ---
 CATEGORY="build"
@@ -57,7 +58,7 @@ RESPONSE=$(curl -s -m 10 -X POST \
     "https://lrgrealty.com/dashboard/?route=api&action=worklog-add" \
     -H "Content-Type: application/json" \
     -H "X-LRG-WORKLOG-TOKEN: $LRG_WORKLOG_TOKEN" \
-    -d "{\"category\":\"$CATEGORY\",\"title\":$TITLE_JSON,\"description\":$DESC_JSON,\"work_date\":\"$COMMIT_DATE\",\"source\":\"auto-git\"}" \
+    -d "{\"category\":\"$CATEGORY\",\"title\":$TITLE_JSON,\"description\":$DESC_JSON,\"work_date\":\"$COMMIT_DATE\",\"source\":\"auto-git\",\"commit_hash\":\"$COMMIT_HASH_FULL\"}" \
     2>/dev/null) || true
 
 if echo "$RESPONSE" | grep -q '"ok":true'; then
