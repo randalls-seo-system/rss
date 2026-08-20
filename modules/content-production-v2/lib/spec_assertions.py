@@ -1578,7 +1578,9 @@ def assert_no_fragment_list_items(soup: BeautifulSoup, context: dict) -> Asserti
 def assert_atf_document_order(soup: BeautifulSoup, context: dict) -> AssertionResult:
     """18.4.13 ATF elements appear in correct document order.
 
-    Required sequence: eyebrow → BLUF → quick-cards/grid → ATF FAQs → first body H2.
+    Required sequence: eyebrow → quick-cards/grid → ATF FAQs → BLUF → first body H2.
+    Matches article-spec.md positions #5 (cards) → #6 (ATF FAQs) → #8 (BLUF),
+    pipeline phase_h assembly order, and all deployed production articles.
     Supports both rl-* (pre-postprocess) and tln* (post-postprocess) class prefixes.
     """
     # Map element markers to their first document position
@@ -1625,7 +1627,7 @@ def assert_atf_document_order(soup: BeautifulSoup, context: dict) -> AssertionRe
         markers["first_body_h2"] = soup_str.find(str(body_h2s[0][0])[:100])
 
     # Check order: each present element must come before the next present element
-    order = ["eyebrow", "bluf", "cards", "atf_faqs", "first_body_h2"]
+    order = ["eyebrow", "cards", "atf_faqs", "bluf", "first_body_h2"]
     positions = [(k, markers[k]) for k in order if markers[k] is not None]
 
     for i in range(len(positions) - 1):
