@@ -164,7 +164,8 @@ def _parse_business_facts(facts_path: Path) -> list[EvidenceItem]:
 # Public API: build_evidence_store
 # ---------------------------------------------------------------------------
 
-def build_evidence_store(serp, site_slug: str, output_dir: Path, post_id: int) -> Path:
+def build_evidence_store(serp, site_slug: str, output_dir: Path, post_id: int,
+                         exclude_url: str = "") -> tuple[Path, dict]:
     """Build the evidence store JSON for one article.
 
     Args:
@@ -172,20 +173,39 @@ def build_evidence_store(serp, site_slug: str, output_dir: Path, post_id: int) -
         site_slug: Site identifier (e.g. "valn", "lrg").
         output_dir: Directory to write {post_id}-evidence.json.
         post_id: Post ID for filename.
+        exclude_url: Canonical URL to exclude from competitor evidence
+            (used on refresh to prevent scraping the page being refreshed).
+            Empty string = no exclusion.
 
     Returns:
-        Path to the written evidence JSON file.
+        (path, exclusion_info) — path to evidence JSON, and a dict with
+        exclusion details (empty dict if no exclusion fired).
 
     Raises:
         RuntimeError: On unrecoverable errors (always with context message).
     """
     items: list[EvidenceItem] = []
+    exclusion_info: dict = {}
+
+    # Normalize exclude_url for comparison
+    _exclude = exclude_url.rstrip("/").lower() if exclude_url else ""
 
     # --- 1. Competitor passages (top-5 organic results) ---
     if serp and hasattr(serp, "top_results"):
         for i, result in enumerate(serp.top_results[:5]):
             url = result.url
             title = result.title
+
+            # Self-exclusion: skip the page being refreshed
+            if _exclude and url.rstrip("/").lower() == _exclude:
+                _eprint(f"  [evidence] EXCLUDED (self): position {i+1}: {url[:70]}")
+                exclusion_info = {
+                    "excluded_url": url,
+                    "excluded_position": i + 1,
+                    "excluded_title": title,
+                }
+                continue
+
             _eprint(f"  [evidence] Fetching result {i+1}/5: {url[:70]}")
             html = fetch_page(url)
             if html is None:
@@ -262,7 +282,11 @@ def build_evidence_store(serp, site_slug: str, output_dir: Path, post_id: int) -
     output_path.write_text(json_str)
     _eprint(f"  [evidence] Store written: {output_path} ({len(items)} items, {len(json_str)} bytes)")
 
-    return output_path
+    if exclusion_info:
+        _eprint(f"  [evidence] Self-exclusion: dropped {exclusion_info['excluded_url']} "
+                f"(SERP position {exclusion_info['excluded_position']})")
+
+    return output_path, exclusion_info
 
 
 # ---------------------------------------------------------------------------
