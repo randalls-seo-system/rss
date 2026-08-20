@@ -62,7 +62,7 @@ class TriageResult:
 @dataclass
 class VerifiedFix:
     finding: Finding
-    status: str  # verified, disputed, unfetchable, subtractive_no_auth
+    status: str  # verified, disputed, not_stated, subtractive_no_auth
     evidence_text: str = ""
     evidence_url: str = ""
 
@@ -385,11 +385,209 @@ def triage_findings(findings: list[Finding]) -> TriageResult:
 
 
 # ---------------------------------------------------------------------------
-# Evidence verification
+# Evidence verification — LLM judge + search fallback
 # ---------------------------------------------------------------------------
 
+# Authority domains for claim verification. These are the only domains
+# accepted as verification sources. The content-sourcing blocklist in
+# page_fetch.py is intentionally NOT used here — a reviewer citing WSJ
+# or Forbes should not be silently downgraded.
+VERIFICATION_AUTHORITY_TLDS = (".gov", ".mil")
+VERIFICATION_AUTHORITY_DOMAINS = (
+    "fanniemae.com", "freddiemac.com",
+    "ecfr.gov", "federalregister.gov",
+)
+# Lender blogs and aggregators are not authoritative verification sources.
+VERIFICATION_REJECTED_DOMAINS = (
+    "veteransunited.com", "rocketmortgage.com", "lendingtree.com",
+    "bankrate.com", "nerdwallet.com", "investopedia.com",
+    "zillow.com", "realtor.com", "redfin.com", "movoto.com",
+)
+
+
+def _is_authority_domain(url: str) -> bool:
+    """Check if URL is from an authority domain suitable for verification."""
+    from urllib.parse import urlparse
+    domain = urlparse(url).netloc.lower().lstrip("www.")
+    if any(domain.endswith(tld) for tld in VERIFICATION_AUTHORITY_TLDS):
+        return True
+    return any(domain == d or domain.endswith("." + d)
+               for d in VERIFICATION_AUTHORITY_DOMAINS)
+
+
+def _is_rejected_verification_domain(url: str) -> bool:
+    """Check if URL is from a rejected domain (lender blogs, aggregators)."""
+    from urllib.parse import urlparse
+    domain = urlparse(url).netloc.lower().lstrip("www.")
+    return any(domain == d or domain.endswith("." + d)
+               for d in VERIFICATION_REJECTED_DOMAINS)
+
+
+def _load_page_fetch():
+    """Load page_fetch module via importlib (avoids top-level lib package conflict)."""
+    import importlib.util as _ilu
+    _pf_path = REPO_ROOT / "modules" / "content-production-v2" / "lib" / "page_fetch.py"
+    spec = _ilu.spec_from_file_location("_page_fetch", _pf_path)
+    mod = _ilu.module_from_spec(spec)
+    spec.loader.exec_module(mod)
+    return mod
+
+
+def _fetch_for_verification(url: str) -> str | None:
+    """Fetch a URL for verification purposes.
+
+    Does NOT use the content-sourcing blocklist from page_fetch.py.
+    Reviewer citations may point to paywalled or competitor sources that
+    are blocked for content sourcing but valid as verification evidence.
+    Shares the page cache with page_fetch for efficiency.
+    """
+    pf = _load_page_fetch()
+
+    cached = pf.cache_get(url)
+    if cached is not None:
+        return cached
+    try:
+        import requests
+        resp = requests.get(
+            url,
+            headers={"User-Agent": (
+                "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) "
+                "AppleWebKit/537.36 (KHTML, like Gecko) "
+                "Chrome/125.0.0.0 Safari/537.36"
+            )},
+            timeout=15,
+        )
+        resp.raise_for_status()
+        html = resp.text
+        pf.cache_set(url, html)
+        return html
+    except Exception as e:
+        print(f"  [review] Failed to fetch {url[:80]}: {e}", file=sys.stderr)
+        return None
+
+
+def _get_llm_client():
+    """Get LLMClient for verification judge calls (claude_cli/haiku)."""
+    import importlib.util as _ilu
+    _llm_path = REPO_ROOT / "modules" / "content-production-v2" / "lib" / "llm_client.py"
+    spec = _ilu.spec_from_file_location("_llm_client", _llm_path)
+    mod = _ilu.module_from_spec(spec)
+    spec.loader.exec_module(mod)
+    return mod.LLMClient(provider="claude_cli", model="haiku")
+
+
+def _judge_source(
+    source_text: str,
+    finding: Finding,
+    source_url: str = "",
+) -> tuple[str, str]:
+    """LLM judge: does this source text STATE the finding's claim?
+
+    Returns (verdict, quoted_text) where verdict is one of:
+      STATES      — source explicitly states the claim; quote included.
+      CONTRADICTS — source states something incompatible; quote included.
+      NOT_STATED  — source does not address the specific claim.
+    """
+    import hashlib as _hl
+
+    source_excerpt = source_text[:8000]
+
+    prompt = (
+        "You are verifying whether a source document states a specific claim.\n\n"
+        f'CLAIM: "{finding.issue}"\n'
+        f'PROPOSED FIX: "{finding.proposed_fix}"\n\n'
+        f"SOURCE TEXT (from {source_url}):\n{source_excerpt}\n\n"
+        "Does this source STATE the specific claim above? Answer ONE of:\n\n"
+        "STATES — The source explicitly states this claim. Quote the exact sentence.\n"
+        "CONTRADICTS — The source states something incompatible with this claim. "
+        "Quote the exact sentence.\n"
+        "NOT_STATED — The source does not address this specific claim.\n\n"
+        "IMPORTANT: A source that discusses the general CATEGORY or TOPIC of the "
+        "claim without stating the specific FIGURE, RATE, THRESHOLD, or FACT "
+        "claimed is NOT_STATED. For example, a page that lists fee categories "
+        "without stating dollar amounts does NOT state a claim about specific "
+        "dollar figures. A page that discusses a program's existence without "
+        "confirming the reviewer's specific assertion about that program is "
+        "NOT_STATED.\n\n"
+        "Return ONLY a JSON object:\n"
+        '{"verdict": "STATES|CONTRADICTS|NOT_STATED", '
+        '"quote": "exact sentence from source, or empty string"}'
+    )
+
+    h = _hl.md5(
+        f"verify-judge|{finding.issue[:100]}|{source_url}".encode()
+    ).hexdigest()[:12]
+
+    try:
+        client = _get_llm_client()
+        response = client.call(prompt, cache_key=f"verify-judge|{h}")
+        text = response.text.strip()
+
+        json_match = re.search(r'\{[^{}]*\}', text, re.DOTALL)
+        if json_match:
+            result = json.loads(json_match.group())
+            verdict = result.get("verdict", "NOT_STATED").upper()
+            quote = result.get("quote", "")
+            if verdict not in ("STATES", "CONTRADICTS", "NOT_STATED"):
+                verdict = "NOT_STATED"
+            return verdict, quote
+    except Exception as e:
+        print(f"  [review] Judge call failed: {e}", file=sys.stderr)
+
+    return "NOT_STATED", ""
+
+
+def _search_for_claim_source(finding: Finding) -> list[dict]:
+    """Search Serper.dev for authority sources that might state this claim.
+
+    Returns up to 3 results from authority domains (.gov, .mil, GSE guides).
+    N=3 because: authority domains are a narrow set, each requires a fetch +
+    LLM call (~5s), and if the top 3 authority-domain results from a broad
+    search don't state the claim, deeper results won't either.
+    """
+    import os as _os
+    api_key = _os.environ.get("SERPER_API_KEY", "")
+    if not api_key:
+        return []
+
+    try:
+        import requests
+        resp = requests.post(
+            "https://google.serper.dev/search",
+            headers={"X-API-KEY": api_key, "Content-Type": "application/json"},
+            json={"q": finding.issue, "num": 10},
+            timeout=15,
+        )
+        data = resp.json()
+
+        results = []
+        for item in data.get("organic", []):
+            link = item.get("link", "")
+            if not _is_authority_domain(link):
+                continue
+            if _is_rejected_verification_domain(link):
+                continue
+            results.append({
+                "title": item.get("title", ""),
+                "snippet": item.get("snippet", ""),
+                "url": link,
+            })
+            if len(results) >= 3:
+                break
+        return results
+    except Exception as e:
+        print(f"  [review] Search failed: {e}", file=sys.stderr)
+        return []
+
+
 def verify_fix(finding: Finding) -> VerifiedFix:
-    """Verify a finding's proposed fix against its cited authority."""
+    """Verify a finding's proposed fix against its cited authority.
+
+    Uses an LLM judge (claude_cli/haiku) to determine whether the source
+    STATES the specific claim, then falls back to a Serper.dev search for
+    an authority-domain source if the cited URL is unfetchable or does not
+    state the claim.
+    """
     if not finding.authority:
         if finding.is_subtractive:
             return VerifiedFix(
@@ -402,63 +600,74 @@ def verify_fix(finding: Finding) -> VerifiedFix:
             evidence_text="No authority cited for additive fix",
         )
 
-    # Fetch the cited source
-    sys.path.insert(0, str(REPO_ROOT / "modules" / "content-production-v2"))
-    try:
-        from lib.page_fetch import fetch_page
-    except ImportError:
-        return VerifiedFix(
-            finding=finding,
-            status="unfetchable",
-            evidence_text="page_fetch module not available",
-        )
+    # Step 1: Fetch the cited authority (no content blocklist)
+    html = _fetch_for_verification(finding.authority)
 
-    html = fetch_page(finding.authority)
-    if not html:
-        return VerifiedFix(
-            finding=finding,
-            status="unfetchable",
-            evidence_url=finding.authority,
-            evidence_text="Could not fetch authority URL",
-        )
+    if html:
+        from bs4 import BeautifulSoup
+        text = BeautifulSoup(html, "html.parser").get_text(
+            separator=" ", strip=True)
 
-    from bs4 import BeautifulSoup
-    text = BeautifulSoup(html, "html.parser").get_text(separator=" ", strip=True)
+        # Step 2: LLM judge — does the source STATE the claim?
+        verdict, quote = _judge_source(text, finding, finding.authority)
 
-    # Check if the source supports the reviewer's claim
-    issue_keywords = set(re.findall(r'\b\w{4,}\b', finding.issue.lower()))
-    fix_keywords = set(re.findall(r'\b\w{4,}\b', finding.proposed_fix.lower()))
-    relevant_keywords = issue_keywords | fix_keywords
-    text_lower = text.lower()
+        if verdict == "STATES":
+            return VerifiedFix(
+                finding=finding,
+                status="verified",
+                evidence_url=finding.authority,
+                evidence_text=quote,
+            )
+        elif verdict == "CONTRADICTS":
+            return VerifiedFix(
+                finding=finding,
+                status="disputed",
+                evidence_url=finding.authority,
+                evidence_text=f"Source contradicts the claim: {quote}",
+            )
+        # NOT_STATED falls through to search
 
-    matches = sum(1 for kw in relevant_keywords if kw in text_lower)
-    match_ratio = matches / max(len(relevant_keywords), 1)
+    # Step 3: Search for an authority source that states the claim
+    # (triggered when cited URL is unfetchable OR returned NOT_STATED)
+    search_results = _search_for_claim_source(finding)
+    sources_checked = 0
 
-    if match_ratio >= 0.3:
-        # Extract the most relevant passage
-        sentences = re.split(r'[.!?]\s+', text)
-        best_sentence = ""
-        best_score = 0
-        for sent in sentences:
-            sent_lower = sent.lower()
-            score = sum(1 for kw in relevant_keywords if kw in sent_lower)
-            if score > best_score:
-                best_score = score
-                best_sentence = sent[:200]
+    for sr in search_results:
+        sr_html = _fetch_for_verification(sr["url"])
+        if not sr_html:
+            continue
 
-        return VerifiedFix(
-            finding=finding,
-            status="verified",
-            evidence_url=finding.authority,
-            evidence_text=best_sentence,
-        )
+        from bs4 import BeautifulSoup
+        sr_text = BeautifulSoup(sr_html, "html.parser").get_text(
+            separator=" ", strip=True)
+        sr_verdict, sr_quote = _judge_source(sr_text, finding, sr["url"])
+        sources_checked += 1
 
+        if sr_verdict == "STATES":
+            return VerifiedFix(
+                finding=finding,
+                status="verified",
+                evidence_url=sr["url"],
+                evidence_text=sr_quote,
+            )
+        elif sr_verdict == "CONTRADICTS":
+            return VerifiedFix(
+                finding=finding,
+                status="disputed",
+                evidence_url=sr["url"],
+                evidence_text=f"Authority source contradicts: {sr_quote}",
+            )
+
+    # No source states the claim after fetch + search
+    reason = (
+        f"Cited URL {'could not be fetched' if not html else 'does not state the claim'}; "
+        f"searched {sources_checked} authority-domain source(s), none state this claim"
+    )
     return VerifiedFix(
         finding=finding,
-        status="disputed",
+        status="not_stated",
         evidence_url=finding.authority,
-        evidence_text=f"Source fetched but content does not support the reviewer's claim "
-                      f"(keyword match {match_ratio:.0%})",
+        evidence_text=reason,
     )
 
 
@@ -596,6 +805,7 @@ def run_review_cycle(
 
     # Step 3: Verify each fix
     verified_fixes: list[VerifiedFix] = []
+    unverified_criticals: list[VerifiedFix] = []
     for finding in triage.fix_queue:
         eprint(f"Verifying: {finding.issue[:60]}...")
         vf = verify_fix(finding)
@@ -603,19 +813,43 @@ def run_review_cycle(
         if vf.status == "disputed":
             eprint(f"  DISPUTED: {vf.evidence_text[:80]}")
             result.advisory_additions.append(finding)
-        elif vf.status == "unfetchable":
-            eprint(f"  UNFETCHABLE: {vf.evidence_text[:80]}")
-            result.advisory_additions.append(finding)
+        elif vf.status == "not_stated":
+            eprint(f"  NOT_STATED: {vf.evidence_text[:80]}")
+            if finding.is_actionable:
+                unverified_criticals.append(vf)
+            else:
+                result.advisory_additions.append(finding)
         elif vf.status == "verified":
             eprint(f"  VERIFIED against {vf.evidence_url[:60]}")
         elif vf.status == "subtractive_no_auth":
             eprint(f"  SUBTRACTIVE (no auth needed): {finding.proposed_fix[:60]}")
 
     result.fixes_applied = verified_fixes
+
+    # PARK if any critical/high factual/legal findings could not be verified.
+    # A dead authority URL or a NOT_STATED result on a critical finding must
+    # not silently become an advisory note — it must block the job.
+    if unverified_criticals:
+        reasons = [
+            f"[{vf.finding.severity}/{vf.finding.category}] "
+            f"{vf.finding.issue}: {vf.evidence_text}"
+            for vf in unverified_criticals
+        ]
+        eprint(f"PARKING: {len(unverified_criticals)} critical finding(s) "
+               f"could not be verified against any authority source")
+        for r in reasons:
+            eprint(f"  {r[:120]}")
+        result.revised_html = article_html
+        result.confirmation_passed = False
+        result.confirmation_unresolved = reasons
+        if job_dir and triage.fix_queue:
+            _append_disputed_to_advisory(job_dir, post_id, verified_fixes)
+        return result
+
     applicable = [f for f in verified_fixes if f.status in ("verified", "subtractive_no_auth")]
 
     if not applicable:
-        eprint("No fixes verified — all disputed/unfetchable")
+        eprint("No fixes verified — all disputed/not_stated")
         result.revised_html = article_html
         result.confirmation_passed = True
         # Update advisory with disputed annotations
@@ -690,6 +924,13 @@ def _append_disputed_to_advisory(job_dir: Path, post_id: int, fixes: list[Verifi
             lines.append(f"- Reviewer says: {vf.finding.proposed_fix}")
             lines.append(f"- Source ({vf.evidence_url}): {vf.evidence_text}")
             lines.append(f"- **Decision: NOT APPLIED — source does not support reviewer's claim**")
+            lines.append("")
+        elif vf.status == "not_stated":
+            lines.append(f"### {vf.finding.issue}")
+            lines.append(f"- Reviewer says: {vf.finding.proposed_fix}")
+            lines.append(f"- Cited: {vf.evidence_url}")
+            lines.append(f"- {vf.evidence_text}")
+            lines.append(f"- **Decision: NOT APPLIED — no authority source states this claim**")
             lines.append("")
     path.write_text("\n".join(lines))
 
