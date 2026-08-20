@@ -2359,6 +2359,78 @@ def _build_closing(state: PipelineState, client: LLMClient) -> str:
 # Phase H: Assembly
 # ---------------------------------------------------------------------------
 
+def _run_validator(validator: Path, html_path: Path, state: "PipelineState",
+                   report_path: Path) -> tuple[int, int, list[str]]:
+    """Run the validator subprocess and parse its JSON result.
+
+    Returns (hard_passed, hard_total, failure_names).
+
+    The validator's exit code is NOT consulted. The parsed JSON stdout is the
+    sole source of truth. A valid result requires ALL of:
+      - stdout parses as JSON
+      - summary.hard_passed is present and an int
+      - summary.hard_total is present, an int, and > 0
+    Anything short of that is a crash → fail closed at (0, 30, []).
+    """
+    cmd = [PYTHON, str(validator),
+           "--html-file", str(html_path),
+           "--intent", state.intent,
+           "--serp-json", str(state.serp_json_path),
+           "--site", state.site_slug,
+           "--output-format", "json"]
+    eprint(f"  [H.26] Running: {validator.name}")
+
+    try:
+        result = subprocess.run(
+            cmd, capture_output=True, text=True,
+            timeout=LLM_CALL_TIMEOUT, cwd=str(REPO_ROOT),
+        )
+    except subprocess.TimeoutExpired:
+        eprint(f"  [H.26] Validator timed out after {LLM_CALL_TIMEOUT}s")
+        return 0, 30, []
+
+    # Parse JSON from stdout — exit code is irrelevant
+    stdout = (result.stdout or "").strip()
+    if not stdout:
+        eprint(f"  [H.26] Validator produced no stdout (crash). "
+               f"Stderr: {(result.stderr or '')[-300:]}")
+        return 0, 30, []
+
+    try:
+        vdata = json.loads(stdout)
+    except (json.JSONDecodeError, ValueError) as e:
+        eprint(f"  [H.26] Validator stdout is not valid JSON (crash): {e}")
+        eprint(f"  [H.26] Stderr: {(result.stderr or '')[-300:]}")
+        return 0, 30, []
+
+    # Strict shape validation — partial/corrupt output is a crash
+    summary = vdata.get("summary")
+    if not isinstance(summary, dict):
+        eprint(f"  [H.26] Validator JSON has no 'summary' dict (crash)")
+        return 0, 30, []
+
+    hp = summary.get("hard_passed")
+    ht = summary.get("hard_total")
+    if not isinstance(hp, int) or not isinstance(ht, int) or ht <= 0:
+        eprint(f"  [H.26] Validator summary malformed: hard_passed={hp!r}, "
+               f"hard_total={ht!r} (crash)")
+        return 0, 30, []
+
+    # Valid result — write report and extract failure names
+    report_path.write_text(stdout)
+    eprint(f"  [H.26] Validator: {hp}/{ht} hard passed")
+
+    failures = []
+    for a in vdata.get("hard_assertions", []):
+        if isinstance(a, dict) and not a.get("passed"):
+            ref = a.get("spec_ref", "?")
+            detail = a.get("detail", "")
+            failures.append(f"{ref}: {detail}" if detail else ref)
+            eprint(f"  [H.26] FAILED: {ref} — {detail}")
+
+    return hp, ht, failures
+
+
 def phase_h(state: PipelineState) -> None:
     """Assemble all sections, inject links, validate."""
     eprint("PHASE H: Assembly")
@@ -2449,35 +2521,29 @@ def phase_h(state: PipelineState) -> None:
         linked_path.write_text(assembled)
 
     # Step 26: Validate and route output
+    #
+    # NOTE ON EXIT CODE: The validator's exit code is NOT consulted for the
+    # pass/fail decision. The parsed JSON is the sole source of truth.
+    # Exit 0 with unparseable stdout is still a crash (fail closed at 0/30).
+    # Exit 1 with valid JSON and summary.hard_passed is a real result.
+    # This is intentional — validate-article-v2.py uses exit 1 for both
+    # "file not found" and "ran, found failures" (L23 backlog). The JSON
+    # output distinguishes them; the exit code does not.
     eprint("  [H.26] Running validation")
     validator = TOOLS_DIR / "validate-article-v2.py"
     validation_report_path = state.output_dir / f"{state.post_id}-validation-report.md"
 
     hard_passed = 0
     hard_total = 30
+    hard_failure_names = []
     if validator.exists():
         validator_content = validator.read_text()
         if "NotImplementedError" in validator_content:
             eprint("  [H.26] Validator is still a stub — skipping validation")
         else:
-            try:
-                json_report = _run_tool(str(validator), [
-                    "--html-file", str(linked_path),
-                    "--intent", state.intent,
-                    "--serp-json", str(state.serp_json_path),
-                    "--site", state.site_slug,
-                    "--output-format", "json",
-                ], "H.26")
-                vdata = json.loads(json_report)
-                hard_passed = vdata.get("summary", {}).get("hard_passed", 0)
-                hard_total = vdata.get("summary", {}).get("hard_total", 30)
-                validation_report_path.write_text(json_report)
-                eprint(f"  [H.26] Validator: {hard_passed}/{hard_total} hard passed")
-            except (RuntimeError, json.JSONDecodeError) as e:
-                # Validator crash or unparseable output — treat as failure, not a salvage
-                eprint(f"  [H.26] Validator FAILED: {e}")
-                hard_passed = 0
-                hard_total = 30
+            hard_passed, hard_total, hard_failure_names = _run_validator(
+                validator, linked_path, state, validation_report_path
+            )
     else:
         eprint("  [H.26] Validator not found — skipping validation")
 
@@ -2485,6 +2551,7 @@ def phase_h(state: PipelineState) -> None:
     state.validation_hard_passed = hard_passed
     state.validation_hard_total = hard_total
     state.validation_report_path = str(validation_report_path) if validation_report_path.exists() else ""
+    state.validation_failures = hard_failure_names
 
     # Route output: 25+ = ready, <25 = needs review
     if hard_passed < 25 and hard_total > 0:
@@ -2968,6 +3035,7 @@ def _write_manifest(state: PipelineState) -> dict:
             "hard_passed": getattr(state, "validation_hard_passed", None),
             "hard_total": getattr(state, "validation_hard_total", None),
             "report_path": getattr(state, "validation_report_path", ""),
+            "failures": getattr(state, "validation_failures", []),
         },
         "llm_calls_total": state.llm_calls,
         "llm_cost_estimate_usd": round(state.llm_cost, 4),
