@@ -334,6 +334,18 @@ def run_assemble(job: dict, config: dict, skip_gap: bool = False) -> Path:
     if skip_gap:
         cmd.append("--allow-no-serp")
 
+    # Self-exclusion on refresh: exclude the page being refreshed from evidence
+    refresh = job.get("refresh", {})
+    if refresh.get("original_slug"):
+        site_config_path = REPO_ROOT / "sites" / site / "config.json"
+        if site_config_path.exists():
+            import json as _json
+            site_cfg = _json.loads(site_config_path.read_text())
+            public_url = site_cfg.get("identity", {}).get("public_url", "").rstrip("/")
+            if public_url:
+                exclude = f"{public_url}/{refresh['original_slug']}/"
+                cmd.extend(["--exclude-url", exclude])
+
     result = subprocess.run(cmd, capture_output=True, text=True, timeout=TIMEOUTS["generation"])
     if result.returncode != 0:
         raise RuntimeError(

@@ -361,6 +361,16 @@ def _validate_community_data(data: dict) -> None:
         )
 
 # ---------------------------------------------------------------------------
+# FAQ topic-drift filter stopwords (shared between ATF D.15b and BTF G.21b)
+# ---------------------------------------------------------------------------
+
+_FAQ_DRIFT_STOPWORDS = {
+    'neighborhood', 'neighborhoods', 'tx', 'texas', 'best', 'guide',
+    'in', 'the', 'vs', 'versus',
+}
+
+
+# ---------------------------------------------------------------------------
 # Geo-scope filter — prevents multi-locale H2 drift on locale-specific articles
 # ---------------------------------------------------------------------------
 
@@ -553,6 +563,8 @@ class PipelineState:
     target_wc: dict = field(default_factory=dict)
     evidence_path: Path | None = None
     evidence_status: str = ""
+    exclude_url: str = ""
+    evidence_exclusion: dict = field(default_factory=dict)
 
     # Phase C
     h2_inventory: list[dict] = field(default_factory=list)
@@ -903,10 +915,13 @@ def phase_b(state: PipelineState, allow_no_serp: bool = False) -> None:
         eprint("  [B.8b] Building evidence store")
         try:
             from lib.evidence import build_evidence_store
-            ev_path = build_evidence_store(
-                state.serp, state.site_slug, state.output_dir, state.post_id
+            exclude_url = getattr(state, "exclude_url", "")
+            ev_path, exclusion_info = build_evidence_store(
+                state.serp, state.site_slug, state.output_dir, state.post_id,
+                exclude_url=exclude_url,
             )
             state.evidence_path = ev_path
+            state.evidence_exclusion = exclusion_info
             # Count items for status
             ev_data = json.loads(ev_path.read_text())
             state.evidence_status = f"ok ({len(ev_data)} items)"
@@ -1894,9 +1909,7 @@ def phase_d(state: PipelineState) -> None:
 
             # ATF FAQ topic-drift filter — same logic as BTF filter
             kw_lower = state.target_keyword.lower()
-            kw_tokens = set(re.sub(r'[^a-z0-9\s]', '', kw_lower).split()) - {
-                'neighborhood', 'tx', 'texas', 'best', 'neighborhoods', 'guide', 'in', 'the',
-            }
+            kw_tokens = set(re.sub(r'[^a-z0-9\s]', '', kw_lower).split()) - _FAQ_DRIFT_STOPWORDS
             if kw_tokens:
                 atf_faq_soup = BeautifulSoup(state.atf_faqs_html, "html.parser")
                 atf_details = atf_faq_soup.find_all("details")
@@ -1905,7 +1918,7 @@ def phase_d(state: PipelineState) -> None:
                     summary = d.find("summary")
                     if summary:
                         q_text = summary.get_text(strip=True).lower()
-                        has_topic = any(t in q_text for t in kw_tokens if len(t) > 3)
+                        has_topic = any(t in q_text for t in kw_tokens)
                         if has_topic:
                             kept_atf.append(d)
                         else:
@@ -2197,11 +2210,8 @@ def phase_g(state: PipelineState) -> None:
 
         # FAQ topic-drift filter: strip generic questions not about this specific topic
         kw_lower = state.target_keyword.lower()
-        # Extract core topic words (neighborhood/city name)
-        kw_tokens = set(re.sub(r'[^a-z0-9\s]', '', kw_lower).split()) - {
-            'neighborhood', 'tx', 'texas', 'best', 'neighborhoods', 'guide', 'in', 'the',
-        }
-        if kw_tokens and len(kw_tokens) >= 1:
+        kw_tokens = set(re.sub(r'[^a-z0-9\s]', '', kw_lower).split()) - _FAQ_DRIFT_STOPWORDS
+        if kw_tokens:
             faq_soup = BeautifulSoup(state.btf_faqs_html, "html.parser")
             details = faq_soup.find_all("details")
             kept = []
@@ -2210,8 +2220,7 @@ def phase_g(state: PipelineState) -> None:
                 summary = d.find("summary")
                 if summary:
                     q_text = summary.get_text(strip=True).lower()
-                    # Check if any core keyword token appears in the question
-                    has_topic = any(t in q_text for t in kw_tokens if len(t) > 3)
+                    has_topic = any(t in q_text for t in kw_tokens)
                     if has_topic:
                         kept.append(d)
                     else:
@@ -2966,6 +2975,7 @@ def _write_manifest(state: PipelineState) -> dict:
         "timestamp": datetime.now(timezone.utc).isoformat(),
         "phases_completed": state.phases_completed,
         "evidence_status": state.evidence_status or "not run",
+        "evidence_self_exclusion": state.evidence_exclusion if state.evidence_exclusion else None,
     }
 
     # Community-guide: include research_context metadata in manifest
@@ -3097,6 +3107,7 @@ def main():
     parser.add_argument("--community-data", help="Path to community-data.json (required for community-guide intent)")
     parser.add_argument("--research-context", help="Path to research-context.json (required for community-guide intent)")
     parser.add_argument("--soft-validate", action="store_true", help="Advisory validation only — do not block on low scores (debugging)")
+    parser.add_argument("--exclude-url", default="", help="URL to exclude from evidence (self-exclusion on refresh)")
     args = parser.parse_args()
 
     # P1: Single-agent lockfile — abort if another instance is running
@@ -3115,6 +3126,7 @@ def main():
     state.community_data_path = getattr(args, "community_data", None)
     state.research_context_path = getattr(args, "research_context", None)
     state.soft_validate = getattr(args, "soft_validate", False)
+    state.exclude_url = getattr(args, "exclude_url", "")
     state.start_time = time.time()
 
     # Output directory

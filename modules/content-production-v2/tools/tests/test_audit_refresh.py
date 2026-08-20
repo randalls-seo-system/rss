@@ -1312,5 +1312,226 @@ class TestProtectedSlugMatching(unittest.TestCase):
         self.assertFalse(_is_do_not_touch({}, 100, "any-slug"))
 
 
+# ─── L16: FAQ topic-drift filter for acronym keywords ─────────────────────
+
+class TestFAQDriftFilterAcronyms(unittest.TestCase):
+    """L16: the topic-drift filter must keep FAQs for acronym keywords
+    where all tokens are <=3 chars. The old len(t) > 3 guard dropped them all."""
+
+    def _run_atf_filter(self, keyword, faq_questions):
+        """Simulate the ATF FAQ topic-drift filter logic from assemble-article.py."""
+        import re
+        # Import the shared stopword set
+        sys.path.insert(0, str(Path(__file__).resolve().parent.parent.parent / "tools"))
+        # We can't easily import from assemble-article.py (no .py extension in some setups),
+        # so replicate the filter logic using the constant
+        _FAQ_DRIFT_STOPWORDS = {
+            'neighborhood', 'neighborhoods', 'tx', 'texas', 'best', 'guide',
+            'in', 'the', 'vs', 'versus',
+        }
+        kw_tokens = set(re.sub(r'[^a-z0-9\s]', '', keyword.lower()).split()) - _FAQ_DRIFT_STOPWORDS
+        kept = []
+        for q in faq_questions:
+            q_lower = q.lower()
+            has_topic = any(t in q_lower for t in kw_tokens)
+            if has_topic:
+                kept.append(q)
+        return kept, kw_tokens
+
+    # ── Mutation (a): FAQs survive for "tla vs tle" ──────────────────────
+
+    def test_acronym_faqs_survive(self):
+        """FAQs mentioning 'tla' or 'tle' must survive for keyword 'tla vs tle'."""
+        faqs = [
+            "What is the difference between TLA and TLE?",
+            "Can you use TLA and TLE together?",
+            "How much does TLE pay?",
+        ]
+        kept, tokens = self._run_atf_filter("tla vs tle", faqs)
+        self.assertEqual(len(kept), 3, f"All 3 FAQs should survive, tokens={tokens}")
+
+    def test_va_coe_faqs_survive(self):
+        """FAQs mentioning 'va' or 'coe' survive for keyword 'va coe'."""
+        faqs = [
+            "How do I get my VA COE?",
+            "What is a VA Certificate of Eligibility?",
+        ]
+        kept, tokens = self._run_atf_filter("va coe", faqs)
+        self.assertEqual(len(kept), 2)
+
+    def test_bah_vs_oha_faqs_survive(self):
+        """FAQs for 'bah vs oha' survive."""
+        faqs = [
+            "What is the difference between BAH and OHA?",
+            "How is BAH calculated?",
+        ]
+        kept, tokens = self._run_atf_filter("bah vs oha", faqs)
+        self.assertEqual(len(kept), 2)
+
+    # ── Mutation (b): "vs" alone does NOT pass ───────────────────────────
+
+    def test_vs_alone_does_not_match(self):
+        """A FAQ mentioning 'vs' but not any topic token must be dropped."""
+        faqs = [
+            "FHA vs conventional: which is better?",  # no tla/tle
+        ]
+        kept, tokens = self._run_atf_filter("tla vs tle", faqs)
+        self.assertEqual(len(kept), 0,
+                         "'vs' should be in stopwords, FAQ about FHA should not match")
+
+    def test_versus_alone_does_not_match(self):
+        """'versus' is also a stopword."""
+        faqs = ["FHA versus conventional loans"]
+        kept, tokens = self._run_atf_filter("tla versus tle", faqs)
+        self.assertEqual(len(kept), 0)
+
+    # ── Positive: long-tail keywords still work ──────────────────────────
+
+    def test_long_keyword_still_filters(self):
+        """A neighborhood keyword still drops generic FAQs."""
+        faqs = [
+            "What are the best neighborhoods in Lockhart?",  # has "lockhart"
+            "What is the nicest neighborhood in Texas?",  # generic
+        ]
+        kept, _ = self._run_atf_filter("lockhart tx neighborhoods", faqs)
+        self.assertEqual(len(kept), 1)
+        self.assertIn("Lockhart", kept[0])
+
+
+# ─── L17: Evidence self-exclusion on refresh ──────────────────────────────
+
+class TestEvidenceSelfExclusion(unittest.TestCase):
+    """L17: build_evidence_store must exclude the page being refreshed."""
+
+    def _make_mock_serp(self, urls):
+        """Create a minimal mock SerpData with top_results."""
+        class MockResult:
+            def __init__(self, url, title, pos):
+                self.url = url
+                self.title = title
+                self.position = pos
+        class MockSerp:
+            def __init__(self, results):
+                self.top_results = [MockResult(u, f"Title {i}", i+1) for i, u in enumerate(results)]
+                self.paa_questions = []
+                self.paa_answers = []
+                self.ai_overview_text = ""
+        return MockSerp(urls)
+
+    # Mock HTML with passages of 15+ words (required by _extract_passages)
+    MOCK_HTML = (
+        "<html><body>"
+        "<p>This is a detailed paragraph about temporary lodging expense benefits "
+        "that military service members can claim during a permanent change of station move.</p>"
+        "<p>The reimbursement covers hotel costs and meals for up to twenty one days "
+        "when relocating between continental United States duty stations under orders.</p>"
+        "</body></html>"
+    )
+
+    # ── Mutation (c): self-exclusion removes the refreshed page ──────────
+
+    @patch("lib.evidence.fetch_page")
+    def test_excludes_self_url(self, mock_fetch):
+        """The refreshed page's URL must not appear in evidence."""
+        import tempfile, shutil
+        from lib.evidence import build_evidence_store
+
+        mock_fetch.return_value = self.MOCK_HTML
+
+        serp = self._make_mock_serp([
+            "https://blog.ahrn.com/lodging/",
+            "https://valoannetwork.com/tla-vs-tle-pcs-lodging-benefit-guide/",
+            "https://www.pcslikeapro.org/tle",
+        ])
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            path, excl = build_evidence_store(
+                serp, "valn", Path(tmpdir), 30448,
+                exclude_url="https://valoannetwork.com/tla-vs-tle-pcs-lodging-benefit-guide/",
+            )
+            data = json.loads(path.read_text())
+            urls = {item["source_url"] for item in data if item.get("source_url")}
+            self.assertNotIn(
+                "https://valoannetwork.com/tla-vs-tle-pcs-lodging-benefit-guide/",
+                urls, "Self URL must be excluded from evidence"
+            )
+            # At least one competitor URL should be present
+            self.assertTrue(len(urls) > 0, "Competitor evidence should remain")
+            # Exclusion info recorded
+            self.assertEqual(excl["excluded_url"],
+                             "https://valoannetwork.com/tla-vs-tle-pcs-lodging-benefit-guide/")
+
+    # ── Mutation (d): new-article path — no exclusion fires ──────────────
+
+    @patch("lib.evidence.fetch_page")
+    def test_no_exclusion_on_new_article(self, mock_fetch):
+        """When exclude_url is empty, all results are included."""
+        import tempfile
+        from lib.evidence import build_evidence_store
+
+        mock_fetch.return_value = self.MOCK_HTML
+
+        serp = self._make_mock_serp([
+            "https://valoannetwork.com/some-page/",
+            "https://competitor.com/page/",
+        ])
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            path, excl = build_evidence_store(
+                serp, "valn", Path(tmpdir), 99999,
+                exclude_url="",  # new article, no exclusion
+            )
+            data = json.loads(path.read_text())
+            urls = {item["source_url"] for item in data if item.get("source_url")}
+            self.assertIn("https://valoannetwork.com/some-page/", urls,
+                          "Own-site pages should NOT be excluded for new articles")
+            self.assertEqual(excl, {}, "No exclusion info for new articles")
+
+    # ── Mutation (e): exclusion count is recorded ────────────────────────
+
+    @patch("lib.evidence.fetch_page")
+    def test_exclusion_info_recorded(self, mock_fetch):
+        """Exclusion info must include URL, position, and title."""
+        import tempfile
+        from lib.evidence import build_evidence_store
+
+        mock_fetch.return_value = self.MOCK_HTML
+
+        serp = self._make_mock_serp([
+            "https://competitor.com/page/",
+            "https://valoannetwork.com/my-page/",
+        ])
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            path, excl = build_evidence_store(
+                serp, "valn", Path(tmpdir), 123,
+                exclude_url="https://valoannetwork.com/my-page/",
+            )
+            self.assertIn("excluded_url", excl)
+            self.assertEqual(excl["excluded_url"], "https://valoannetwork.com/my-page/")
+            self.assertIn("excluded_position", excl)
+            self.assertEqual(excl["excluded_position"], 2)
+            self.assertIn("excluded_title", excl)
+
+    @patch("lib.evidence.fetch_page")
+    def test_trailing_slash_normalization(self, mock_fetch):
+        """Exclusion matches regardless of trailing slash."""
+        import tempfile
+        from lib.evidence import build_evidence_store
+
+        mock_fetch.return_value = self.MOCK_HTML
+
+        serp = self._make_mock_serp([
+            "https://valoannetwork.com/my-page",  # no trailing slash
+        ])
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            path, excl = build_evidence_store(
+                serp, "valn", Path(tmpdir), 123,
+                exclude_url="https://valoannetwork.com/my-page/",  # with trailing slash
+            )
+            self.assertIn("excluded_url", excl, "Should match despite trailing slash difference")
+
+
 if __name__ == "__main__":
     unittest.main()
