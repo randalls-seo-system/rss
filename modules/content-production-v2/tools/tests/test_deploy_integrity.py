@@ -49,23 +49,25 @@ class TestATFDocumentOrder(unittest.TestCase):
     """18.4.13: ATF elements in correct sequence."""
 
     def test_correct_order_passes(self):
+        """Spec order: eyebrow → cards → ATF FAQs → BLUF → body H2."""
         html = '''
         <div class="rl-eyebrow">Mortgage · Guide</div>
-        <div class="rl-bluf"><p><strong>Lead</strong></p><p>Body</p><ul><li>B1</li></ul></div>
         <div class="rl-quick-grid"><div class="rl-quick-card"><h3>C</h3></div></div>
         <details><summary>Q?</summary><p>A.</p></details>
+        <div class="rl-bluf"><p><strong>Lead</strong></p><p>Body</p><ul><li>B1</li></ul></div>
         <h2>First Body Section</h2><p>Content.</p><ul><li>Item.</li></ul>
         '''
         soup = BeautifulSoup(html, 'html.parser')
         r = assert_atf_document_order(soup, {})
         self.assertTrue(r.passed)
 
-    def test_bluf_after_cards_fails(self):
-        """BLUF appearing after quick-cards is the exact bug that shipped."""
+    def test_bluf_before_cards_fails(self):
+        """BLUF before cards violates spec component order (#5 cards, #8 BLUF)."""
         html = '''
         <div class="rl-eyebrow">Mortgage · Guide</div>
-        <div class="rl-quick-grid"><div class="rl-quick-card"><h3>C</h3></div></div>
         <div class="rl-bluf"><p><strong>Lead</strong></p><p>Body</p><ul><li>B1</li></ul></div>
+        <div class="rl-quick-grid"><div class="rl-quick-card"><h3>C</h3></div></div>
+        <details><summary>Q?</summary><p>A.</p></details>
         <h2>First Body Section</h2><p>Content.</p><ul><li>Item.</li></ul>
         '''
         soup = BeautifulSoup(html, 'html.parser')
@@ -77,8 +79,8 @@ class TestATFDocumentOrder(unittest.TestCase):
         """Post-postprocessor HTML uses tln* classes."""
         html = '''
         <div class="tlnEyebrow">Mortgage · Guide</div>
-        <div class="tlnBLUF"><p>Lead</p></div>
         <section class="tlnQuickGrid"><article class="tlnQuickCard"><h3>C</h3></article></section>
+        <div class="tlnBLUF"><p>Lead</p></div>
         <h2>Body</h2><p>Content.</p><ul><li>Item.</li></ul>
         '''
         soup = BeautifulSoup(html, 'html.parser')
