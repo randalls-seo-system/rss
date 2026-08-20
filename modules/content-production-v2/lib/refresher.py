@@ -39,6 +39,37 @@ resolve_deploy_artifact = _ar_mod.resolve_deploy_artifact
 ArtifactResolutionError = _ar_mod.ArtifactResolutionError
 
 
+def _is_do_not_touch(config: dict, post_id: int, slug: str) -> bool:
+    """Check if a post is protected by do_not_touch_pages.
+
+    Matches on EITHER post_id or slug. Raises ValueError for malformed
+    entries (neither post_id nor slug) or wrong type (string instead of list).
+    """
+    pages = config.get("protected", {}).get("do_not_touch_pages", [])
+    if not isinstance(pages, list):
+        raise ValueError(
+            f"do_not_touch_pages must be a list, got {type(pages).__name__}: "
+            f"{repr(pages)[:100]}"
+        )
+    for entry in pages:
+        if not isinstance(entry, dict):
+            raise ValueError(
+                f"do_not_touch_pages entry must be a dict, got "
+                f"{type(entry).__name__}: {repr(entry)[:100]}"
+            )
+        entry_id = entry.get("post_id")
+        entry_slug = entry.get("slug")
+        if entry_id is None and not entry_slug:
+            raise ValueError(
+                f"do_not_touch_pages entry has neither post_id nor slug: {entry}"
+            )
+        if entry_id is not None and entry_id == post_id:
+            return True
+        if entry_slug and entry_slug == slug:
+            return True
+    return False
+
+
 def start_refresh_job(
     config: dict,
     site_slug: str,
@@ -49,16 +80,7 @@ def start_refresh_job(
 
     Returns the job dict or None on failure.
     """
-    # Safety check: do_not_touch
-    do_not_touch = {
-        p["post_id"]
-        for p in config.get("protected", {}).get("do_not_touch_pages", [])
-    }
-    if post_id in do_not_touch:
-        eprint(f"[refresh] REFUSED: post {post_id} is in do_not_touch_pages")
-        return None
-
-    # Fetch live post
+    # Fetch live post (needed before do_not_touch check so we have the slug)
     post_data = fetch_post_html(config, post_id)
     if not post_data:
         eprint(f"[refresh] Could not fetch post {post_id}")
@@ -69,6 +91,11 @@ def start_refresh_job(
         return None
 
     slug = post_data["slug"]
+
+    # Safety check: do_not_touch — matches on EITHER post_id or slug
+    if _is_do_not_touch(config, post_id, slug):
+        eprint(f"[refresh] REFUSED: post {post_id} (slug={slug}) is in do_not_touch_pages")
+        return None
     title = post_data["title"]
     html = post_data["html"]
 
