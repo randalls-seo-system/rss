@@ -239,10 +239,14 @@ class TestRefreshSafety(unittest.TestCase):
     def test_refuses_do_not_touch(self, mock_fetch):
         """Refresh must refuse posts in do_not_touch list."""
         from lib.refresher import start_refresh_job
-        # Post 566 is in do_not_touch
+        # Post 566 is in do_not_touch (has both post_id and slug in config)
+        mock_fetch.return_value = {
+            "post_id": 566, "slug": "compare-loan-offers",
+            "title": "Compare Offers", "html": "<p>content</p>",
+            "status": "publish", "post_date": "2026-01-01 00:00:00",
+        }
         result = start_refresh_job(SITE_CONFIG, "tln", 566)
         self.assertIsNone(result)
-        mock_fetch.assert_not_called()
 
     def test_approve_refuses_stage_a_only_job(self):
         """approve_refresh must refuse a job that only completed Stage A' (no draft)."""
@@ -1157,6 +1161,155 @@ class TestCounterfactualAugustIncident(unittest.TestCase):
             self.assertTrue(ready, f"Clean job must pass readiness but got: {reason}")
         finally:
             shutil.rmtree(jdir, ignore_errors=True)
+
+
+# ─── Protected slug matching: mutation red run ────────────────────────────
+# Gate: do_not_touch check must match on EITHER post_id or slug.
+# Incident: refresher.py:54 KeyError on slug-only entries (9 of 11 VALN protected pages).
+
+class TestProtectedSlugMatching(unittest.TestCase):
+    """do_not_touch must block on slug-only entries, not just post_id."""
+
+    VALN_STYLE_CONFIG = {
+        "identity": {"site_id": "valn", "public_url": "https://valoannetwork.com"},
+        "access": {
+            "ssh_host": "test.example.com", "ssh_user": "testuser",
+            "ssh_key_path": "~/.ssh/test_key", "wp_path": "/var/www/html/",
+        },
+        "content": {"css_prefix": ["vln"], "cta_url": "/compare-loan-offers/"},
+        "authors": {"author_map": {"sme": {"wp_user_id": 941, "name": "Matt"}}, "byline_mode": "single"},
+        "linking": {"zone_suffixes": [], "skip_slugs": []},
+        "protected": {
+            "do_not_touch_pages": [
+                {"post_id": 4, "slug": "homepage", "reason": "Homepage."},
+                {"post_id": 385, "slug": "compare-loan-offers", "reason": "Money page."},
+                {"slug": "va-funding-fee", "reason": "Slug-only protected page."},
+                {"slug": "legal", "reason": "Legal page cluster."},
+            ],
+        },
+        "integrations": {"gsc_property": "sc-domain:valoannetwork.com"},
+    }
+
+    # ── Mutation (a): slug-only match blocks refresh ──────────────────────
+
+    @patch("lib.refresher.fetch_post_html")
+    def test_refuses_slug_only_protected_page(self, mock_fetch):
+        """A post whose slug matches a slug-only do_not_touch entry must be
+        refused. Remove the slug matching -> this test fails."""
+        from lib.refresher import start_refresh_job
+        mock_fetch.return_value = {
+            "post_id": 833, "slug": "va-funding-fee",
+            "title": "VA Funding Fee", "html": "<p>content</p>",
+            "status": "publish", "post_date": "2026-01-01 00:00:00",
+        }
+        result = start_refresh_job(self.VALN_STYLE_CONFIG, "valn", 833)
+        self.assertIsNone(result, "Slug-only protected page must be refused")
+
+    @patch("lib.refresher.fetch_post_html")
+    def test_refuses_second_slug_only_entry(self, mock_fetch):
+        """Second slug-only entry also blocks."""
+        from lib.refresher import start_refresh_job
+        mock_fetch.return_value = {
+            "post_id": 9999, "slug": "legal",
+            "title": "Legal", "html": "<p>content</p>",
+            "status": "publish", "post_date": "2026-01-01 00:00:00",
+        }
+        result = start_refresh_job(self.VALN_STYLE_CONFIG, "valn", 9999)
+        self.assertIsNone(result, "Slug-only 'legal' must be refused")
+
+    # ── Mutation (b): post_id match still works ──────────────────────────
+
+    @patch("lib.refresher.fetch_post_html")
+    def test_refuses_post_id_match(self, mock_fetch):
+        """Existing behavior: post_id match blocks refresh."""
+        from lib.refresher import start_refresh_job
+        mock_fetch.return_value = {
+            "post_id": 4, "slug": "homepage",
+            "title": "Home", "html": "<p>content</p>",
+            "status": "publish", "post_date": "2026-01-01 00:00:00",
+        }
+        result = start_refresh_job(self.VALN_STYLE_CONFIG, "valn", 4)
+        self.assertIsNone(result, "post_id-matched protected page must be refused")
+
+    @patch("lib.refresher.fetch_post_html")
+    def test_post_id_match_even_if_slug_differs(self, mock_fetch):
+        """post_id 385 is protected even if WP returned a different slug."""
+        from lib.refresher import start_refresh_job
+        mock_fetch.return_value = {
+            "post_id": 385, "slug": "some-other-slug",
+            "title": "Apply", "html": "<p>content</p>",
+            "status": "publish", "post_date": "2026-01-01 00:00:00",
+        }
+        result = start_refresh_job(self.VALN_STYLE_CONFIG, "valn", 385)
+        self.assertIsNone(result, "post_id 385 must be refused regardless of slug")
+
+    # ── Mutation (c): malformed entries raise loudly ─────────────────────
+
+    @patch("lib.refresher.fetch_post_html")
+    def test_malformed_entry_raises(self, mock_fetch):
+        """An entry with neither post_id nor slug must raise ValueError."""
+        from lib.refresher import start_refresh_job
+        mock_fetch.return_value = {
+            "post_id": 999, "slug": "safe-slug",
+            "title": "Test", "html": "<p>content</p>",
+            "status": "publish", "post_date": "2026-01-01 00:00:00",
+        }
+        bad_config = {
+            **self.VALN_STYLE_CONFIG,
+            "protected": {
+                "do_not_touch_pages": [
+                    {"reason": "No id, no slug — malformed."},
+                ],
+            },
+        }
+        with self.assertRaises(ValueError) as ctx:
+            start_refresh_job(bad_config, "valn", 999)
+        self.assertIn("neither post_id nor slug", str(ctx.exception))
+
+    @patch("lib.refresher.fetch_post_html")
+    def test_string_type_raises(self, mock_fetch):
+        """do_not_touch_pages as a string (GFP/velocityseo 'TODO-verify')
+        must raise ValueError, not silently iterate characters."""
+        from lib.refresher import start_refresh_job
+        mock_fetch.return_value = {
+            "post_id": 999, "slug": "safe-slug",
+            "title": "Test", "html": "<p>content</p>",
+            "status": "publish", "post_date": "2026-01-01 00:00:00",
+        }
+        bad_config = {
+            **self.VALN_STYLE_CONFIG,
+            "protected": {"do_not_touch_pages": "TODO-verify"},
+        }
+        with self.assertRaises(ValueError) as ctx:
+            start_refresh_job(bad_config, "valn", 999)
+        self.assertIn("must be a list", str(ctx.exception))
+
+    # ── Positive: unprotected post passes through ────────────────────────
+
+    @patch("lib.refresher.fetch_post_html")
+    @patch("lib.refresher.fetch_gsc_top_pages", return_value=[])
+    def test_unprotected_post_passes(self, mock_gsc, mock_fetch):
+        """A post not in do_not_touch passes the safety check."""
+        from lib.refresher import start_refresh_job
+        mock_fetch.return_value = {
+            "post_id": 30448, "slug": "tla-vs-tle-pcs-lodging-benefit-guide",
+            "title": "TLA vs TLE", "html": "<p>content</p>",
+            "status": "publish", "post_date": "2026-01-01 00:00:00",
+        }
+        result = start_refresh_job(self.VALN_STYLE_CONFIG, "valn", 30448)
+        self.assertIsNotNone(result, "Unprotected post must not be refused")
+        self.assertEqual(result["post_id"], 30448)
+
+    # ── Unit tests for _is_do_not_touch directly ─────────────────────────
+
+    def test_helper_empty_list(self):
+        from lib.refresher import _is_do_not_touch
+        config = {"protected": {"do_not_touch_pages": []}}
+        self.assertFalse(_is_do_not_touch(config, 100, "any-slug"))
+
+    def test_helper_no_protected_key(self):
+        from lib.refresher import _is_do_not_touch
+        self.assertFalse(_is_do_not_touch({}, 100, "any-slug"))
 
 
 if __name__ == "__main__":
