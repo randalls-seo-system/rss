@@ -16,6 +16,13 @@ from typing import Any
 
 from bs4 import BeautifulSoup
 
+import importlib.util as _ilu
+_const_spec = _ilu.spec_from_file_location("constants", Path(__file__).parent / "constants.py")
+_const_mod = _ilu.module_from_spec(_const_spec)
+_const_spec.loader.exec_module(_const_mod)
+CSS_BUILTIN_ALLOWLIST = _const_mod.CSS_BUILTIN_ALLOWLIST
+CSS_FRAMEWORK_PREFIXES = _const_mod.CSS_FRAMEWORK_PREFIXES
+
 REPO_ROOT = Path(__file__).resolve().parent.parent
 
 
@@ -91,14 +98,7 @@ def _get_css_allowlist(config: dict) -> set[str]:
     """Build the combined CSS class allowlist from config."""
     prefixes = config.get("content", {}).get("css_prefix", [])
     explicit = set(config.get("content", {}).get("css_allowlist", []))
-    # Built-in classes used across all sites
-    builtin = {
-        "main-content", "ans", "sep", "badge", "bluf",
-        "rss-il",  # injected internal link class
-    }
-    # Framework prefixes (Divi, WP core, pipeline structural wrappers)
-    framework = ("et_", "wp-", "dsm-", "bullet-section-")
-    return builtin | explicit, prefixes, framework
+    return CSS_BUILTIN_ALLOWLIST | explicit, prefixes, CSS_FRAMEWORK_PREFIXES
 
 
 def _get_sourcing_claims_patterns(config: dict) -> list[str]:
