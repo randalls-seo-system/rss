@@ -11,9 +11,8 @@ import sys
 import unittest
 from pathlib import Path
 
-REPO_ROOT = Path(__file__).resolve().parent.parent
-sys.path.insert(0, str(REPO_ROOT))
-sys.path.insert(0, str(REPO_ROOT / "modules" / "content-production-v2"))
+MODULE_DIR = Path(__file__).resolve().parent.parent.parent
+sys.path.insert(0, str(MODULE_DIR))
 
 from lib.orchestrator import (
     PIPELINE_STAGES,
@@ -114,7 +113,7 @@ class TestStageStructuralGuard(unittest.TestCase):
        has a matching skip-recording branch.
     """
 
-    RSs_PATH = (REPO_ROOT / "modules" / "content-production-v2" / "tools" / "rss")
+    RSs_PATH = (MODULE_DIR / "tools" / "rss")
 
     def _rss_source(self) -> str:
         return self.RSs_PATH.read_text()
