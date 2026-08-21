@@ -18,13 +18,22 @@ Context dict shape:
     }
 """
 
+import importlib.util as _ilu
 import re
 from collections.abc import Callable
 from dataclasses import dataclass
+from pathlib import Path as _Path
 from typing import Literal
 from urllib.parse import urlparse
 
 from bs4 import BeautifulSoup, Tag
+
+# L24: import banned phrases from lib/constants.py — do not define a local literal
+_const_spec = _ilu.spec_from_file_location(
+    "constants", _Path(__file__).resolve().parents[3] / "lib" / "constants.py")
+_const_mod = _ilu.module_from_spec(_const_spec)
+_const_spec.loader.exec_module(_const_mod)
+BANNED_PHRASES_GENERATION = _const_mod.BANNED_PHRASES_GENERATION
 
 
 @dataclass
@@ -639,47 +648,8 @@ def assert_body_word_count_fallback_range(soup: BeautifulSoup, context: dict) ->
 # 18.4 Anti-pattern detection (HARD)
 # ---------------------------------------------------------------------------
 
-_BANNED_PHRASES = [
-    r"\bdiscover\b", r"\bexplore\b", r"\bvibrant communities\b",
-    r"\bdive into\b", r"\blet's\b", r"\bwe'll cover\b",
-    # Mortgage standard additions (exact/near-exact phrase matches)
-    r"navigating the complexities of",
-    r"financial journey",
-    r"homeownership journey",
-    r"dream home",
-    r"turn your dreams into reality",
-    r"make your dreams come true",
-    r"take the first step",
-    r"peace of mind",
-    r"game changer",
-    r"one-stop shop",
-    r"look no further",
-    r"we'?ve got you covered",
-    r"rest assured",
-    r"it is worth noting",
-    r"at the end of the day",
-    r"whether you are a first-time buyer",
-    r"from first-time buyers to",
-    r"not only does this,? but it also",
-    r"more than just",
-    r"designed with you in mind",
-    r"a wide range of",
-    r"a variety of options",
-    r"best-in-class",
-    r"industry-leading",
-    r"hassle-free",
-    r"stress-free",
-    r"easy and convenient",
-    r"expert guidance every step",
-    r"deep dive",
-    r"\bunlock\b",
-    r"\bempower\b",
-    r"\belevate\b",
-    r"tailored solution",
-    r"unique needs",
-    r"comprehensive solution",
-]
-_BANNED_RE = re.compile("|".join(_BANNED_PHRASES), re.IGNORECASE)
+# L24: import from lib/constants.py — do not define a local literal
+_BANNED_RE = re.compile("|".join(BANNED_PHRASES_GENERATION), re.IGNORECASE)
 
 _GENERIC_CARD_LABELS = {
     "best for", "key advantage", "watch out", "pros", "cons",

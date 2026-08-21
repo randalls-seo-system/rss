@@ -91,8 +91,36 @@ def job_dir(job: dict) -> Path:
     return JOBS_DIR / job["id"]
 
 
+# L28: Ordered pipeline stages — every stage in the new-article pipeline.
+# Adding a stage here is required; the structural guard test will fail
+# if a mark_stage call references a name not in this tuple.
+PIPELINE_STAGES = (
+    "config",             # A
+    "gap_scan",           # B
+    "generate",           # C
+    "gates",              # D
+    "claims_check",       # D2
+    "link_pass",          # E
+    "adversarial_review", # E2
+    "deploy",             # F
+    "verify",             # G
+    "log",                # H
+)
+
+# Terminal statuses — stage will not re-run on resume.
+TERMINAL_STAGE_STATUSES = frozenset({
+    "done",
+    "pass",
+    "skipped_config",
+    "skipped_flag",
+    "skipped_missing_input",
+    "not_reached",
+})
+
+
 def stage_done(job: dict, stage: str) -> bool:
-    return job.get("stages", {}).get(stage, {}).get("status") == "done"
+    status = job.get("stages", {}).get(stage, {}).get("status")
+    return status in TERMINAL_STAGE_STATUSES
 
 
 def mark_stage(job: dict, stage: str, status: str, **extra):

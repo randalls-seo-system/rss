@@ -22,6 +22,7 @@ _const_mod = _ilu.module_from_spec(_const_spec)
 _const_spec.loader.exec_module(_const_mod)
 CSS_BUILTIN_ALLOWLIST = _const_mod.CSS_BUILTIN_ALLOWLIST
 CSS_FRAMEWORK_PREFIXES = _const_mod.CSS_FRAMEWORK_PREFIXES
+BANNED_PHRASES_DEPLOY = _const_mod.BANNED_PHRASES_DEPLOY
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
 
@@ -304,32 +305,8 @@ def gate_no_fabricated_sourcing(html: str, *, site_slug: str = "",
     return GateResult("no_fabricated_sourcing", True)
 
 
-# Reuse the banned-phrase list from spec_assertions
-_BANNED_PHRASES = [
-    r"\bdiscover\b", r"\bexplore\b", r"\bvibrant communities\b",
-    r"\bdive into\b", r"\blet's\b", r"\bwe'll cover\b",
-    r"navigating the complexities of",
-    r"financial journey", r"homeownership journey",
-    r"dream home", r"turn your dreams into reality",
-    r"make your dreams come true", r"take the first step",
-    r"peace of mind", r"game changer", r"one-stop shop",
-    r"look no further", r"we'?ve got you covered",
-    r"rest assured", r"it is worth noting",
-    r"at the end of the day",
-    r"whether you are a first-time buyer",
-    r"from first-time buyers to",
-    r"not only does this,? but it also",
-    r"more than just", r"designed with you in mind",
-    r"a wide range of", r"a variety of options",
-    r"best-in-class", r"industry-leading",
-    r"hassle-free", r"stress-free",
-    r"easy and convenient",
-    r"expert guidance every step",
-    r"deep dive", r"\bunlock\b", r"\bempower\b",
-    r"\belevate\b", r"tailored solution",
-    r"unique needs", r"comprehensive solution",
-]
-_BANNED_RE = re.compile("|".join(_BANNED_PHRASES), re.IGNORECASE)
+# L24: import from lib/constants.py — do not define a local literal
+_BANNED_RE = re.compile("|".join(BANNED_PHRASES_DEPLOY), re.IGNORECASE)
 
 
 def gate_no_banned_phrases(html: str, **kw: Any) -> GateResult:
