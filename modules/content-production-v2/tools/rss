@@ -25,6 +25,7 @@ from lib.orchestrator import (
     deploy_draft, set_yoast_meta, purge_cache, verify_deploy,
     run_d2_claims_check, generate_from_capture, load_capture_transcript,
     resolve_unsourced_claims,
+    PIPELINE_STAGES,
 )
 from lib.linker_core import deploy_lock
 
@@ -72,7 +73,7 @@ def cmd_new_article(args):
     if not stage_done(job, "gap_scan"):
         if args.skip_gap_scan:
             log("Stage B: GAP SCAN (skipped)")
-            mark_stage(job, "gap_scan", "done", skipped=True)
+            mark_stage(job, "gap_scan", "skipped_flag", reason="--skip-gap-scan")
         else:
             log("Stage B: GAP SCAN")
             # Gap scan runs as part of assemble-article; we just note it
@@ -315,9 +316,21 @@ def cmd_new_article(args):
             # = non-blocking. Article proceeds through gates.
             log(f"  REVIEW INFRASTRUCTURE FAILURE (non-blocking): {e}")
             mark_stage(job, "adversarial_review", "failed", error=str(e))
+    elif not stage_done(job, "adversarial_review"):
+        # L28: record WHY this stage was skipped — no silent vanishing
+        if not review_enabled:
+            reason = "content.adversarial_review.enabled not set or False"
+        else:
+            reason = f"content_type '{content_type}' not in review_types {review_types}"
+        log(f"Stage E2: ADVERSARIAL REVIEW (skipped — {reason})")
+        mark_stage(job, "adversarial_review", "skipped_config", reason=reason)
 
     if args.dry_run:
         log("\nDRY RUN — stopping before deploy")
+        # L28: record not_reached for stages that won't run
+        for _s in ("deploy", "verify", "log"):
+            if not stage_done(job, _s):
+                mark_stage(job, _s, "not_reached", reason="dry-run")
         job["completed"] = datetime.now().isoformat()
         job["wall_clock_s"] = round(time.time() - start)
         save_job(job)
