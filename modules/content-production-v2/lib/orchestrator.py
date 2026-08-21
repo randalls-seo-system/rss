@@ -29,6 +29,12 @@ _gl_mod = _ilu.module_from_spec(_gl_spec)
 _gl_spec.loader.exec_module(_gl_mod)
 run_universal_gates = _gl_mod.run_universal_gates
 
+_const_spec = _ilu.spec_from_file_location("constants", REPO_ROOT / "lib" / "constants.py")
+_const_mod = _ilu.module_from_spec(_const_spec)
+_const_spec.loader.exec_module(_const_mod)
+CSS_BUILTIN_ALLOWLIST = _const_mod.CSS_BUILTIN_ALLOWLIST
+CSS_FRAMEWORK_PREFIXES = _const_mod.CSS_FRAMEWORK_PREFIXES
+
 # ───────────────────────────────────────────────────────────────────────────
 # Centralized timeouts
 # ───────────────────────────────────────────────────────────────────────────
@@ -197,8 +203,7 @@ def run_gates(html: str, config: dict) -> dict:
     results["word_count"] = "pass" if wc >= min_words else f"FAIL: {wc} words (minimum {min_words})"
 
     # Gate 6: CSS prefix check — hard fail on foreign classes
-    _BUILTIN_ALLOWLIST = {"main-content", "ans", "sep", "badge", "bluf"}
-    _FRAMEWORK_PREFIXES = ("et_", "wp-", "dsm-")
+    # Allowlists from lib/constants.py (shared with gate_library)
     site_allowlist = set(config.get("content", {}).get("css_allowlist", []))
     all_classes = set()
     scope = main_content if main_content else soup
@@ -207,9 +212,9 @@ def run_gates(html: str, config: dict) -> dict:
             all_classes.add(cls)
     foreign = []
     for cls in sorted(all_classes):
-        if cls in _BUILTIN_ALLOWLIST or cls in site_allowlist:
+        if cls in CSS_BUILTIN_ALLOWLIST or cls in site_allowlist:
             continue
-        if any(cls.startswith(p) for p in _FRAMEWORK_PREFIXES):
+        if any(cls.startswith(p) for p in CSS_FRAMEWORK_PREFIXES):
             continue
         if any(cls.lower().startswith(p.lower()) for p in css_prefixes):
             continue
