@@ -948,6 +948,12 @@ Article text:
         # CLI succeeded but produced no parseable claims — legitimate zero
         return []
 
+    # L31: Assign stable IDs before any other processing.
+    # Classification echoes only the ID; verbatim_text is carried across
+    # the extraction→classification boundary in code, not by the LLM.
+    for i, claim in enumerate(claims):
+        claim["id"] = f"c{i:03d}"
+
     # L30: Self-validate verbatim_text against source HTML.
     # A claim whose verbatim_text does not appear in the raw HTML cannot
     # be resolved by the downstream matcher. Mark it now so the resolver
@@ -965,7 +971,7 @@ Article text:
             mismatch_count += 1
 
     print(
-        f"  [D2] Verbatim validation: {verified_count} verified, "
+        f"  [D2] Verbatim validation (extraction): {verified_count} verified, "
         f"{mismatch_count} mismatched (of {len(claims)} claims)",
         file=sys.stderr,
     )
@@ -1033,7 +1039,14 @@ def run_claims_classification(
     # Truncate transcript for prompt size
     sme_text = transcript_text[:5000] if transcript_text else ""
 
-    claims_json = json.dumps(claims, indent=2, ensure_ascii=False)
+    # L31: Send only id + claim + section to the classifier.
+    # verbatim_text stays in the extraction record; the merge step
+    # joins it back by id in code after classification returns.
+    claims_for_prompt = [
+        {"id": c["id"], "claim": c["claim"], "section": c.get("section", "")}
+        for c in claims
+    ]
+    claims_json = json.dumps(claims_for_prompt, indent=2, ensure_ascii=False)
 
     sme_section = ""
     if sme_text:
@@ -1066,8 +1079,7 @@ CLAIMS TO CLASSIFY:
 {claims_json}
 
 Return a JSON array of objects, one per claim, each with:
-- "claim": (copied from input)
-- "section": (copied from input)
+- "id": (copied exactly from input — e.g. "c000", "c001")
 - "classification": "POLICY" | "SOURCE" | "UNSOURCED"
 - "suggestion": (only for UNSOURCED — neutralization suggestion)
 
@@ -1089,7 +1101,7 @@ Return ONLY the JSON array."""
 
     if result.returncode != 0:
         # If classification fails, mark everything UNSOURCED
-        return [{"claim": c["claim"], "section": c.get("section", ""), "classification": "UNSOURCED",
+        return [{"id": c["id"], "classification": "UNSOURCED",
                  "suggestion": "Classification failed — manual review required"} for c in claims]
 
     try:
@@ -1105,7 +1117,7 @@ Return ONLY the JSON array."""
     except (json.JSONDecodeError, TypeError):
         pass
 
-    return [{"claim": c["claim"], "section": c.get("section", ""), "classification": "UNSOURCED",
+    return [{"id": c["id"], "classification": "UNSOURCED",
              "suggestion": "Parse error — manual review required"} for c in claims]
 
 
@@ -1151,9 +1163,83 @@ def run_d2_claims_check(html: str, config: dict, job: dict, transcript_text: str
     # Step 3: Classify ALL claims on every run (with optional transcript as source)
     policy_path = config.get("content", {}).get("claims_policy", "")
     if claims:
-        all_classified = run_claims_classification(claims, policy_path, jd, jd, transcript_text=transcript_text)
+        classified_raw = run_claims_classification(claims, policy_path, jd, jd, transcript_text=transcript_text)
     else:
-        all_classified = []
+        classified_raw = []
+
+    # L31: Join classified results to extraction claims BY ID.
+    # verbatim_text, verbatim_verified, and claim_type are carried from
+    # extraction programmatically — never through the classification LLM.
+    extraction_by_id = {c["id"]: c for c in claims}
+    classified_by_id = {}
+    for cr in classified_raw:
+        cid = cr.get("id")
+        if cid is None:
+            raise RuntimeError(
+                f"D2 classification returned a claim with no 'id' field: "
+                f"{json.dumps(cr, ensure_ascii=False)[:200]}"
+            )
+        if cid not in extraction_by_id:
+            raise RuntimeError(
+                f"D2 classification returned unknown id '{cid}' — "
+                f"not in extraction output (extraction ids: "
+                f"{sorted(extraction_by_id.keys())[:10]}...)"
+            )
+        if cid in classified_by_id:
+            raise RuntimeError(
+                f"D2 classification returned duplicate id '{cid}'"
+            )
+        classified_by_id[cid] = cr
+
+    # Hard fail if counts differ
+    if len(classified_by_id) != len(extraction_by_id):
+        missing_from_class = set(extraction_by_id) - set(classified_by_id)
+        extra_in_class = set(classified_by_id) - set(extraction_by_id)
+        raise RuntimeError(
+            f"D2 extraction→classification count mismatch: "
+            f"{len(extraction_by_id)} extracted, {len(classified_by_id)} classified. "
+            f"Missing from classification: {sorted(missing_from_class)[:10]}. "
+            f"Extra in classification: {sorted(extra_in_class)[:10]}."
+        )
+
+    # Merge: extraction fields + classification fields
+    all_classified = []
+    for cid in sorted(extraction_by_id.keys()):
+        ext = extraction_by_id[cid]
+        cls = classified_by_id[cid]
+        merged = {
+            "id": cid,
+            "claim": ext["claim"],
+            "verbatim_text": ext.get("verbatim_text", ""),
+            "verbatim_verified": ext.get("verbatim_verified", False),
+            "section": ext.get("section", ""),
+            "claim_type": ext.get("claim_type", ""),
+            "classification": cls.get("classification", "UNSOURCED"),
+        }
+        if cls.get("suggestion"):
+            merged["suggestion"] = cls["suggestion"]
+        if ext.get("verbatim_mismatch"):
+            merged["verbatim_mismatch"] = True
+        all_classified.append(merged)
+
+    # L31: Post-merge validation — re-validate verbatim_text on the MERGED
+    # report, the same data the resolver will read. The extraction-time
+    # validation (L30) checked a state that classification then destroyed;
+    # this check runs on the report the resolver actually consumes.
+    post_merge_verified = 0
+    post_merge_missing = 0
+    for mc in all_classified:
+        vt = mc.get("verbatim_text", "")
+        if vt and mc.get("verbatim_verified"):
+            post_merge_verified += 1
+        elif not vt:
+            post_merge_missing += 1
+    print(
+        f"  [D2] Verbatim validation (post-merge report): "
+        f"{post_merge_verified} verified, {post_merge_missing} missing "
+        f"(of {len(all_classified)} claims)",
+        file=sys.stderr,
+    )
 
     # Count
     unsourced = [c for c in all_classified if c.get("classification") == "UNSOURCED"]
@@ -1162,10 +1248,6 @@ def run_d2_claims_check(html: str, config: dict, job: dict, transcript_text: str
     sme_sourced = [c for c in all_classified if c.get("classification") == "SME-SOURCED"]
 
     # Check ventriloquism license
-    voice_path = config.get("content", {}).get("claims_policy", "")
-    voice_file_path = os.path.expanduser(
-        config.get("content", {}).get("brand_voice_archetype", "")
-    )
     first_person_licensed = bool(transcript_text)  # capture mode implies licensed
 
     # Save full report
