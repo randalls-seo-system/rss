@@ -117,6 +117,10 @@ TERMINAL_STAGE_STATUSES = frozenset({
     "not_reached",
 })
 
+# L27: Key where D2 claims-check results are stored in stages dict.
+# Single source of truth — the rss tool writes here, the approval gate reads here.
+D2_RESULT_KEY = "claims_check"
+
 
 def stage_done(job: dict, stage: str) -> bool:
     status = job.get("stages", {}).get(stage, {}).get("status")
@@ -1151,39 +1155,41 @@ def run_d2_claims_check(html: str, config: dict, job: dict, transcript_text: str
     return report
 
 
-def resolve_unsourced_claims(job: dict, article_path: Path, mode: str = "neutralize") -> tuple[Path, list[dict]]:
+def resolve_unsourced_claims(job: dict, article_path: Path, mode: str = "neutralize") -> tuple[Path, list[dict], list[dict]]:
     """Resolve UNSOURCED claims by neutralizing or removing them.
 
     mode:
       "neutralize" — apply D2's suggested neutralization for each claim
       "remove" — remove the sentence containing the claim entirely
 
-    Returns (modified_article_path, resolution_log).
-    Each resolution_log entry: {claim, action, before, after, reason}
+    Returns (modified_article_path, resolution_log, unresolved_log).
+    Each resolution_log entry: {claim, action, removed_text, reason}
+    Each unresolved_log entry: {claim, section, reason, pattern_tried}
     """
     jd = job_dir(job)
     report_path = jd / "d2-claims-report.json"
     if not report_path.exists():
-        return article_path, []
+        return article_path, [], []
 
     report = json.loads(report_path.read_text())
     classified = report.get("classified_claims", [])
     unsourced = [c for c in classified if c.get("classification") == "UNSOURCED"]
 
     if not unsourced:
-        return article_path, []
+        return article_path, [], []
 
     html = article_path.read_text()
     log_entries = []
+    unresolved_entries = []
+    resolved_claim_prefixes = set()
 
     for claim in unsourced:
         claim_text = claim.get("claim", "")
         suggestion = claim.get("suggestion", "")
+        section = claim.get("section", "")
 
         if mode == "remove":
-            # Remove the sentence containing the claim
             import re as _re
-            # Find and remove the sentence
             pattern = _re.escape(claim_text[:60])
             m = _re.search(pattern, html)
             if m:
@@ -1199,20 +1205,37 @@ def resolve_unsourced_claims(job: dict, article_path: Path, mode: str = "neutral
                         "removed_text": removed[:150],
                         "reason": suggestion or "UNSOURCED — not in transcript, policy, or sources",
                     })
+                    resolved_claim_prefixes.add(claim_text[:60])
+                else:
+                    unresolved_entries.append({
+                        "claim": claim_text[:100],
+                        "section": section,
+                        "reason": "boundary_failure",
+                        "pattern_tried": claim_text[:60],
+                    })
+            else:
+                # Pattern not found — determine why
+                if claim_text[:60] in resolved_claim_prefixes:
+                    reason = "collateral_removal"
+                else:
+                    reason = "pattern_not_found"
+                unresolved_entries.append({
+                    "claim": claim_text[:100],
+                    "section": section,
+                    "reason": reason,
+                    "pattern_tried": claim_text[:60],
+                })
         elif mode == "neutralize" and suggestion:
-            # Try to apply the suggestion (directional language replacement)
-            # Find the claim text in the HTML
             if claim_text[:50] in html:
-                # Use directional language from suggestion
                 neutral = suggestion.split(":")[-1].strip() if ":" in suggestion else ""
                 if not neutral or len(neutral) > 200:
-                    # Suggestion isn't a clean replacement — remove instead
                     html = html.replace(claim_text, "", 1)
                     log_entries.append({
                         "claim": claim_text[:100],
                         "action": "removed (suggestion not a clean replacement)",
                         "reason": suggestion[:150],
                     })
+                    resolved_claim_prefixes.add(claim_text[:60])
                 else:
                     html = html.replace(claim_text, neutral, 1)
                     log_entries.append({
@@ -1221,20 +1244,29 @@ def resolve_unsourced_claims(job: dict, article_path: Path, mode: str = "neutral
                         "replacement": neutral[:150],
                         "reason": suggestion[:150],
                     })
+                    resolved_claim_prefixes.add(claim_text[:60])
             else:
-                log_entries.append({
+                unresolved_entries.append({
                     "claim": claim_text[:100],
-                    "action": "skipped (claim text not found in HTML)",
-                    "reason": suggestion[:150],
+                    "section": section,
+                    "reason": "pattern_not_found",
+                    "pattern_tried": claim_text[:50],
                 })
         else:
-            # No suggestion — remove
             if claim_text[:50] in html:
                 html = html.replace(claim_text, "", 1)
                 log_entries.append({
                     "claim": claim_text[:100],
                     "action": "removed (no suggestion available)",
                     "reason": "UNSOURCED with no neutralization suggestion",
+                })
+                resolved_claim_prefixes.add(claim_text[:60])
+            else:
+                unresolved_entries.append({
+                    "claim": claim_text[:100],
+                    "section": section,
+                    "reason": "pattern_not_found",
+                    "pattern_tried": claim_text[:50],
                 })
 
     article_path.write_text(html)
@@ -1247,10 +1279,11 @@ def resolve_unsourced_claims(job: dict, article_path: Path, mode: str = "neutral
         "timestamp": datetime.now().isoformat(),
         "mode": mode,
         "resolutions": log_entries,
+        "unresolved": unresolved_entries,
     })
     save_job(job)
 
-    return article_path, log_entries
+    return article_path, log_entries, unresolved_entries
 
 
 # ───────────────────────────────────────────────────────────────────────────

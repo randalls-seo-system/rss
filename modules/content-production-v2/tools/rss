@@ -192,26 +192,37 @@ def cmd_new_article(args):
             if unsourced > 0:
                 log(f"  D2 BLOCKED — {unsourced} unsourced. Applying auto-resolution...")
                 article_path = Path(job["artifacts"]["article_html"])
-                _, resolutions = resolve_unsourced_claims(job, article_path, mode="remove")
+                _, resolutions, unresolved = resolve_unsourced_claims(job, article_path, mode="remove")
                 for r in resolutions:
                     log(f"    {r['action']}: \"{r['claim'][:60]}\"")
+                for u in unresolved:
+                    log(f"    UNRESOLVED ({u['reason']}): \"{u['claim'][:60]}\"")
 
-                # Write safi-questions for removed claims
+                # Write safi-questions for removed AND unresolved claims
                 questions = [r for r in resolutions if r["action"].startswith("removed")]
-                if questions:
-                    q_path = job_dir(job) / f"safi-questions-{job.get('post_slug', job['id'][:20])}.md"
-                    q_lines = [f"# Safi Questions — {job['topic']}\n\nClaims removed by D2 (need Safi confirmation before publish):\n"]
-                    for i, q in enumerate(questions, 1):
-                        q_lines.append(f"{i}. **\"{q['claim']}\"** — {q.get('reason', 'UNSOURCED')}\n")
+                q_path = job_dir(job) / f"safi-questions-{job.get('post_slug', job['id'][:20])}.md"
+                q_lines = [f"# Safi Questions — {job['topic']}\n\nClaims removed by D2 (need Safi confirmation before publish):\n"]
+                for i, q in enumerate(questions, 1):
+                    q_lines.append(f"{i}. **\"{q['claim']}\"** — {q.get('reason', 'UNSOURCED')}\n")
+                if unresolved:
+                    q_lines.append(f"\n## Claims the resolver could NOT act on — still in the article\n")
+                    for i, u in enumerate(unresolved, 1):
+                        q_lines.append(f"{i}. **\"{u['claim']}\"** [{u['section']}] — {u['reason']}: pattern `{u['pattern_tried'][:40]}…`\n")
+                if questions or unresolved:
                     q_path.write_text("\n".join(q_lines))
                     log(f"  Safi questions: {q_path.name}")
 
-                mark_stage(job, "claims_check", "done",
+                fully_resolved = len(unresolved) == 0
+                status = "done" if fully_resolved else "fail_unresolved"
+                mark_stage(job, "claims_check", status,
                            total_claims=total, unsourced=unsourced, sme_sourced=sme_sourced,
                            ventriloquism=vent_count,
                            resolutions=len(resolutions),
-                           note=f"{len(resolutions)} claims resolved (removed/neutralized)")
-                log(f"  D2 resolved: {len(resolutions)} claims handled")
+                           unresolved_count=len(unresolved),
+                           unresolved=unresolved,
+                           fully_resolved=fully_resolved,
+                           note=f"{len(resolutions)} resolved, {len(unresolved)} unresolved")
+                log(f"  D2 resolved: {len(resolutions)} claims handled, {len(unresolved)} unresolved")
             else:
                 # Only ventriloquism (should be licensed)
                 mark_stage(job, "claims_check", "done",

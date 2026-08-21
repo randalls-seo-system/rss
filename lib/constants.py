@@ -84,3 +84,10 @@ PRE_POSTPROCESS_ONLY = frozenset()
 BANNED_PHRASES_DEPLOY = tuple(
     p for p in BANNED_PHRASES_GENERATION if p not in PRE_POSTPROCESS_ONLY
 )
+
+# ---------------------------------------------------------------------------
+# L27: D2 claims-check result key — single source of truth
+# ---------------------------------------------------------------------------
+# The rss tool writes D2 results to stages[D2_RESULT_KEY].
+# refresh_job_ready_for_approval reads from the same key.
+D2_RESULT_KEY = "claims_check"

@@ -470,6 +470,13 @@ def refresh_job_ready_for_approval(job: dict) -> tuple[bool, str]:
     if d2.get("unsourced", -1) > 0:
         return False, f"D2: {d2['unsourced']} unsourced claim(s) remain"
 
+    # L27: Check for unresolved claims via D2_RESULT_KEY
+    from .orchestrator import D2_RESULT_KEY
+    claims_stage = stages.get(D2_RESULT_KEY, {})
+    unresolved_count = claims_stage.get("unresolved_count", 0)
+    if unresolved_count > 0:
+        return False, f"D2: {unresolved_count} unresolved claim(s) — resolver could not act on them"
+
     if not refresh.get("pending_draft_id"):
         return False, "No pending_draft_id — draft not deployed to site"
 
