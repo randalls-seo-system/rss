@@ -876,7 +876,11 @@ def run_ventriloquism_gate(html: str, config: dict = None) -> list[dict]:
 def run_claims_extraction(html: str, job_path: Path) -> list[dict]:
     """Extract factual claims from article via claude CLI (Opus).
 
-    Returns list of {claim, section, claim_type}.
+    Returns list of {claim, verbatim_text, section, claim_type,
+    verbatim_verified}.  verbatim_text is the exact sentence from
+    the article that the resolver will match against.  If the LLM
+    paraphrases or the text spans inline HTML tags, verbatim_verified
+    is False and the claim carries verbatim_mismatch=True.
     """
     from bs4 import BeautifulSoup
     soup = BeautifulSoup(html, "html.parser")
@@ -885,9 +889,12 @@ def run_claims_extraction(html: str, job_path: Path) -> list[dict]:
     prompt = f"""Extract every factual claim from this article draft. A "claim" is any specific assertion of fact: numbers, percentages, timelines, waiting periods, named rules/programs/forms, dollar figures, score thresholds, legal or regulatory assertions, or credit-score-impact predictions.
 
 For each claim, output a JSON array of objects with:
-- "claim": the exact text of the claim (verbatim from the article)
+- "claim": a short summary of the factual assertion (for classification)
+- "verbatim_text": the EXACT sentence or clause from the article that contains the claim, copied CHARACTER-FOR-CHARACTER from the article text above. Do NOT paraphrase, rephrase, combine sentences, or shorten. Copy the full sentence exactly as it appears.
 - "section": the H2 section heading it appears under
 - "claim_type": one of "number", "timeline", "rule_or_program", "threshold", "legal", "score_prediction", "dollar_figure", "general_fact"
+
+CRITICAL: "verbatim_text" must be a character-for-character copy of the source sentence. If you cannot find the exact sentence, set verbatim_text to the closest substring you can copy exactly from the text. The downstream resolver will match this string literally — any deviation causes a miss.
 
 Be thorough — extract EVERY specific factual assertion. Include credit score impacts, waiting periods, form numbers, program names, and any assertion that could be verified against an authoritative source.
 
@@ -923,6 +930,7 @@ Article text:
         raise RuntimeError(f"D2 extraction CLI failed after {D2_MAX_RETRIES + 1} attempts: {last_err}")
 
     # Parse the response — claude outputs JSON with a result field
+    claims = []
     try:
         resp = json.loads(result.stdout)
         content = resp.get("result", result.stdout)
@@ -931,14 +939,38 @@ Article text:
             end = content.rfind("]") + 1
             if start >= 0 and end > start:
                 claims = json.loads(content[start:end])
-                return claims
         elif isinstance(content, list):
-            return content
+            claims = content
     except (json.JSONDecodeError, TypeError):
         pass
 
-    # CLI succeeded but produced no parseable claims — legitimate zero
-    return []
+    if not claims:
+        # CLI succeeded but produced no parseable claims — legitimate zero
+        return []
+
+    # L30: Self-validate verbatim_text against source HTML.
+    # A claim whose verbatim_text does not appear in the raw HTML cannot
+    # be resolved by the downstream matcher. Mark it now so the resolver
+    # reports it as verbatim_not_in_source instead of a silent miss.
+    verified_count = 0
+    mismatch_count = 0
+    for claim in claims:
+        vt = claim.get("verbatim_text", "")
+        if vt and vt in html:
+            claim["verbatim_verified"] = True
+            verified_count += 1
+        else:
+            claim["verbatim_verified"] = False
+            claim["verbatim_mismatch"] = True
+            mismatch_count += 1
+
+    print(
+        f"  [D2] Verbatim validation: {verified_count} verified, "
+        f"{mismatch_count} mismatched (of {len(claims)} claims)",
+        file=sys.stderr,
+    )
+
+    return claims
 
 
 def run_claims_classification(
@@ -1162,6 +1194,12 @@ def resolve_unsourced_claims(job: dict, article_path: Path, mode: str = "neutral
       "neutralize" — apply D2's suggested neutralization for each claim
       "remove" — remove the sentence containing the claim entirely
 
+    L30: Prefers verbatim_text (verified exact copy from source HTML) over
+    the paraphrased claim field.  Claims with verbatim_mismatch are
+    immediately reported as unresolved (reason: verbatim_not_in_source)
+    and count toward unresolved_count / fail_unresolved.  Legacy claims
+    without verbatim_text fall back to old claim[:60] matching.
+
     Returns (modified_article_path, resolution_log, unresolved_log).
     Each resolution_log entry: {claim, action, removed_text, reason}
     Each unresolved_log entry: {claim, section, reason, pattern_tried}
@@ -1188,9 +1226,31 @@ def resolve_unsourced_claims(job: dict, article_path: Path, mode: str = "neutral
         suggestion = claim.get("suggestion", "")
         section = claim.get("section", "")
 
+        # L30: Determine match text.
+        # 1. verbatim_text present AND verified → use it (high confidence)
+        # 2. verbatim_text present but NOT verified → immediate unresolved
+        # 3. No verbatim_text (legacy record) → fall back to claim[:60]
+        verbatim = claim.get("verbatim_text", "")
+        has_verbatim_field = "verbatim_text" in claim
+        verbatim_ok = claim.get("verbatim_verified", False)
+
+        if has_verbatim_field and not verbatim_ok:
+            # Extractor returned text that doesn't appear in the HTML.
+            # The resolver cannot act — report immediately.
+            unresolved_entries.append({
+                "claim": claim_text[:100],
+                "section": section,
+                "reason": "verbatim_not_in_source",
+                "pattern_tried": (verbatim or claim_text)[:60],
+            })
+            continue
+
+        # Pick the best available match text
+        match_text = verbatim if verbatim_ok else claim_text
+
         if mode == "remove":
             import re as _re
-            pattern = _re.escape(claim_text[:60])
+            pattern = _re.escape(match_text[:60])
             m = _re.search(pattern, html)
             if m:
                 # Find sentence boundaries
@@ -1205,17 +1265,17 @@ def resolve_unsourced_claims(job: dict, article_path: Path, mode: str = "neutral
                         "removed_text": removed[:150],
                         "reason": suggestion or "UNSOURCED — not in transcript, policy, or sources",
                     })
-                    resolved_claim_prefixes.add(claim_text[:60])
+                    resolved_claim_prefixes.add(match_text[:60])
                 else:
                     unresolved_entries.append({
                         "claim": claim_text[:100],
                         "section": section,
                         "reason": "boundary_failure",
-                        "pattern_tried": claim_text[:60],
+                        "pattern_tried": match_text[:60],
                     })
             else:
                 # Pattern not found — determine why
-                if claim_text[:60] in resolved_claim_prefixes:
+                if match_text[:60] in resolved_claim_prefixes:
                     reason = "collateral_removal"
                 else:
                     reason = "pattern_not_found"
@@ -1223,50 +1283,50 @@ def resolve_unsourced_claims(job: dict, article_path: Path, mode: str = "neutral
                     "claim": claim_text[:100],
                     "section": section,
                     "reason": reason,
-                    "pattern_tried": claim_text[:60],
+                    "pattern_tried": match_text[:60],
                 })
         elif mode == "neutralize" and suggestion:
-            if claim_text[:50] in html:
+            if match_text[:50] in html:
                 neutral = suggestion.split(":")[-1].strip() if ":" in suggestion else ""
                 if not neutral or len(neutral) > 200:
-                    html = html.replace(claim_text, "", 1)
+                    html = html.replace(match_text, "", 1)
                     log_entries.append({
                         "claim": claim_text[:100],
                         "action": "removed (suggestion not a clean replacement)",
                         "reason": suggestion[:150],
                     })
-                    resolved_claim_prefixes.add(claim_text[:60])
+                    resolved_claim_prefixes.add(match_text[:60])
                 else:
-                    html = html.replace(claim_text, neutral, 1)
+                    html = html.replace(match_text, neutral, 1)
                     log_entries.append({
                         "claim": claim_text[:100],
                         "action": "neutralized",
                         "replacement": neutral[:150],
                         "reason": suggestion[:150],
                     })
-                    resolved_claim_prefixes.add(claim_text[:60])
+                    resolved_claim_prefixes.add(match_text[:60])
             else:
                 unresolved_entries.append({
                     "claim": claim_text[:100],
                     "section": section,
                     "reason": "pattern_not_found",
-                    "pattern_tried": claim_text[:50],
+                    "pattern_tried": match_text[:50],
                 })
         else:
-            if claim_text[:50] in html:
-                html = html.replace(claim_text, "", 1)
+            if match_text[:50] in html:
+                html = html.replace(match_text, "", 1)
                 log_entries.append({
                     "claim": claim_text[:100],
                     "action": "removed (no suggestion available)",
                     "reason": "UNSOURCED with no neutralization suggestion",
                 })
-                resolved_claim_prefixes.add(claim_text[:60])
+                resolved_claim_prefixes.add(match_text[:60])
             else:
                 unresolved_entries.append({
                     "claim": claim_text[:100],
                     "section": section,
                     "reason": "pattern_not_found",
-                    "pattern_tried": claim_text[:50],
+                    "pattern_tried": match_text[:50],
                 })
 
     article_path.write_text(html)
