@@ -1279,6 +1279,128 @@ def run_d2_claims_check(html: str, config: dict, job: dict, transcript_text: str
     return report
 
 
+def _find_containing_block(html: str, match_start: int, match_end: int) -> tuple[str, int, int]:
+    """Find the innermost block-level element containing the match position.
+
+    Uses tag scanning on the raw HTML string — no BS4 parse/serialize.
+    Returns (tag_name, element_start, element_end) where element_start is
+    the position of the opening '<' and element_end is the position after
+    the closing '>'.
+
+    L32: This replaces the rfind(".")/find(".") sentence-boundary search
+    that crossed element boundaries.
+    """
+    import re as _re
+
+    # Block-level elements where sentence removal makes sense
+    _BLOCK_TAGS = {"p", "li", "td", "th", "dd", "dt", "figcaption", "blockquote"}
+
+    best_tag = None
+    best_start = 0
+    best_end = len(html)
+
+    # Scan backward from match_start for opening block tags
+    for tag_match in _re.finditer(r'<(p|li|td|th|dd|dt|figcaption|blockquote)[\s>]', html[:match_start]):
+        tag_name = tag_match.group(1)
+        # Find the corresponding close tag AFTER the match
+        close_pattern = f'</{tag_name}>'
+        close_pos = html.find(close_pattern, match_end)
+        if close_pos >= 0:
+            # This tag contains our match — is it the innermost?
+            tag_start = tag_match.start()
+            tag_end = close_pos + len(close_pattern)
+            if tag_start >= best_start:
+                best_tag = tag_name
+                best_start = tag_start
+                best_end = tag_end
+
+    if best_tag is None:
+        return "unknown", 0, len(html)
+
+    return best_tag, best_start, best_end
+
+
+def _resolve_in_element(html: str, match_start: int, match_end: int,
+                        tag_name: str, el_start: int, el_end: int) -> dict:
+    """Determine the correct removal action for a match within a block element.
+
+    L32: Element-type-aware removal logic:
+      - <td>, <th>: ALWAYS flag (table cells are structural data)
+      - <li>: remove the WHOLE <li> if parent list has siblings;
+              flag if it would empty the parent <ul>/<ol>
+      - <p>, other blocks: remove the sentence if other sentences remain;
+              flag if it would empty the block
+
+    Returns dict with:
+      action: "remove" or "flag"
+      removal_start, removal_end: character positions (only if action=remove)
+      container_detail: reason string (only if action=flag)
+    """
+    import re as _re
+
+    # Table cells: always flag — structural data
+    if tag_name in ("td", "th"):
+        return {"action": "flag", "container_detail": f"table cell <{tag_name}>"}
+
+    # List items: remove the whole <li>, check parent emptiness
+    if tag_name == "li":
+        parent_tag = None
+        for ptag in ("ul", "ol"):
+            p_start = html.rfind(f"<{ptag}", 0, el_start)
+            if p_start >= 0:
+                p_end = html.find(f"</{ptag}>", el_end)
+                if p_end >= 0:
+                    parent_tag = ptag
+                    parent_start = p_start
+                    parent_end = p_end + len(f"</{ptag}>")
+                    break
+
+        if parent_tag:
+            parent_html = html[parent_start:parent_end]
+            sibling_count = len(_re.findall(r'<li[\s>]', parent_html))
+            if sibling_count > 1:
+                return {"action": "remove",
+                        "removal_start": el_start, "removal_end": el_end}
+            else:
+                return {"action": "flag",
+                        "container_detail": f"only <li> in <{parent_tag}>"}
+
+        return {"action": "flag",
+                "container_detail": "<li> with no identifiable parent list"}
+
+    # Paragraphs and other blocks: sentence-level removal
+    el_content_start = html.find(">", el_start) + 1
+    close_tag = f"</{tag_name}>"
+    close_pos = html.find(close_tag, match_end)
+    el_content_end = close_pos if close_pos >= 0 else el_end
+
+    start = html.rfind(".", el_content_start, match_start)
+    end = html.find(".", match_end, el_content_end)
+
+    if start < el_content_start:
+        start = el_content_start - 1
+    if end < 0 or end >= el_content_end:
+        end = el_content_end - 1
+
+    removal_start = start + 1
+    removal_end = end + 1
+
+    # Check if removal would empty the block
+    element_html = html[el_start:el_end]
+    local_rs = removal_start - el_start
+    local_re = removal_end - el_start
+    modified = element_html[:local_rs] + element_html[local_re:]
+    from bs4 import BeautifulSoup as _BS4
+    remaining = _BS4(modified, "html.parser").get_text(strip=True)
+
+    if len(remaining) == 0:
+        return {"action": "flag",
+                "container_detail": f"only content in <{tag_name}>"}
+
+    return {"action": "remove",
+            "removal_start": removal_start, "removal_end": removal_end}
+
+
 def resolve_unsourced_claims(job: dict, article_path: Path, mode: str = "neutralize") -> tuple[Path, list[dict], list[dict]]:
     """Resolve UNSOURCED claims by neutralizing or removing them.
 
@@ -1292,9 +1414,15 @@ def resolve_unsourced_claims(job: dict, article_path: Path, mode: str = "neutral
     and count toward unresolved_count / fail_unresolved.  Legacy claims
     without verbatim_text fall back to old claim[:60] matching.
 
+    L32: Sentence-boundary search is scoped to the containing block element
+    (p, li, td, th). A removal that would empty a structural container
+    flags as unresolved (reason: would_empty_container) rather than
+    cascading the deletion.
+
     Returns (modified_article_path, resolution_log, unresolved_log).
     Each resolution_log entry: {claim, action, removed_text, reason}
-    Each unresolved_log entry: {claim, section, reason, pattern_tried}
+    Each unresolved_log entry: {claim, section, reason, pattern_tried,
+                                container_tag?, container_text?}
     """
     jd = job_dir(job)
     report_path = jd / "d2-claims-report.json"
@@ -1310,9 +1438,6 @@ def resolve_unsourced_claims(job: dict, article_path: Path, mode: str = "neutral
 
     html = article_path.read_text()
     # L31: Save pre-resolution HTML to detect already_removed claims.
-    # A claim whose verbatim_text was in the original HTML but is absent
-    # from the current HTML was removed as collateral by an adjacent
-    # sentence-boundary removal. That is success, not failure.
     html_before_resolution = html
     log_entries = []
     unresolved_entries = []
@@ -1322,18 +1447,13 @@ def resolve_unsourced_claims(job: dict, article_path: Path, mode: str = "neutral
         claim_text = claim.get("claim", "")
         suggestion = claim.get("suggestion", "")
         section = claim.get("section", "")
+        verbatim = claim.get("verbatim_text", "")
 
         # L30: Determine match text.
-        # 1. verbatim_text present AND verified → use it (high confidence)
-        # 2. verbatim_text present but NOT verified → immediate unresolved
-        # 3. No verbatim_text (legacy record) → fall back to claim[:60]
-        verbatim = claim.get("verbatim_text", "")
         has_verbatim_field = "verbatim_text" in claim
         verbatim_ok = claim.get("verbatim_verified", False)
 
         if has_verbatim_field and not verbatim_ok:
-            # Extractor returned text that doesn't appear in the HTML.
-            # The resolver cannot act — report immediately.
             unresolved_entries.append({
                 "claim": claim_text[:100],
                 "section": section,
@@ -1342,7 +1462,6 @@ def resolve_unsourced_claims(job: dict, article_path: Path, mode: str = "neutral
             })
             continue
 
-        # Pick the best available match text
         match_text = verbatim if verbatim_ok else claim_text
 
         if mode == "remove":
@@ -1350,37 +1469,55 @@ def resolve_unsourced_claims(job: dict, article_path: Path, mode: str = "neutral
             pattern = _re.escape(match_text[:60])
             m = _re.search(pattern, html)
             if m:
-                # Find sentence boundaries
-                start = html.rfind(".", 0, m.start())
-                end = html.find(".", m.end())
-                if start >= 0 and end >= 0:
-                    removed = html[start + 1 : end + 1].strip()
-                    html = html[: start + 1] + html[end + 1 :]
-                    log_entries.append({
-                        "claim": claim_text[:100],
-                        "action": "removed",
-                        "removed_text": removed[:150],
-                        "reason": suggestion or "UNSOURCED — not in transcript, policy, or sources",
-                    })
-                    resolved_claim_prefixes.add(match_text[:60])
-                else:
+                # L32: Find the containing block element and determine
+                # the correct removal action based on element type.
+                tag_name, el_start, el_end = _find_containing_block(
+                    html, m.start(), m.end()
+                )
+
+                result = _resolve_in_element(
+                    html, m.start(), m.end(),
+                    tag_name, el_start, el_end,
+                )
+
+                if result["action"] == "flag":
+                    from bs4 import BeautifulSoup as _BS4
+                    container_text = _BS4(
+                        html[el_start:el_end], "html.parser"
+                    ).get_text(strip=True)
                     unresolved_entries.append({
                         "claim": claim_text[:100],
                         "section": section,
-                        "reason": "boundary_failure",
+                        "reason": "would_empty_container",
+                        "container_tag": tag_name,
+                        "container_detail": result["container_detail"],
+                        "container_text": container_text[:200],
                         "pattern_tried": match_text[:60],
+                        "verbatim_text": verbatim[:200],
                     })
+                    continue
+
+                removal_start = result["removal_start"]
+                removal_end = result["removal_end"]
+                removed = html[removal_start:removal_end].strip()
+                html = html[:removal_start] + html[removal_end:]
+                log_entries.append({
+                    "claim": claim_text[:100],
+                    "action": "removed",
+                    "removed_text": removed[:150],
+                    "reason": suggestion or "UNSOURCED — not in transcript, policy, or sources",
+                })
+                resolved_claim_prefixes.add(match_text[:60])
             else:
                 # Pattern not found in current HTML. Check whether it
                 # was present before resolution started — if so, a prior
-                # sentence-boundary removal already deleted it.
+                # removal already deleted it (L31: already_removed).
                 was_in_original = bool(_re.search(pattern, html_before_resolution))
                 if was_in_original:
-                    # L31: already_removed — collateral success, not failure.
                     log_entries.append({
                         "claim": claim_text[:100],
                         "action": "already_removed",
-                        "reason": "Removed as collateral by adjacent sentence-boundary removal",
+                        "reason": "Removed as collateral by adjacent removal",
                     })
                 elif match_text[:60] in resolved_claim_prefixes:
                     log_entries.append({

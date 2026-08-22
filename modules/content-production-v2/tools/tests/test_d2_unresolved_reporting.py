@@ -124,16 +124,15 @@ class TestPatternNotFoundReasonCode(unittest.TestCase):
                 self.assertEqual(unresolved[0]["reason"], "pattern_not_found")
                 self.assertIn("4.75 percent", unresolved[0]["pattern_tried"])
 
-    def test_boundary_failure_reason(self):
-        """If the pattern IS found but no sentence boundary exists,
-        the reason must be 'boundary_failure'."""
+    def test_would_empty_container_reason(self):
+        """L32: When the claim IS the entire content of its container,
+        removal would empty the container. Must flag as would_empty_container."""
         with tempfile.TemporaryDirectory() as tmp:
             with patch("lib.orchestrator.JOBS_DIR", Path(tmp)):
-                job = _make_job("test-boundary-fail", tmp)
-                jdir = Path(tmp) / "test-boundary-fail"
+                job = _make_job("test-empty-container", tmp)
+                jdir = Path(tmp) / "test-empty-container"
 
-                # Claim text is at the very start — no preceding period
-                claim = "This sentence has no preceding period in the document"
+                claim = "This sentence is the only content in its container"
                 report = {
                     "classified_claims": [
                         {
@@ -146,14 +145,14 @@ class TestPatternNotFoundReasonCode(unittest.TestCase):
                 }
                 (jdir / "d2-claims-report.json").write_text(json.dumps(report))
 
-                # No period before the claim text
                 article = jdir / "999-article.html"
-                article.write_text(f"{claim} and it ends here.")
+                article.write_text(f"<p>{claim} and it ends here.</p>")
 
                 _, resolved, unresolved = resolve_unsourced_claims(job, article, mode="remove")
 
                 self.assertEqual(len(unresolved), 1)
-                self.assertEqual(unresolved[0]["reason"], "boundary_failure")
+                self.assertEqual(unresolved[0]["reason"], "would_empty_container")
+                self.assertEqual(unresolved[0]["container_tag"], "p")
 
     def test_collateral_removal_reason(self):
         """If a prior removal in the same loop already deleted the text,
