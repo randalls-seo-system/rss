@@ -157,7 +157,9 @@ class TestPatternNotFoundReasonCode(unittest.TestCase):
 
     def test_collateral_removal_reason(self):
         """If a prior removal in the same loop already deleted the text,
-        the reason must be 'collateral_removal' — not 'pattern_not_found'."""
+        the claim must be recorded as already_removed (resolved success),
+        NOT as unresolved. L31: collateral removal is success — the claim
+        was removed from the article, just not by its own pattern match."""
         with tempfile.TemporaryDirectory() as tmp:
             with patch("lib.orchestrator.JOBS_DIR", Path(tmp)):
                 job = _make_job("test-collateral", tmp)
@@ -190,10 +192,12 @@ class TestPatternNotFoundReasonCode(unittest.TestCase):
 
                 _, resolved, unresolved = resolve_unsourced_claims(job, article, mode="remove")
 
-                # claim_a should resolve; claim_b should be collateral
-                self.assertEqual(len(resolved), 1)
-                self.assertEqual(len(unresolved), 1)
-                self.assertEqual(unresolved[0]["reason"], "collateral_removal")
+                # claim_a removed directly; claim_b already_removed (collateral success)
+                self.assertEqual(len(resolved), 2)
+                self.assertEqual(len(unresolved), 0)
+                actions = [r["action"] for r in resolved]
+                self.assertIn("removed", actions)
+                self.assertIn("already_removed", actions)
 
 
 # ─── Mutation (c): working path still removes matched claims ─────────────

@@ -1299,6 +1299,11 @@ def resolve_unsourced_claims(job: dict, article_path: Path, mode: str = "neutral
         return article_path, [], []
 
     html = article_path.read_text()
+    # L31: Save pre-resolution HTML to detect already_removed claims.
+    # A claim whose verbatim_text was in the original HTML but is absent
+    # from the current HTML was removed as collateral by an adjacent
+    # sentence-boundary removal. That is success, not failure.
+    html_before_resolution = html
     log_entries = []
     unresolved_entries = []
     resolved_claim_prefixes = set()
@@ -1356,17 +1361,30 @@ def resolve_unsourced_claims(job: dict, article_path: Path, mode: str = "neutral
                         "pattern_tried": match_text[:60],
                     })
             else:
-                # Pattern not found — determine why
-                if match_text[:60] in resolved_claim_prefixes:
-                    reason = "collateral_removal"
+                # Pattern not found in current HTML. Check whether it
+                # was present before resolution started — if so, a prior
+                # sentence-boundary removal already deleted it.
+                was_in_original = bool(_re.search(pattern, html_before_resolution))
+                if was_in_original:
+                    # L31: already_removed — collateral success, not failure.
+                    log_entries.append({
+                        "claim": claim_text[:100],
+                        "action": "already_removed",
+                        "reason": "Removed as collateral by adjacent sentence-boundary removal",
+                    })
+                elif match_text[:60] in resolved_claim_prefixes:
+                    log_entries.append({
+                        "claim": claim_text[:100],
+                        "action": "already_removed",
+                        "reason": "Same prefix already resolved",
+                    })
                 else:
-                    reason = "pattern_not_found"
-                unresolved_entries.append({
-                    "claim": claim_text[:100],
-                    "section": section,
-                    "reason": reason,
-                    "pattern_tried": match_text[:60],
-                })
+                    unresolved_entries.append({
+                        "claim": claim_text[:100],
+                        "section": section,
+                        "reason": "pattern_not_found",
+                        "pattern_tried": match_text[:60],
+                    })
         elif mode == "neutralize" and suggestion:
             if match_text[:50] in html:
                 neutral = suggestion.split(":")[-1].strip() if ":" in suggestion else ""
