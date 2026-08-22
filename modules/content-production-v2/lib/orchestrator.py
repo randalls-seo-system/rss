@@ -35,6 +35,11 @@ _const_spec.loader.exec_module(_const_mod)
 CSS_BUILTIN_ALLOWLIST = _const_mod.CSS_BUILTIN_ALLOWLIST
 CSS_FRAMEWORK_PREFIXES = _const_mod.CSS_FRAMEWORK_PREFIXES
 
+_sv_spec = _ilu.spec_from_file_location("source_verification", REPO_ROOT / "lib" / "source_verification.py")
+_sv_mod = _ilu.module_from_spec(_sv_spec)
+_sv_spec.loader.exec_module(_sv_mod)
+verify_claim = _sv_mod.verify_claim
+
 # ───────────────────────────────────────────────────────────────────────────
 # Centralized timeouts
 # ───────────────────────────────────────────────────────────────────────────
@@ -1290,14 +1295,73 @@ def run_d2_claims_check(html: str, config: dict, job: dict, transcript_text: str
         file=sys.stderr,
     )
 
-    # Count
-    unsourced = [c for c in all_classified if c.get("classification") == "UNSOURCED"]
+    # L33 Step 4b: Source-before-delete — verify UNSOURCED claims against
+    # authority sources before marking them for deletion.
+    unsourced_pre = [c for c in all_classified if c.get("classification") == "UNSOURCED"]
+    if unsourced_pre:
+        print(f"  [D2] Verifying {len(unsourced_pre)} UNSOURCED claims against authority sources...", file=sys.stderr)
+        for claim in unsourced_pre:
+            verdict, src_url, quote, attempt_log = verify_claim(
+                claim["claim"],
+                proposed_fix=claim.get("suggestion", ""),
+            )
+            claim["verification"] = verdict
+            claim["verification_url"] = src_url
+            claim["verification_quote"] = quote
+            claim["verification_attempts"] = {
+                "searches_run": attempt_log.searches_run,
+                "search_results_returned": attempt_log.search_results_returned,
+                "fetches_attempted": attempt_log.fetches_attempted,
+                "fetches_succeeded": attempt_log.fetches_succeeded,
+                "judges_run": attempt_log.judges_run,
+            }
+            status_label = verdict.upper()
+            if src_url:
+                status_label += f" ({src_url[:60]})"
+            print(f"    [{claim['id']}] {status_label}: {claim['claim'][:60]}", file=sys.stderr)
+
+    # Count (post-verification)
+    # UNSOURCED claims that verified as source_recovered are reclassified
+    unsourced = [c for c in all_classified
+                 if c.get("classification") == "UNSOURCED"
+                 and c.get("verification") in ("not_stated", None)]
+    contradicts = [c for c in all_classified
+                   if c.get("verification") == "contradicts"]
+    verification_failed = [c for c in all_classified
+                           if c.get("verification") == "verification_failed"]
+    source_recovered = [c for c in all_classified
+                        if c.get("verification") == "source_recovered"]
     policy = [c for c in all_classified if c.get("classification") == "POLICY"]
     source = [c for c in all_classified if c.get("classification") == "SOURCE"]
     sme_sourced = [c for c in all_classified if c.get("classification") == "SME-SOURCED"]
 
+    if source_recovered:
+        print(
+            f"  [D2] Source-recovered: {len(source_recovered)} claims verified against authority sources",
+            file=sys.stderr,
+        )
+    if contradicts:
+        print(
+            f"  [D2] Contradicts: {len(contradicts)} claims have authority-source corrections",
+            file=sys.stderr,
+        )
+    if verification_failed:
+        print(
+            f"  [D2] Verification failed: {len(verification_failed)} claims could not be checked (BLOCKING)",
+            file=sys.stderr,
+        )
+
     # Check ventriloquism license
     first_person_licensed = bool(transcript_text)  # capture mode implies licensed
+
+    # passed = no ventriloquism + no deletable UNSOURCED + no contradicts + no verification_failed
+    # contradicts and verification_failed BLOCK — they must not be silently passed or deleted
+    passed = (
+        (len(vent_hits) == 0 or first_person_licensed)
+        and len(unsourced) == 0
+        and len(contradicts) == 0
+        and len(verification_failed) == 0
+    )
 
     # Save full report
     report = {
@@ -1306,10 +1370,13 @@ def run_d2_claims_check(html: str, config: dict, job: dict, transcript_text: str
         "total_claims": len(all_classified),
         "classified_claims": all_classified,
         "unsourced_count": len(unsourced),
+        "contradicts_count": len(contradicts),
+        "verification_failed_count": len(verification_failed),
+        "source_recovered_count": len(source_recovered),
         "policy_count": len(policy),
         "source_count": len(source),
         "sme_sourced_count": len(sme_sourced),
-        "passed": (len(vent_hits) == 0 or first_person_licensed) and len(unsourced) == 0,
+        "passed": passed,
     }
     (jd / "d2-claims-report.json").write_text(
         json.dumps(report, indent=2, ensure_ascii=False)
@@ -1470,7 +1537,11 @@ def resolve_unsourced_claims(job: dict, article_path: Path, mode: str = "neutral
 
     report = json.loads(report_path.read_text())
     classified = report.get("classified_claims", [])
-    unsourced = [c for c in classified if c.get("classification") == "UNSOURCED"]
+    # L33: Only not_stated claims are eligible for deletion. contradicts,
+    # source_recovered, and verification_failed are NOT deleted.
+    unsourced = [c for c in classified
+                 if c.get("classification") == "UNSOURCED"
+                 and c.get("verification", "not_stated") == "not_stated"]
 
     if not unsourced:
         return article_path, [], []

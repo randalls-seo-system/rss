@@ -159,10 +159,15 @@ def cmd_new_article(args):
 
         vent_count = len(d2["ventriloquism_hits"])
         unsourced = d2["unsourced_count"]
+        contradicts_count = d2.get("contradicts_count", 0)
+        verification_failed_count = d2.get("verification_failed_count", 0)
+        source_recovered_count = d2.get("source_recovered_count", 0)
         sme_sourced = d2.get("sme_sourced_count", 0)
         total = d2["total_claims"]
         log(f"  Claims extracted: {total}")
-        log(f"  Policy: {d2['policy_count']}, Source: {d2['source_count']}, SME-sourced: {sme_sourced}, UNSOURCED: {unsourced}")
+        log(f"  Policy: {d2['policy_count']}, Source: {d2['source_count']}, SME-sourced: {sme_sourced}")
+        log(f"  UNSOURCED (deletable): {unsourced}, CONTRADICTS: {contradicts_count}, "
+            f"SOURCE_RECOVERED: {source_recovered_count}, VERIFICATION_FAILED: {verification_failed_count}")
         log(f"  Ventriloquism: {vent_count} hits" + (f" (LICENSED)" if d2.get("ventriloquism_licensed") else ""))
 
         if vent_count > 0:
@@ -185,12 +190,16 @@ def cmd_new_article(args):
         if d2["passed"]:
             mark_stage(job, "claims_check", "done",
                        total_claims=total, unsourced=unsourced, sme_sourced=sme_sourced,
-                       ventriloquism=vent_count)
+                       ventriloquism=vent_count,
+                       source_recovered=source_recovered_count)
             log("  D2 PASSED")
         else:
-            # Auto-resolve: neutralize/remove unsourced claims (logged)
+            # Auto-resolve: only NOT_STATED claims get deleted.
+            # CONTRADICTS and VERIFICATION_FAILED block — they are NOT deleted.
+            resolutions = []
+            unresolved = []
             if unsourced > 0:
-                log(f"  D2 BLOCKED — {unsourced} unsourced. Applying auto-resolution...")
+                log(f"  D2 BLOCKED — {unsourced} not_stated (deletable). Applying auto-resolution...")
                 article_path = Path(job["artifacts"]["article_html"])
                 _, resolutions, unresolved = resolve_unsourced_claims(job, article_path, mode="remove")
                 for r in resolutions:
@@ -198,45 +207,111 @@ def cmd_new_article(args):
                 for u in unresolved:
                     log(f"    UNRESOLVED ({u['reason']}): \"{u['claim'][:60]}\"")
 
-                # Write safi-questions for removed AND unresolved claims
-                questions = [r for r in resolutions if r["action"].startswith("removed")]
-                q_path = job_dir(job) / f"safi-questions-{job.get('post_slug', job['id'][:20])}.md"
-                q_lines = [f"# Safi Questions — {job['topic']}\n\nClaims removed by D2 (need Safi confirmation before publish):\n"]
+            # Build safi-questions: removed claims + unresolved + CONTRADICTS + VERIFICATION_FAILED
+            q_path = job_dir(job) / f"safi-questions-{job.get('post_slug', job['id'][:20])}.md"
+            q_lines = [f"# Safi Questions — {job['topic']}\n"]
+
+            # Section 1: CONTRADICTS — corrections with source quotes
+            contradicts_claims = [c for c in d2["classified_claims"]
+                                  if c.get("verification") == "contradicts"]
+            if contradicts_claims:
+                q_lines.append("\n## Claims with Authority-Source Corrections (CONTRADICTS)\n")
+                q_lines.append("These claims are contradicted by an authority source. The article is NOT modified.\n")
+                for i, c in enumerate(contradicts_claims, 1):
+                    q_lines.append(f"{i}. **\"{c['claim']}\"** [{c.get('section','')}]\n")
+                    q_lines.append(f"   - Source: {c.get('verification_url', '')}\n")
+                    q_lines.append(f"   - Source says: \"{c.get('verification_quote', '')}\"\n")
+                    q_lines.append(f"   - Suggestion: {c.get('suggestion', '')[:120]}\n")
+                    if c.get('verbatim_text'):
+                        q_lines.append(f"   - verbatim: `{c['verbatim_text'][:120]}`\n")
+
+            # Section 2: VERIFICATION_FAILED — could not check
+            vf_claims = [c for c in d2["classified_claims"]
+                         if c.get("verification") == "verification_failed"]
+            if vf_claims:
+                q_lines.append("\n## Claims that could NOT be verified (VERIFICATION_FAILED)\n")
+                q_lines.append("Search or fetch failed — NOT evidence the claim is wrong. Article NOT modified.\n")
+                for i, c in enumerate(vf_claims, 1):
+                    attempts = c.get("verification_attempts", {})
+                    q_lines.append(f"{i}. **\"{c['claim']}\"** [{c.get('section','')}]\n")
+                    q_lines.append(f"   - Attempts: {attempts.get('searches_run',0)} searches, "
+                                   f"{attempts.get('search_results_returned',0)} results, "
+                                   f"{attempts.get('fetches_attempted',0)} fetches attempted, "
+                                   f"{attempts.get('fetches_succeeded',0)} succeeded, "
+                                   f"{attempts.get('judges_run',0)} judged\n")
+
+            # Section 3: Removed claims (not_stated, deleted)
+            questions = [r for r in resolutions if r["action"].startswith("removed")]
+            if questions:
+                q_lines.append("\n## Claims removed by D2 (NOT_STATED — need confirmation before publish)\n")
                 for i, q in enumerate(questions, 1):
                     q_lines.append(f"{i}. **\"{q['claim']}\"** — {q.get('reason', 'UNSOURCED')}\n")
-                if unresolved:
-                    q_lines.append(f"\n## Claims the resolver could NOT act on — still in the article\n")
-                    for i, u in enumerate(unresolved, 1):
-                        container = u.get('container_tag', '')
-                        vt = u.get('verbatim_text', '')
-                        container_text = u.get('container_text', '')
-                        if u['reason'] == 'would_empty_container':
-                            q_lines.append(f"{i}. **\"{u['claim']}\"** [{u['section']}] — would empty `<{container}>`: `{container_text[:80]}`\n")
-                            if vt:
-                                q_lines.append(f"   verbatim: `{vt[:120]}`\n")
-                        else:
-                            q_lines.append(f"{i}. **\"{u['claim']}\"** [{u['section']}] — {u['reason']}: pattern `{u.get('pattern_tried','')[:40]}…`\n")
-                if questions or unresolved:
-                    q_path.write_text("\n".join(q_lines))
-                    log(f"  Safi questions: {q_path.name}")
 
-                fully_resolved = len(unresolved) == 0
-                status = "done" if fully_resolved else "fail_unresolved"
-                mark_stage(job, "claims_check", status,
-                           total_claims=total, unsourced=unsourced, sme_sourced=sme_sourced,
-                           ventriloquism=vent_count,
-                           resolutions=len(resolutions),
-                           unresolved_count=len(unresolved),
-                           unresolved=unresolved,
-                           fully_resolved=fully_resolved,
-                           note=f"{len(resolutions)} resolved, {len(unresolved)} unresolved")
-                log(f"  D2 resolved: {len(resolutions)} claims handled, {len(unresolved)} unresolved")
+            # Section 4: Unresolved (would_empty_container, pattern_not_found)
+            if unresolved:
+                q_lines.append("\n## Claims the resolver could NOT act on — still in the article\n")
+                for i, u in enumerate(unresolved, 1):
+                    container = u.get('container_tag', '')
+                    vt = u.get('verbatim_text', '')
+                    container_text = u.get('container_text', '')
+                    if u['reason'] == 'would_empty_container':
+                        q_lines.append(f"{i}. **\"{u['claim']}\"** [{u['section']}] — would empty `<{container}>`: `{container_text[:80]}`\n")
+                        if vt:
+                            q_lines.append(f"   verbatim: `{vt[:120]}`\n")
+                    else:
+                        q_lines.append(f"{i}. **\"{u['claim']}\"** [{u['section']}] — {u['reason']}: pattern `{u.get('pattern_tried','')[:40]}…`\n")
+
+            # Section 5: Source-recovered claims (for audit trail)
+            recovered = [c for c in d2["classified_claims"]
+                         if c.get("verification") == "source_recovered"]
+            if recovered:
+                q_lines.append("\n## Claims verified against authority sources (SOURCE_RECOVERED — kept)\n")
+                for i, c in enumerate(recovered, 1):
+                    q_lines.append(f"{i}. **\"{c['claim']}\"** [{c.get('section','')}]\n")
+                    q_lines.append(f"   - Source: {c.get('verification_url', '')}\n")
+                    q_lines.append(f"   - Quote: \"{c.get('verification_quote', '')[:120]}\"\n")
+
+            if any([contradicts_claims, vf_claims, questions, unresolved, recovered]):
+                q_path.write_text("\n".join(q_lines))
+                log(f"  Safi questions: {q_path.name}")
+
+            # Determine final status
+            has_contradicts = contradicts_count > 0
+            has_vf = verification_failed_count > 0
+            has_unresolved = len(unresolved) > 0
+            fully_resolved = not has_unresolved and not has_contradicts and not has_vf
+
+            if has_contradicts or has_vf:
+                status = "fail_unresolved"
+                note_parts = []
+                if resolutions:
+                    note_parts.append(f"{len(resolutions)} removed")
+                if has_contradicts:
+                    note_parts.append(f"{contradicts_count} contradicts (need correction)")
+                if has_vf:
+                    note_parts.append(f"{verification_failed_count} verification_failed (need manual check)")
+                if has_unresolved:
+                    note_parts.append(f"{len(unresolved)} unresolved")
+                note = ", ".join(note_parts)
+            elif has_unresolved:
+                status = "fail_unresolved"
+                note = f"{len(resolutions)} resolved, {len(unresolved)} unresolved"
             else:
-                # Only ventriloquism (should be licensed)
-                mark_stage(job, "claims_check", "done",
-                           total_claims=total, unsourced=0, sme_sourced=sme_sourced,
-                           ventriloquism=vent_count, ventriloquism_licensed=True)
-                log("  D2 PASSED (ventriloquism licensed)")
+                status = "done"
+                note = f"{len(resolutions)} resolved, 0 unresolved"
+
+            mark_stage(job, "claims_check", status,
+                       total_claims=total, unsourced=unsourced, sme_sourced=sme_sourced,
+                       ventriloquism=vent_count,
+                       source_recovered=source_recovered_count,
+                       contradicts=contradicts_count,
+                       verification_failed=verification_failed_count,
+                       resolutions=len(resolutions),
+                       unresolved_count=len(unresolved) + contradicts_count + verification_failed_count,
+                       unresolved=unresolved,
+                       fully_resolved=fully_resolved,
+                       note=note)
+            log(f"  D2: {note}")
 
     # ── Stage E: Link pass ──
     if not stage_done(job, "link_pass"):

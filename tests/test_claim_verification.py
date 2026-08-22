@@ -18,6 +18,12 @@ from unittest.mock import MagicMock, patch
 REPO_ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(REPO_ROOT))
 
+# L33: The shared source_verification module is loaded via importlib in
+# adversarial_review.py. Tests that mock LLM/search/fetch must patch on
+# the shared module, not on adversarial_review (which now delegates).
+import lib.adversarial_review as _ar_mod
+_SV_MOD = _ar_mod._sv_mod  # the loaded source_verification module
+
 from lib.adversarial_review import (
     Finding,
     VerifiedFix,
@@ -162,7 +168,7 @@ class TestCFPBFeeCategories(unittest.TestCase):
 
     @patch("lib.adversarial_review._search_for_claim_source", _mock_search_no_results)
     @patch("lib.adversarial_review._fetch_for_verification", return_value=CFPB_FEE_CATEGORIES_TEXT)
-    @patch("lib.adversarial_review._get_llm_client")
+    @patch.object(_SV_MOD, "_get_llm_client")
     def test_cfpb_fee_categories_not_stated(self, mock_client_fn, mock_fetch):
         """Source discusses fee categories, not specific dollar figures -> NOT_STATED."""
         mock_client = MagicMock()
@@ -211,7 +217,7 @@ class TestNotStatedEscalatesToSearch(unittest.TestCase):
 
     @patch("lib.adversarial_review._search_for_claim_source")
     @patch("lib.adversarial_review._fetch_for_verification", return_value="<html>Some content</html>")
-    @patch("lib.adversarial_review._get_llm_client")
+    @patch.object(_SV_MOD, "_get_llm_client")
     def test_not_stated_triggers_search(self, mock_client_fn, mock_fetch, mock_search):
         """NOT_STATED on cited URL -> search is called."""
         mock_client = MagicMock()
@@ -229,7 +235,7 @@ class TestNotStatedEscalatesToSearch(unittest.TestCase):
 
     @patch("lib.adversarial_review._search_for_claim_source")
     @patch("lib.adversarial_review._fetch_for_verification")
-    @patch("lib.adversarial_review._get_llm_client")
+    @patch.object(_SV_MOD, "_get_llm_client")
     def test_search_finds_authority_source(self, mock_client_fn, mock_fetch, mock_search):
         """If search finds an authority source that STATES the claim -> verified."""
         call_count = [0]
@@ -276,7 +282,7 @@ class TestUnfetchableCriticalParks(unittest.TestCase):
     @patch("lib.adversarial_review._call_openai", side_effect=_mock_openai_review)
     @patch("lib.adversarial_review._search_for_claim_source", _mock_search_no_results)
     @patch("lib.adversarial_review._fetch_for_verification", return_value=None)
-    @patch("lib.adversarial_review._get_llm_client")
+    @patch.object(_SV_MOD, "_get_llm_client")
     def test_unfetchable_critical_parks_job(self, mock_client_fn, mock_fetch,
                                             mock_openai):
         """Unfetchable authority URL on critical finding -> confirmation_passed=False."""
@@ -296,7 +302,7 @@ class TestUnfetchableCriticalParks(unittest.TestCase):
 
     @patch("lib.adversarial_review._search_for_claim_source", _mock_search_no_results)
     @patch("lib.adversarial_review._fetch_for_verification", return_value="<html>Content</html>")
-    @patch("lib.adversarial_review._get_llm_client")
+    @patch.object(_SV_MOD, "_get_llm_client")
     def test_not_stated_critical_parks_job(self, mock_client_fn, mock_fetch):
         """Source fetched but NOT_STATED on critical finding -> PARK."""
         mock_client = MagicMock()
@@ -379,7 +385,7 @@ class TestBlockedDomainSeparation(unittest.TestCase):
     A reviewer citing forbes.com or wsj.com should not be silently downgraded."""
 
     @patch("lib.adversarial_review._search_for_claim_source", _mock_search_no_results)
-    @patch("lib.adversarial_review._get_llm_client")
+    @patch.object(_SV_MOD, "_get_llm_client")
     def test_wsj_not_blocked_for_verification(self, mock_client_fn):
         """WSJ is blocked for content sourcing but must be fetchable for verification.
 
@@ -398,7 +404,7 @@ class TestBlockedDomainSeparation(unittest.TestCase):
             authority="https://www.wsj.com/articles/mortgage-rates",
         )
 
-        with patch("lib.adversarial_review._load_page_fetch") as mock_pf:
+        with patch.object(_SV_MOD, "_load_page_fetch") as mock_pf:
             mock_mod = MagicMock()
             mock_mod.cache_get.return_value = None
             mock_pf.return_value = mock_mod
@@ -420,7 +426,7 @@ class TestBlockedDomainSeparation(unittest.TestCase):
 class TestJudgeSource(unittest.TestCase):
     """The LLM judge must return STATES/CONTRADICTS/NOT_STATED only."""
 
-    @patch("lib.adversarial_review._get_llm_client")
+    @patch.object(_SV_MOD, "_get_llm_client")
     def test_states_verdict(self, mock_client_fn):
         mock_client = MagicMock()
         mock_client.call.side_effect = _mock_judge_states
@@ -431,7 +437,7 @@ class TestJudgeSource(unittest.TestCase):
         self.assertEqual(verdict, "STATES")
         self.assertIn("181 days", quote)
 
-    @patch("lib.adversarial_review._get_llm_client")
+    @patch.object(_SV_MOD, "_get_llm_client")
     def test_contradicts_verdict(self, mock_client_fn):
         mock_client = MagicMock()
         mock_client.call.side_effect = _mock_judge_contradicts
@@ -442,7 +448,7 @@ class TestJudgeSource(unittest.TestCase):
         self.assertEqual(verdict, "CONTRADICTS")
         self.assertIn("24 months", quote)
 
-    @patch("lib.adversarial_review._get_llm_client")
+    @patch.object(_SV_MOD, "_get_llm_client")
     def test_not_stated_verdict(self, mock_client_fn):
         mock_client = MagicMock()
         mock_client.call.side_effect = _mock_judge_not_stated
@@ -452,7 +458,7 @@ class TestJudgeSource(unittest.TestCase):
             CFPB_FEE_CATEGORIES_TEXT, CFPB_FINDING, "https://cfpb.gov/test")
         self.assertEqual(verdict, "NOT_STATED")
 
-    @patch("lib.adversarial_review._get_llm_client")
+    @patch.object(_SV_MOD, "_get_llm_client")
     def test_invalid_verdict_defaults_not_stated(self, mock_client_fn):
         """If LLM returns a non-standard verdict, default to NOT_STATED."""
         mock_client = MagicMock()

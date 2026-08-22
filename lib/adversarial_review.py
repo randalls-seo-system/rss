@@ -388,92 +388,40 @@ def triage_findings(findings: list[Finding]) -> TriageResult:
 # Evidence verification — LLM judge + search fallback
 # ---------------------------------------------------------------------------
 
-# Authority domains for claim verification. These are the only domains
-# accepted as verification sources. The content-sourcing blocklist in
-# page_fetch.py is intentionally NOT used here — a reviewer citing WSJ
-# or Forbes should not be silently downgraded.
-VERIFICATION_AUTHORITY_TLDS = (".gov", ".mil")
-VERIFICATION_AUTHORITY_DOMAINS = (
-    "fanniemae.com", "freddiemac.com",
-    "ecfr.gov", "federalregister.gov",
-)
-# Lender blogs and aggregators are not authoritative verification sources.
-VERIFICATION_REJECTED_DOMAINS = (
-    "veteransunited.com", "rocketmortgage.com", "lendingtree.com",
-    "bankrate.com", "nerdwallet.com", "investopedia.com",
-    "zillow.com", "realtor.com", "redfin.com", "movoto.com",
-)
+# L33: Authority domains, rejected domains, fetch, judge, and search are
+# shared with D2 claims verification. Single source of truth in
+# lib/source_verification.py. Do NOT redefine locally.
+import importlib.util as _sv_ilu
+_sv_spec = _sv_ilu.spec_from_file_location(
+    "source_verification", REPO_ROOT / "lib" / "source_verification.py")
+_sv_mod = _sv_ilu.module_from_spec(_sv_spec)
+_sv_spec.loader.exec_module(_sv_mod)
+
+VERIFICATION_AUTHORITY_TLDS = _sv_mod.VERIFICATION_AUTHORITY_TLDS
+VERIFICATION_AUTHORITY_DOMAINS = _sv_mod.VERIFICATION_AUTHORITY_DOMAINS
+VERIFICATION_REJECTED_DOMAINS = _sv_mod.VERIFICATION_REJECTED_DOMAINS
+_is_authority_domain_impl = _sv_mod.is_authority_domain
+_is_rejected_verification_domain_impl = _sv_mod.is_rejected_domain
+_fetch_for_verification_impl = _sv_mod.fetch_for_verification
+_judge_claim_impl = _sv_mod.judge_claim_against_source
+_search_authority_impl = _sv_mod.search_authority_sources
 
 
 def _is_authority_domain(url: str) -> bool:
-    """Check if URL is from an authority domain suitable for verification."""
-    from urllib.parse import urlparse
-    domain = urlparse(url).netloc.lower().lstrip("www.")
-    if any(domain.endswith(tld) for tld in VERIFICATION_AUTHORITY_TLDS):
-        return True
-    return any(domain == d or domain.endswith("." + d)
-               for d in VERIFICATION_AUTHORITY_DOMAINS)
+    return _is_authority_domain_impl(url)
 
 
 def _is_rejected_verification_domain(url: str) -> bool:
-    """Check if URL is from a rejected domain (lender blogs, aggregators)."""
-    from urllib.parse import urlparse
-    domain = urlparse(url).netloc.lower().lstrip("www.")
-    return any(domain == d or domain.endswith("." + d)
-               for d in VERIFICATION_REJECTED_DOMAINS)
-
-
-def _load_page_fetch():
-    """Load page_fetch module via importlib (avoids top-level lib package conflict)."""
-    import importlib.util as _ilu
-    _pf_path = REPO_ROOT / "modules" / "content-production-v2" / "lib" / "page_fetch.py"
-    spec = _ilu.spec_from_file_location("_page_fetch", _pf_path)
-    mod = _ilu.module_from_spec(spec)
-    spec.loader.exec_module(mod)
-    return mod
+    return _is_rejected_verification_domain_impl(url)
 
 
 def _fetch_for_verification(url: str) -> str | None:
-    """Fetch a URL for verification purposes.
-
-    Does NOT use the content-sourcing blocklist from page_fetch.py.
-    Reviewer citations may point to paywalled or competitor sources that
-    are blocked for content sourcing but valid as verification evidence.
-    Shares the page cache with page_fetch for efficiency.
-    """
-    pf = _load_page_fetch()
-
-    cached = pf.cache_get(url)
-    if cached is not None:
-        return cached
-    try:
-        import requests
-        resp = requests.get(
-            url,
-            headers={"User-Agent": (
-                "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) "
-                "AppleWebKit/537.36 (KHTML, like Gecko) "
-                "Chrome/125.0.0.0 Safari/537.36"
-            )},
-            timeout=15,
-        )
-        resp.raise_for_status()
-        html = resp.text
-        pf.cache_set(url, html)
-        return html
-    except Exception as e:
-        print(f"  [review] Failed to fetch {url[:80]}: {e}", file=sys.stderr)
-        return None
+    return _fetch_for_verification_impl(url)
 
 
-def _get_llm_client():
-    """Get LLMClient for verification judge calls (claude_cli/haiku)."""
-    import importlib.util as _ilu
-    _llm_path = REPO_ROOT / "modules" / "content-production-v2" / "lib" / "llm_client.py"
-    spec = _ilu.spec_from_file_location("_llm_client", _llm_path)
-    mod = _ilu.module_from_spec(spec)
-    spec.loader.exec_module(mod)
-    return mod.LLMClient(provider="claude_cli", model="haiku")
+# Re-export _get_llm_client so existing tests can patch it at this path.
+# The implementation lives in source_verification; this is a reference, not a copy.
+_get_llm_client = _sv_mod._get_llm_client
 
 
 def _judge_source(
@@ -481,103 +429,13 @@ def _judge_source(
     finding: Finding,
     source_url: str = "",
 ) -> tuple[str, str]:
-    """LLM judge: does this source text STATE the finding's claim?
-
-    Returns (verdict, quoted_text) where verdict is one of:
-      STATES      — source explicitly states the claim; quote included.
-      CONTRADICTS — source states something incompatible; quote included.
-      NOT_STATED  — source does not address the specific claim.
-    """
-    import hashlib as _hl
-
-    source_excerpt = source_text[:8000]
-
-    prompt = (
-        "You are verifying whether a source document states a specific claim.\n\n"
-        f'CLAIM: "{finding.issue}"\n'
-        f'PROPOSED FIX: "{finding.proposed_fix}"\n\n'
-        f"SOURCE TEXT (from {source_url}):\n{source_excerpt}\n\n"
-        "Does this source STATE the specific claim above? Answer ONE of:\n\n"
-        "STATES — The source explicitly states this claim. Quote the exact sentence.\n"
-        "CONTRADICTS — The source states something incompatible with this claim. "
-        "Quote the exact sentence.\n"
-        "NOT_STATED — The source does not address this specific claim.\n\n"
-        "IMPORTANT: A source that discusses the general CATEGORY or TOPIC of the "
-        "claim without stating the specific FIGURE, RATE, THRESHOLD, or FACT "
-        "claimed is NOT_STATED. For example, a page that lists fee categories "
-        "without stating dollar amounts does NOT state a claim about specific "
-        "dollar figures. A page that discusses a program's existence without "
-        "confirming the reviewer's specific assertion about that program is "
-        "NOT_STATED.\n\n"
-        "Return ONLY a JSON object:\n"
-        '{"verdict": "STATES|CONTRADICTS|NOT_STATED", '
-        '"quote": "exact sentence from source, or empty string"}'
-    )
-
-    h = _hl.md5(
-        f"verify-judge|{finding.issue[:100]}|{source_url}".encode()
-    ).hexdigest()[:12]
-
-    try:
-        client = _get_llm_client()
-        response = client.call(prompt, cache_key=f"verify-judge|{h}")
-        text = response.text.strip()
-
-        json_match = re.search(r'\{[^{}]*\}', text, re.DOTALL)
-        if json_match:
-            result = json.loads(json_match.group())
-            verdict = result.get("verdict", "NOT_STATED").upper()
-            quote = result.get("quote", "")
-            if verdict not in ("STATES", "CONTRADICTS", "NOT_STATED"):
-                verdict = "NOT_STATED"
-            return verdict, quote
-    except Exception as e:
-        print(f"  [review] Judge call failed: {e}", file=sys.stderr)
-
-    return "NOT_STATED", ""
+    """LLM judge: delegates to shared source_verification module."""
+    return _judge_claim_impl(source_text, finding.issue, finding.proposed_fix, source_url)
 
 
 def _search_for_claim_source(finding: Finding) -> list[dict]:
-    """Search Serper.dev for authority sources that might state this claim.
-
-    Returns up to 3 results from authority domains (.gov, .mil, GSE guides).
-    N=3 because: authority domains are a narrow set, each requires a fetch +
-    LLM call (~5s), and if the top 3 authority-domain results from a broad
-    search don't state the claim, deeper results won't either.
-    """
-    import os as _os
-    api_key = _os.environ.get("SERPER_API_KEY", "")
-    if not api_key:
-        return []
-
-    try:
-        import requests
-        resp = requests.post(
-            "https://google.serper.dev/search",
-            headers={"X-API-KEY": api_key, "Content-Type": "application/json"},
-            json={"q": finding.issue, "num": 10},
-            timeout=15,
-        )
-        data = resp.json()
-
-        results = []
-        for item in data.get("organic", []):
-            link = item.get("link", "")
-            if not _is_authority_domain(link):
-                continue
-            if _is_rejected_verification_domain(link):
-                continue
-            results.append({
-                "title": item.get("title", ""),
-                "snippet": item.get("snippet", ""),
-                "url": link,
-            })
-            if len(results) >= 3:
-                break
-        return results
-    except Exception as e:
-        print(f"  [review] Search failed: {e}", file=sys.stderr)
-        return []
+    """Search: delegates to shared source_verification module."""
+    return _search_authority_impl(finding.issue)
 
 
 def verify_fix(finding: Finding) -> VerifiedFix:
