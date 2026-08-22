@@ -207,7 +207,15 @@ def cmd_new_article(args):
                 if unresolved:
                     q_lines.append(f"\n## Claims the resolver could NOT act on — still in the article\n")
                     for i, u in enumerate(unresolved, 1):
-                        q_lines.append(f"{i}. **\"{u['claim']}\"** [{u['section']}] — {u['reason']}: pattern `{u['pattern_tried'][:40]}…`\n")
+                        container = u.get('container_tag', '')
+                        vt = u.get('verbatim_text', '')
+                        container_text = u.get('container_text', '')
+                        if u['reason'] == 'would_empty_container':
+                            q_lines.append(f"{i}. **\"{u['claim']}\"** [{u['section']}] — would empty `<{container}>`: `{container_text[:80]}`\n")
+                            if vt:
+                                q_lines.append(f"   verbatim: `{vt[:120]}`\n")
+                        else:
+                            q_lines.append(f"{i}. **\"{u['claim']}\"** [{u['section']}] — {u['reason']}: pattern `{u.get('pattern_tried','')[:40]}…`\n")
                 if questions or unresolved:
                     q_path.write_text("\n".join(q_lines))
                     log(f"  Safi questions: {q_path.name}")
