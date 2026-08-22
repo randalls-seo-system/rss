@@ -48,6 +48,46 @@ TIMEOUTS = {
     "purge": 30,          # CDN purge (best-effort)
 }
 
+# L33: Pathological-case ceiling for text fed to LLM prompts.
+# NOT a prompt-size budget. All pipeline articles fit in <10K tokens;
+# the 200K context window has 97% headroom. This guard exists only to
+# catch pathological inputs (e.g. a binary file loaded by mistake).
+# If it fires, it logs and records — it never clips silently.
+PROMPT_TEXT_CEILING = 200_000  # chars (~50K tokens)
+
+
+def _guard_prompt_text(text: str, label: str, job_path: Path | None = None) -> str:
+    """Return text unchanged unless pathologically large.
+
+    If text exceeds PROMPT_TEXT_CEILING, truncate with a loud log to
+    stderr and a record in the job directory. A silent clip is a defect
+    (L33); this function is the single place where prompt-text size is
+    enforced.
+    """
+    if len(text) <= PROMPT_TEXT_CEILING:
+        return text
+    print(
+        f"  [TRUNCATION GUARD] {label}: {len(text):,} chars exceeds "
+        f"{PROMPT_TEXT_CEILING:,} ceiling — truncated to {PROMPT_TEXT_CEILING:,}",
+        file=sys.stderr,
+    )
+    if job_path:
+        warnings_path = job_path / "truncation-warnings.json"
+        warnings = []
+        if warnings_path.exists():
+            try:
+                warnings = json.loads(warnings_path.read_text())
+            except (json.JSONDecodeError, OSError):
+                pass
+        warnings.append({
+            "label": label,
+            "original_chars": len(text),
+            "ceiling": PROMPT_TEXT_CEILING,
+            "timestamp": datetime.now().isoformat(),
+        })
+        warnings_path.write_text(json.dumps(warnings, indent=2))
+    return text[:PROMPT_TEXT_CEILING]
+
 
 # ───────────────────────────────────────────────────────────────────────────
 # Job management
@@ -444,7 +484,7 @@ def generate_from_capture(job: dict, config: dict, capture_path: str) -> Path:
     # Try repo-root-relative path
     if not voice_path.exists():
         voice_path = REPO_ROOT / "modules" / "brand-voice" / "archetypes" / f"{archetype}.md"
-    voice_text = voice_path.read_text()[:2500] if voice_path.exists() else ""
+    voice_text = _guard_prompt_text(voice_path.read_text(), "brand_voice", job_dir(job)) if voice_path.exists() else ""
 
     # Load claims policy (resolve relative to REPO_ROOT, not CWD)
     policy_path = config.get("content", {}).get("claims_policy", "")
@@ -454,7 +494,7 @@ def generate_from_capture(job: dict, config: dict, capture_path: str) -> Path:
         if not expanded.exists():
             expanded = Path(os.path.expanduser(policy_path))
         if expanded.exists():
-            policy_text = expanded.read_text()[:3000]
+            policy_text = _guard_prompt_text(expanded.read_text(), "claims_policy_gen", job_dir(job))
         else:
             raise FileNotFoundError(
                 f"Claims policy declared but not found: {policy_path} "
@@ -901,7 +941,7 @@ Be thorough — extract EVERY specific factual assertion. Include credit score i
 Return ONLY a JSON array. No commentary.
 
 Article text:
-{text[:12000]}"""
+{_guard_prompt_text(text, "d2_extraction", job_path)}"""
 
     prompt_path = job_path / "d2-extraction-prompt.txt"
     prompt_path.write_text(prompt)
@@ -1016,7 +1056,7 @@ def run_claims_classification(
         if not expanded.exists():
             expanded = Path(os.path.expanduser(policy_path))
         if expanded.exists():
-            policy_text = expanded.read_text()[:4000]
+            policy_text = _guard_prompt_text(expanded.read_text(), "claims_policy_class", job_path)
         else:
             raise FileNotFoundError(
                 f"Claims policy declared but not found: {policy_path}"
@@ -1030,7 +1070,7 @@ def run_claims_classification(
     )
     for scan_file in scan_globs:
         try:
-            scan_text += scan_file.read_text()[:2000] + "\n"
+            scan_text += _guard_prompt_text(scan_file.read_text(), f"gap_scan:{scan_file.name}", job_path) + "\n"
         except Exception:
             pass
 
@@ -1042,12 +1082,11 @@ def run_claims_classification(
             from lib.evidence import render_evidence_block
             ev_prose = render_evidence_block(ev_items[:40])
             if ev_prose:
-                scan_text += ev_prose[:6000] + "\n"
+                scan_text += _guard_prompt_text(ev_prose, "evidence_prose", job_path) + "\n"
         except Exception:
             pass
 
-    # Truncate transcript for prompt size
-    sme_text = transcript_text[:5000] if transcript_text else ""
+    sme_text = _guard_prompt_text(transcript_text, "sme_transcript", job_path) if transcript_text else ""
 
     # L31: Send only id + claim + section to the classifier.
     # verbatim_text stays in the extraction record; the merge step
