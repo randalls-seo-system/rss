@@ -877,16 +877,16 @@ class TestNoSettledClassification(unittest.TestCase):
 
             # Extraction returns claims that match settled texts
             mock_extract.return_value = [
-                {"claim": "FHA requires 3.5% down", "section": "Intro"},
-                {"claim": "Closing costs run 2-6%", "section": "Costs"},
-                {"claim": "Brand new claim", "section": "New"},
+                {"id": "c000", "claim": "FHA requires 3.5% down", "section": "Intro"},
+                {"id": "c001", "claim": "Closing costs run 2-6%", "section": "Costs"},
+                {"id": "c002", "claim": "Brand new claim", "section": "New"},
             ]
 
             # Classification returns all claims freshly classified
             mock_classify.return_value = [
-                {"claim": "FHA requires 3.5% down", "section": "Intro", "classification": "POLICY"},
-                {"claim": "Closing costs run 2-6%", "section": "Costs", "classification": "SOURCE"},
-                {"claim": "Brand new claim", "section": "New", "classification": "UNSOURCED",
+                {"id": "c000", "classification": "POLICY"},
+                {"id": "c001", "classification": "SOURCE"},
+                {"id": "c002", "classification": "UNSOURCED",
                  "suggestion": "Verify this claim"},
             ]
 
@@ -930,10 +930,10 @@ class TestNoSettledClassification(unittest.TestCase):
 
         try:
             mock_extract.return_value = [
-                {"claim": "Test claim", "section": "Body"},
+                {"id": "c000", "claim": "Test claim", "section": "Body"},
             ]
             mock_classify.return_value = [
-                {"claim": "Test claim", "section": "Body", "classification": "SOURCE"},
+                {"id": "c000", "classification": "SOURCE"},
             ]
 
             job = {"id": job_id, "site": "tln"}

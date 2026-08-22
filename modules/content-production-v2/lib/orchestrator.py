@@ -999,6 +999,16 @@ def run_claims_classification(
     if not claims:
         return []
 
+    # L31: Extraction assigns IDs — that is the contract.
+    # Classification must not silently backfill; a missing id is a pipeline bug.
+    for c in claims:
+        if "id" not in c:
+            raise RuntimeError(
+                f"run_claims_classification received a claim without 'id'. "
+                f"Extraction must assign IDs before classification. "
+                f"Claim: {json.dumps(c, ensure_ascii=False)[:200]}"
+            )
+
     # Load policy file (resolve relative to REPO_ROOT, not CWD)
     policy_text = ""
     if policy_path:

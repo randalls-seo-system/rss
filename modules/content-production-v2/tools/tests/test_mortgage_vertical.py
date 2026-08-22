@@ -233,7 +233,7 @@ class TestClaimsPolicyWiring(unittest.TestCase):
 
         config_path = MODULE_DIR.parent.parent / "sites" / "tln" / "config.json"
         config = json.loads(config_path.read_text())
-        claims = [{"claim": "FHA requires 3.5% down", "section": "test"}]
+        claims = [{"id": "c000", "claim": "FHA requires 3.5% down", "section": "test"}]
 
         captured_prompt_text = []
 
@@ -283,7 +283,7 @@ class TestClaimsPolicyWiring(unittest.TestCase):
         from lib.orchestrator import run_claims_classification
         import tempfile
 
-        claims = [{"claim": "test claim", "section": "test"}]
+        claims = [{"id": "c000", "claim": "test claim", "section": "test"}]
         with tempfile.TemporaryDirectory() as tmpdir:
             with self.assertRaises(FileNotFoundError) as ctx:
                 run_claims_classification(

@@ -303,5 +303,24 @@ class TestDuplicateIdHardFailure(unittest.TestCase):
             self.assertIn("duplicate", str(ctx.exception).lower())
 
 
+# ─── Mutation: classification guard refuses id-less claims ────────────
+
+class TestClassificationGuardRefusesIdless(unittest.TestCase):
+    """run_claims_classification must raise if any claim lacks an id.
+    Remove the guard → this test fails."""
+
+    def test_idless_claim_raises(self):
+        from lib.orchestrator import run_claims_classification
+        claims_no_id = [
+            {"claim": "Some factual assertion", "section": "Body"},
+        ]
+        with tempfile.TemporaryDirectory() as tmp:
+            with self.assertRaises(RuntimeError) as ctx:
+                run_claims_classification(
+                    claims_no_id, "", Path(tmp), Path(tmp)
+                )
+            self.assertIn("without 'id'", str(ctx.exception))
+
+
 if __name__ == "__main__":
     unittest.main()
